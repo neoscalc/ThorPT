@@ -563,9 +563,9 @@ class ThorPT_Routines():
                     # Adding zero volume or weight because no metastable garnet is present
                     # calculation only to make it clear
                     master_rock[item]['solid_volume_new'] += np.array(master_rock[item]['meta_grt_volume']).sum()
-                    if np.array(master_rock[item]['meta_grt_volume']).sum() != np.float(0):
+                    if np.array(master_rock[item]['meta_grt_volume']).sum() != np.float64(0):
                         print("What happend now? Here is suddenly garnet which is not stable???")
-                        keyboard.wait('esc')
+                        # keyboard.wait('esc')
                     metastable_garnet_weight = 0
 
                 # keeping track of stored and removed fluid
@@ -659,9 +659,9 @@ class ThorPT_Routines():
 
                         # LINK Fluid flux and permeability
                         # test 05
-                        bloc_a = np.float(master_rock[item]['geometry'][0])
-                        bloc_b = np.float(master_rock[item]['geometry'][1])
-                        bloc_c = np.float(master_rock[item]['geometry'][2])
+                        bloc_a = np.float64(master_rock[item]['geometry'][0])
+                        bloc_b = np.float64(master_rock[item]['geometry'][1])
+                        bloc_c = np.float64(master_rock[item]['geometry'][2])
                         area = bloc_b*bloc_c
                         xxx = bloc_a
                         size = bloc_a * bloc_b * bloc_c
@@ -958,7 +958,7 @@ class ThorPT_Routines():
                             print(f"Calculating {item}, {rock_react_item} is reactive")
                             if item != list(master_rock.keys())[tt]:
                                 print("ERROR - reactivity: Momentary rock is not concordant!!!")
-                                keyboard.wait('esc')
+                                # keyboard.wait('esc')
                             # fix double total in column error
                             master_rock[item]['df_element_total']['total:']
                             bulka = master_rock[item]['df_element_total']['total:']
@@ -972,11 +972,11 @@ class ThorPT_Routines():
                             # FIXME - Addition of moles dependend on geometry
                             external_rock_volume = (master_rock[rock_react_item]['st_solid'][-1] + master_rock[rock_react_item]['st_fluid_before'][-1])/1000000
                             external_rock_geometry = master_rock[rock_react_item]['geometry']
-                            external_rock_geometry = np.float(external_rock_geometry[0])*np.float(external_rock_geometry[1])*np.float(external_rock_geometry[2])
+                            external_rock_geometry = np.float64(external_rock_geometry[0])*np.float64(external_rock_geometry[1])*np.float64(external_rock_geometry[2])
 
                             internal_volume = (master_rock[item]['fluid_volume_new'] + master_rock[item]['solid_volume_new'])/1000000
                             internal_geometry = master_rock[item]['geometry']
-                            internal_geometry = np.float(internal_geometry[0])*np.float(internal_geometry[1])*np.float(internal_geometry[2])
+                            internal_geometry = np.float64(internal_geometry[0])*np.float64(internal_geometry[1])*np.float64(internal_geometry[2])
 
                             fluid_influx_factor = external_rock_geometry * internal_volume / external_rock_volume / internal_geometry
 
@@ -1234,9 +1234,9 @@ class ThorPT_Routines():
                         master_rock[item]['meta_grt_weight'].append(metastable_garnet.recalc_weight)
                 else:
                     master_rock[item]['solid_volume_new'] += np.array(master_rock[item]['meta_grt_volume']).sum()
-                    if np.array(master_rock[item]['meta_grt_volume']).sum() != np.float(0):
+                    if np.array(master_rock[item]['meta_grt_volume']).sum() != np.float64(0):
                         print("What happend now? Here is suddenly garnet which is not stable???")
-                        keyboard.wait('esc')
+                        # keyboard.wait('esc')
                     metastable_garnet_weight = 0
 
                 # keeping track of stored and removed fluid
@@ -1334,9 +1334,9 @@ class ThorPT_Routines():
                         int_permea = volume_flux*mü_water/9.81*xxx/density_cont # permeability in m2"""
 
                         # test 05
-                        bloc_a = np.float(master_rock[item]['geometry'][0])
-                        bloc_b = np.float(master_rock[item]['geometry'][1])
-                        bloc_c = np.float(master_rock[item]['geometry'][2])
+                        bloc_a = np.float64(master_rock[item]['geometry'][0])
+                        bloc_b = np.float64(master_rock[item]['geometry'][1])
+                        bloc_c = np.float64(master_rock[item]['geometry'][2])
                         area = bloc_b*bloc_c
                         xxx = bloc_a
                         size = bloc_a * bloc_b * bloc_c

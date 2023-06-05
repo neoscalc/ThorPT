@@ -221,28 +221,6 @@ if __name__ == '__main__':
         else:
             bulk_2d = False
 
-        if bulk_2d is True:
-            # import and generat 2D grid of bulk comps
-            from bulk_2d import *
-            b1 = np.array([49.60, 1.65, 17.15, 10.10, 0.0, 0.0,
-                        4.67, 11.52, 5.30, 0.0, 0.6, 0.0])
-            b2 = np.array([49.81, 1.96, 16.03, 8.62, 0.0, 0.0,
-                        5.32, 14.29, 3.43, 0.56, 0.6, 0.0])
-            b3 = np.array([50.77, 2.22, 17.46, 9.17, 0.0, 0.0,
-                        5.48, 9.77, 4.80, 0.34, 0.6, 0.0])
-            arr = bulk_gridder(b1, b2, b3, size=8)
-            # SIO2    TIO2 AL2O3 FEO  FE2O3 MNO   MGO  CAO    NA2O   K2O   H2O  CO2
-
-            init_data['Database'] = []
-            init_data['Bulk'] = []
-            init_data['Oxygen'] = []
-            init_data['Tensile strength'] = []
-            init_data['Extraction'] = 'No extraction'
-            for i in range(len(arr)):
-                init_data['Database'].append('tc55.txt')
-                init_data['Bulk'].append(list(arr[i]))
-                init_data['Oxygen'].append(5.0)
-                init_data['Tensile strength'].append(30.0)
 
         # /////////////////////////////////////////////////////
         # Preparing input data for modelling routine
@@ -502,12 +480,12 @@ if __name__ == '__main__':
 
             # Call the data reduction function
             # ThorPT.data_reduction()
-            ThorPT.data_reduction(init_file)
+            ThorPT.data_reduction()
 
     # Directing to sounds - play at end
-    dirname = os.path.dirname(os.path.abspath(__file__))
-    playsound(os.path.abspath(f'{dirname}/DataFiles/sound/wow.mp3'))
-    playsound(os.path.abspath(f'{dirname}/DataFiles/sound/Tequila.mp3'))
+    # dirname = os.path.dirname(os.path.abspath(__file__))
+    # playsound(Path(dirname).absolute() / "DataFiles" / "sound" / "wow.mp3")
+    # playsound(Path(dirname).absolute() / "DataFiles" / "sound" / "Tequila.mp3")
 
     print("Script is ending...\u03BA\u03B1\u03BB\u03B7\u03BD\u03C5\u03C7\u03C4\u03B1!")
     time.sleep(1)
