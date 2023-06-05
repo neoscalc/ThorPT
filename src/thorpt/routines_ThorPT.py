@@ -253,7 +253,7 @@ class ThorPT_Routines():
     def __init__(self,
             temperatures, pressures, master_rock, rock_origin,
             track_time, track_depth, garnet_fractionation, mechanical_methods, path_methods,
-            lowest_permeability, speed, angle, time_step):
+            lowest_permeability, speed, angle, time_step, theriak):
         # Output variables
         self.temperatures = temperatures
         self.pressures = pressures
@@ -268,6 +268,7 @@ class ThorPT_Routines():
         self.speed = speed
         self.angle = angle
         self.time_step = time_step
+        self.theriak = theriak
 
     def unreactive_multi_rock(self):
 
@@ -340,7 +341,7 @@ class ThorPT_Routines():
                 print("¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦")
                 print("v v v v v v v v v v v v v v v v v v v v v v v v")
                 print(f"-> Forward modeling step initiated - {item}")
-                master_rock[item]['minimization'] = Therm_dyn_ther_looper(
+                master_rock[item]['minimization'] = Therm_dyn_ther_looper(self.theriak,
                     master_rock[item]['database'], master_rock[item]['new_bulk'],
                     temperature, pressures[num], master_rock[item]['df_var_dictionary'],
                     master_rock[item]['df_h2o_content_dic'], master_rock[item]['df_element_total'],
@@ -1041,7 +1042,7 @@ class ThorPT_Routines():
                 # _____________________________________________________________________________
                 # 1) Initialize rock
                 # LINK 1) Initialisation of the rock system
-                master_rock[item]['minimization'] = Therm_dyn_ther_looper(
+                master_rock[item]['minimization'] = Therm_dyn_ther_looper(self.theriak,
                     master_rock[item]['database'], master_rock[item]['new_bulk'],
                     temperature, pressures[num], master_rock[item]['df_var_dictionary'],
                     master_rock[item]['df_h2o_content_dic'], master_rock[item]['df_element_total'],

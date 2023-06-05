@@ -71,21 +71,7 @@ if __name__ == '__main__':
 
     # Manual selector
     else:
-        init_files = ["_initmulti01_.txt", "_initmulti02_.txt", "_initmulti03_.txt", "_initmulti04_.txt", "_initmulti05_.txt"]
-        init_files = ["_initmulti03_.txt", "_initmulti04_.txt", "_initmulti05_.txt"]
-        init_files = ["_initmulti08_.txt", "_initmulti09_.txt", "_initmulti10_.txt", "_initmulti11_.txt"]
-        init_files = ["_initmulti_.txt"]
-        init_files = ["_initmulti02_.txt", "_initmulti03_.txt", "_initmulti04_.txt", "_initmulti05_.txt", "_initmulti06_.txt", "_initmulti07_.txt", "_initmulti08_.txt"]
-        init_files = ["_initmulti02_.txt", "_initmulti03_.txt", "_initmulti04_.txt", "_initmulti05_.txt", "_initmulti06_.txt", "_initmulti07_.txt", "_initmulti08_.txt", "_initmulti09_.txt", "_initmulti10_.txt", "_initmulti11_.txt"]
-        init_files = ["_initmulti02_.txt", "_initmulti03_.txt", "_initmulti04_.txt", "_initmulti05_.txt", "_initmulti06_.txt", "_initmulti07_.txt"]
-        init_files = ["_initmulti02_.txt", "_initmulti03_.txt", "_initmulti04_.txt"]
-        init_files = ["_initmulti_.txt"]
-        init_files = ["_initmulti05_.txt", "_initmulti06_.txt", "_initmulti07_.txt"]
-        init_files = ["_initmulti07_.txt", "_initmulti08_.txt"]
-        init_files = ["_initmulti001Angiboust_.txt"]
-        # init_files = ["_initmulti71_.txt", "_initmulti72_.txt", "_initmulti73_.txt", "_initmulti74_.txt", "_initmulti75_.txt", "_initmulti76_.txt", "_initmulti77_.txt", "_initmulti78_.txt", "_initmulti79_.txt"]
-        # init_files = ["_initmulti79_.txt"]
-        # init_files = ["_initmulti73_.txt", "_initmulti74_.txt", "_initmulti75_.txt", "_initmulti76_.txt", "_initmulti77_.txt", "_initmulti79_.txt"]
+        init_files = ["_initmulti73_.txt", "_initmulti74_.txt", "_initmulti75_.txt", "_initmulti76_.txt", "_initmulti77_.txt", "_initmulti79_.txt"]
 
 
 
@@ -107,6 +93,9 @@ if __name__ == '__main__':
         # take path, fracturing and further settings from init file applied to all rocks modelled
         path_arguments = False
         for entry in init:
+            if 'Theriak' in entry:
+                pos = entry.index(":")
+                theriak = entry[pos+1:]
             if 'Path' in entry:
                 pos = entry.index(":")
                 path = entry[pos+1:]
@@ -133,6 +122,23 @@ if __name__ == '__main__':
 
         # FIXME ROUTINE - static decision should be input answer
         # answer = int(input("Type 1 for multiple rock script. Type 2 for column interaction."))
+        if 'new' in path_arguments:
+            pressure_unit = input("You want to digitize a new P-T path. Please provide the physical unit for the pressure value you intend to use.[kbar/GPa]")
+            path_arguments[2] = pressure_unit
+
+        # updating the pressure unit in init file when a new path is created
+        for j, entry in enumerate(init):
+            if 'Input-arguments' in entry:
+                redo_arguments = ', '.join(path_arguments)
+                redo_arguments = ["Input-arguments:",redo_arguments]
+                redo_arguments = ''.join(redo_arguments)
+                init[j]=redo_arguments
+        # write new condition to init file
+        redo_init='\n'.join(init)
+        with open(file_to_open, 'w') as file:
+            file.write(redo_init)
+
+
         answer = int(path_arguments[-1])
         path_arguments = path_arguments[:-1]
         # answer = 2
@@ -459,7 +465,7 @@ if __name__ == '__main__':
 
         ThorPT = ThorPT_Routines(temperatures, pressures, master_rock, rock_origin,
                 track_time, track_depth, grt_frac, mechanical_methods, path_method,
-                lowest_permeability, conv_speed, angle, time_step)
+                lowest_permeability, conv_speed, angle, time_step, theriak)
 
 
         if answer == 1:
@@ -480,12 +486,12 @@ if __name__ == '__main__':
 
             # Call the data reduction function
             # ThorPT.data_reduction()
-            ThorPT.data_reduction()
+            ThorPT.data_reduction(init_file)
 
     # Directing to sounds - play at end
-    # dirname = os.path.dirname(os.path.abspath(__file__))
-    # playsound(Path(dirname).absolute() / "DataFiles" / "sound" / "wow.mp3")
-    # playsound(Path(dirname).absolute() / "DataFiles" / "sound" / "Tequila.mp3")
+    dirname = os.path.dirname(os.path.abspath(__file__))
+    # playsound(os.path.abspath(f'{dirname}/DataFiles/sound/wow.mp3'))
+    # playsound(os.path.abspath(f'{dirname}/DataFiles/sound/Tequila.mp3'))
 
     print("Script is ending...\u03BA\u03B1\u03BB\u03B7\u03BD\u03C5\u03C7\u03C4\u03B1!")
     time.sleep(1)

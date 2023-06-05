@@ -270,7 +270,7 @@ def decode_lines(line_number, line_file, number=11, one_element_row=True):
     return temp_dictionary
 
 
-def run_theriak(database, temperature, pressure, whole_rock):
+def run_theriak(theriak_path, database, temperature, pressure, whole_rock):
     """
     Function to run theriak with specified P-T condition and returns output as a list.
     it includes the path where theriak can be executed, writes the Therin file for the P-T
@@ -287,15 +287,24 @@ def run_theriak(database, temperature, pressure, whole_rock):
     # initializes the list were the theriak output is stored
     therin_condition = '    ' + str(temperature) + '    ' + str(pressure)
 
-    # Selecting folder to read data, path for theriak software
-    main_folder = Path(__file__).parent.absolute()
+    if platform.system() == 'Windows':
+        data_folder = Path(theriak_path)
+        file_to_open = data_folder / "theriak.exe"
+    else:
+        data_folder = Path(theriak_path)
+        file_to_open = data_folder / "theriak"
 
+    # NOTE old theriak path without init input
+    # Selecting folder to read data, path for theriak software
+    """
+    main_folder = Path(__file__).parent.absolute()
     if platform.system() == 'Windows':
         data_folder = main_folder / "_theriak" / "WIN" / "Programs"
         file_to_open = data_folder / "theriak.exe"
     else:
-        data_folder = main_folder / "_theriak" / "MAC"
+        data_folder = main_folder / "_theriak" / "MAC" / "Programs"
         file_to_open = data_folder / "theriak"
+    """
 
     # theriak_base = r"C:\TheriakDominoWIN\GeochemSoc2020\Programs\theriak.exe"
     # 'r' because Win vs Mac backslash '\' must be '/'
@@ -396,7 +405,7 @@ def read_to_dataframe(index_entry, df_index_as_list, input_in_lines, skip=2, num
         pass
 
 
-def read_theriak(database, temperature, pressure, whole_rock):
+def read_theriak(theriak_path, database, temperature, pressure, whole_rock):
     """
     Starts and read the theriak minimization at specific P-T and bulk rock to Dataframes that
     contain the physical values for each stable phase,
@@ -420,7 +429,7 @@ def read_theriak(database, temperature, pressure, whole_rock):
     Data_dic = {}
     del Data_dic
     Data_dic = {}
-    theriak_in_lines = run_theriak(
+    theriak_in_lines = run_theriak(theriak_path,
         database, temperature, pressure, whole_rock)
 
     # #######################################################
@@ -901,7 +910,7 @@ class Therm_dyn_ther_looper:
     """
 
     def __init__(
-            self, database, bulk_rock,
+            self, theriak_path, database, bulk_rock,
             temperature, pressure, df_var_dictionary,
             df_hydrous_data_dic, df_all_elements, num):
         """
@@ -925,7 +934,7 @@ class Therm_dyn_ther_looper:
             df_all_elements (dataframe): Frame that stores for each phase plus the
             total the respective element amount (O, C, H etc.)
         """
-
+        self.theriak_path = theriak_path
         self.database = database
         # store variables from thermodynamic read
         self.df_phase_data = 0
@@ -976,7 +985,7 @@ class Therm_dyn_ther_looper:
         # - returns theriak_data (which is a dictionary with Dataframes)
 
         theriak_data, g_sys, pot_frame = read_theriak(
-            self.database, self.temperature, self.pressure, self.bulk_rock)
+            self.theriak_path, self.database, self.temperature, self.pressure, self.bulk_rock)
 
         # recalculation to delete for oversaturation of water
         if marco is False:
@@ -995,7 +1004,7 @@ class Therm_dyn_ther_looper:
                     reset_bulk = check_redo_bulk(new_bulk)
                     self.bulk_rock = reset_bulk
                     theriak_data, g_sys, pot_frame = read_theriak(
-                        self.database, self.temperature, self.pressure, self.bulk_rock)
+                        self.theriak_path, self.database, self.temperature, self.pressure, self.bulk_rock)
 
         self.g_sys = g_sys
         self.pot_frame = pot_frame
@@ -1951,6 +1960,7 @@ class Garnet_recalc():
             # FIXME static database tc55 for garnet recalculation
             db = "tc55.txt    GARNET"
             Data_dic, g_sys, pot_frame = read_theriak(
+                self.theriak_path,
                 database=db, temperature=self.temperature,
                 pressure=self.pressure, whole_rock=bulk)
             grt = Data_dic['df_Vol_Dens'].columns[0]
