@@ -532,7 +532,6 @@ class ThorPT_Routines():
                 grt_flag = True
                 if grt_flag is True and len(master_rock[item]['garnet']) > 0 and len(master_rock[item]['garnet_check']) > 1:
                     if master_rock[item]['garnet_check'][-1] == 0:
-                        print("protocol")
                         # take al modelled garnets
                         # LINK - Metastable garnet call
                         print(f"1MStab-Grt {temperature} --- {pressures[num]}")
@@ -545,7 +544,6 @@ class ThorPT_Routines():
                         master_rock[item]['solid_volume_new'] += volume
                         master_rock[item]['meta_grt_weight'].append(metastable_garnet.recalc_weight)
                     if len(master_rock[item]['garnet']) > 1 and master_rock[item]['garnet_check'][-1] == 1:
-                        print("protocol")
                         # take all garnets but last one
                         print(f"2MStab-Grt {temperature} --- {pressures[num]}")
                         metastable_garnet = Garnet_recalc(self.theriak, master_rock[item]['garnet'][:-1], temperature, pressures[num])
@@ -878,7 +876,6 @@ class ThorPT_Routines():
             progress(ic)
             print("\n")
 
-        print("ssss")
         ar_flow = np.array(v_fluid_cubic_track)
         ar_perma = np.array(v_fluid_cubicp_track)
 

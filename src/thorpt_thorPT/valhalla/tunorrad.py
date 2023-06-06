@@ -16,7 +16,6 @@ import subprocess
 import time
 from dataclasses import dataclass, field
 from typing import List
-# import keyboard
 
 
 @dataclass
@@ -150,7 +149,6 @@ def mineral_translation():
     with open('XBIN') as f:
         reading = f.readlines()
     database = reading[0].strip()
-    print(Path.cwd())
     name = "SSModel_" + database + ".txt"
 
     # selecting path and file depending on OS
@@ -283,10 +281,6 @@ def run_theriak(theriak_path, database, temperature, pressure, whole_rock):
     Returns:
         list: output (theriak in lines) from theriak as a list - ready to read and process
     """
-
-    # initializes the list were the theriak output is stored
-    therin_condition = '    ' + str(temperature) + '    ' + str(pressure)
-
     # Old way of calling theriak - now with input by user in init
     """
     if platform.system() == 'Windows':
@@ -297,10 +291,6 @@ def run_theriak(theriak_path, database, temperature, pressure, whole_rock):
         file_to_open = data_folder / "theriak"
     """
 
-    file_to_open = Path(theriak_path)
-
-    # NOTE old theriak path without init input
-    # Selecting folder to read data, path for theriak software
     """
     main_folder = Path(__file__).parent.absolute()
     if platform.system() == 'Windows':
@@ -319,11 +309,6 @@ def run_theriak(theriak_path, database, temperature, pressure, whole_rock):
     therin = Path(path_split) / 'THERIN'
     xbin = Path(path_split) / 'XBIN'"""
 
-
-    # theriak_base = r"C:\TheriakDominoWIN\GeochemSoc2020\Programs\theriak.exe"
-    # 'r' because Win vs Mac backslash '\' must be '/'
-    whole_rock_write = "1   " + whole_rock
-
     """# stores the momentary P, T condition passed to Theriak for calculation
     with open(therin, 'w') as file_object:
         file_object.write(therin_condition)
@@ -336,6 +321,10 @@ def run_theriak(theriak_path, database, temperature, pressure, whole_rock):
         file_object.write("\n")
         file_object.write("no")"""
 
+    # initializes the list were the theriak output is stored
+    therin_condition = '    ' + str(temperature) + '    ' + str(pressure)
+    file_to_open = Path(theriak_path)
+    whole_rock_write = "1   " + whole_rock
     # stores the momentary P, T condition passed to Theriak for calculation
     with open('THERIN', 'w') as file_object:
         file_object.write(therin_condition)
@@ -347,6 +336,7 @@ def run_theriak(theriak_path, database, temperature, pressure, whole_rock):
         file_object.write(database)
         file_object.write("\n")
         file_object.write("no")
+
     ######################################################################
     # Runs Theriak, saves output, strips it to list
     ######################################################################
@@ -365,9 +355,6 @@ def run_theriak(theriak_path, database, temperature, pressure, whole_rock):
 
     ####################################
     # Option 2 - Old approach
-    """cmd = subprocess.Popen([file_to_open, xbin, therin],
-                       stdout=subprocess.PIPE, stderr=subprocess.PIPE)"""
-
     """cmd = subprocess.Popen([file_to_open, 'XBIN', 'THERIN'],
                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     cmdout, cmderr = cmd.communicate()
@@ -473,8 +460,6 @@ def read_theriak(theriak_path, database, temperature, pressure, whole_rock):
     # Snippet cutting method
     # ANCHOR time start Cavalaire
     TIL = theriak_in_lines.copy()
-    # print("Cavlaire wrapping script")
-    start = time.time()
     # first important keyword to shorten list
     keyword = ' equilibrium assemblage:'
     snip_index = TIL.index(keyword)
