@@ -319,7 +319,6 @@ def run_theriak(theriak_path, database, temperature, pressure, whole_rock):
     therin = Path(path_split) / 'THERIN'
     xbin = Path(path_split) / 'XBIN'"""
 
-    print('theriak_path.split("\\")')
 
     # theriak_base = r"C:\TheriakDominoWIN\GeochemSoc2020\Programs\theriak.exe"
     # 'r' because Win vs Mac backslash '\' must be '/'
@@ -353,12 +352,23 @@ def run_theriak(theriak_path, database, temperature, pressure, whole_rock):
     ######################################################################
     # # opens THERIN and writes more input parameters as elemental composition
 
+    # Option 1 - Philips approach
+    theriak_xbin_in = database + "\n" + "no\n"
+    theriak_exe = file_to_open / "theriak"
+    out = subprocess.run([theriak_exe],
+                             input=theriak_xbin_in,
+                             encoding="utf-8",
+                             capture_output=True)
+
+    theriak_output = out.stdout
+    theriak_output = theriak_output.splitlines()
+
     ####################################
-    # Option 2 - New approach
+    # Option 2 - Old approach
     """cmd = subprocess.Popen([file_to_open, xbin, therin],
                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)"""
 
-    cmd = subprocess.Popen([file_to_open, 'XBIN', 'THERIN'],
+    """cmd = subprocess.Popen([file_to_open, 'XBIN', 'THERIN'],
                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     cmdout, cmderr = cmd.communicate()
     if cmderr != b'':
@@ -369,9 +379,11 @@ def run_theriak(theriak_path, database, temperature, pressure, whole_rock):
     # t1 = time.time()
     # print(f"The time of option 2 is: {t1-t0}")
 
-    theriak_in_lines = output.decode('utf-8').splitlines()
+    theriak_in_lines = output.decode('utf-8').splitlines()"""
+
+
     # reads each line in the output.txt and apends it to the 'theriak_in_lines'-list
-    return theriak_in_lines
+    return theriak_output
 
 
 def read_to_dataframe(index_entry, df_index_as_list, input_in_lines, skip=2, number=200):

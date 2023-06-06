@@ -15,9 +15,10 @@ import h5py
 import copy
 
 from pathlib import Path
-from valhalla.tunorrad import *
+
 # from thorpt_thorPT.valhalla.tunorrad import *
 # from thorpt_thorPT.valhalla.Pathfinder import *
+from valhalla.tunorrad import *
 from valhalla.Pathfinder import *
 from dataclasses import dataclass
 
