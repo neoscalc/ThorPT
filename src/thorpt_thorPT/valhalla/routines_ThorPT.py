@@ -879,12 +879,6 @@ class ThorPT_Routines():
         ar_flow = np.array(v_fluid_cubic_track)
         ar_perma = np.array(v_fluid_cubicp_track)
 
-        plt.figure(1)
-        plt.plot(ar_flow*tc_time_c, 'd--')
-        plt.yscale('log')
-        plt.figure(2)
-        plt.plot(ar_perma, 'd--')
-        plt.yscale('log')
 
 
     def transmitting_multi_rock(self):
@@ -1643,7 +1637,7 @@ class ThorPT_Routines():
         print('\n=====================\
             ===============================\nCalculations fully passed\n====================\
                 ================================')
-        # plt.show()
+
         # //////////////////////////////////////////////////////////////////////////
         # ------------------- Data storing in hdf5----------------------
         no_go = ['minimization', 'model_oxygen',

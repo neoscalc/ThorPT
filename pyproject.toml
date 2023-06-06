@@ -1,10 +1,10 @@
 [build-system]
-requires = ["hatchling", "playsound", "numpy", "h5py", "imageio", "pandas", "scipy"]
+requires = ["hatchling", "playsound", "numpy", "h5py", "imageio", "pandas", "scipy", "seaborn", "matplotlib"]
 build-backend = "hatchling.build"
 
 [project]
 name = "thorpt-thorPT"
-version = "0.0.8"
+version = "0.1.0"
 authors = [
   { name="Thorsten Markmann", email="thorsten.markmann@unibe.ch" },
 ]
