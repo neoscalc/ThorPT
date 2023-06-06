@@ -90,32 +90,38 @@ def run_routine():
         # take path, fracturing and further settings from init file applied to all rocks modelled
         path_arguments = False
         for entry in init:
-            if 'Theriak' in entry:
-                pos = entry.index(":")
-                theriak = entry[pos+1:]
-            if 'Path' in entry:
-                pos = entry.index(":")
-                path = entry[pos+1:]
-            elif 'Extraction scheme' in entry:
-                pos = entry.index(":")
-                extraction = entry[pos+1:]
-            elif 'Min Permea' in entry:
-                pos = entry.index(":")
-                lowestpermea = entry[pos+1:]
-                init_data['Min Permeability'] = float(lowestpermea)
-            elif 'ShearStress' in entry:
-                pos = entry.index(":")
-                shearstress = entry[pos+1:]
-                init_data['shearstress'] = float(shearstress)
-            elif 'Marco' in entry:
-                init_data['Marco'] = True
-            elif 'grt_frac_off' in entry:
-                init_data['grt_frac_off'] = True
-            elif 'Input-arguments' in entry:
-                pos = entry.index(":")
-                path_arguments = entry[pos+1:].split(', ')
-            else:
+            if '*' in entry:
                 pass
+            else:
+                if 'Theriak' in entry:
+                    print(f"Theriak path input:\n{entry}")
+                    pos = entry.index(":")
+                    theriak = entry[pos+1:]
+                if 'Path' in entry:
+                    print(f"PT path module:\n{entry}")
+                    pos = entry.index(":")
+                    path = entry[pos+1:]
+                if 'Extraction scheme' in entry:
+                    print(f"Extraction line:\n{entry}")
+                    pos = entry.index(":")
+                    extraction = entry[pos+1:]
+                if 'Min Permea' in entry:
+                    pos = entry.index(":")
+                    lowestpermea = entry[pos+1:]
+                    init_data['Min Permeability'] = float(lowestpermea)
+                if 'ShearStress' in entry:
+                    pos = entry.index(":")
+                    shearstress = entry[pos+1:]
+                    init_data['shearstress'] = float(shearstress)
+                if 'Marco' in entry:
+                    init_data['Marco'] = True
+                if 'grt_frac_off' in entry:
+                    init_data['grt_frac_off'] = True
+                if 'Input-arguments' in entry:
+                    print(f"List of input arguments:\n{entry}")
+                    pos = entry.index(":")
+                    path_arguments = entry[pos+1:].split(', ')
+
 
         # FIXME ROUTINE - static decision should be input answer
         # answer = int(input("Type 1 for multiple rock script. Type 2 for column interaction."))
