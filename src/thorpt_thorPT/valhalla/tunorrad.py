@@ -11,7 +11,6 @@ from pathlib import Path
 from collections import Iterable
 import pandas as pd
 import numpy as np
-import platform
 import scipy
 import subprocess
 import time
@@ -151,10 +150,11 @@ def mineral_translation():
     with open('XBIN') as f:
         reading = f.readlines()
     database = reading[0].strip()
+    print(Path.cwd())
     name = "SSModel_" + database + ".txt"
 
     # selecting path and file depending on OS
-    main_folder = Path(__file__).parent.absolute()
+    main_folder = Path.cwd()
     data_folder = main_folder / "DataFiles/"
 
     file_to_open = data_folder / name
@@ -287,12 +287,17 @@ def run_theriak(theriak_path, database, temperature, pressure, whole_rock):
     # initializes the list were the theriak output is stored
     therin_condition = '    ' + str(temperature) + '    ' + str(pressure)
 
+    # Old way of calling theriak - now with input by user in init
+    """
     if platform.system() == 'Windows':
         data_folder = Path(theriak_path)
         file_to_open = data_folder / "theriak.exe"
     else:
         data_folder = Path(theriak_path)
         file_to_open = data_folder / "theriak"
+    """
+
+    file_to_open = Path(theriak_path)
 
     # NOTE old theriak path without init input
     # Selecting folder to read data, path for theriak software
@@ -306,9 +311,30 @@ def run_theriak(theriak_path, database, temperature, pressure, whole_rock):
         file_to_open = data_folder / "theriak"
     """
 
+    path_split = theriak_path.split("\\")
+    pos = path_split.index("_theriak")
+    path_split = '\\'.join(path_split[:6])
+
     # theriak_base = r"C:\TheriakDominoWIN\GeochemSoc2020\Programs\theriak.exe"
     # 'r' because Win vs Mac backslash '\' must be '/'
     whole_rock_write = "1   " + whole_rock
+
+    # define THERIN and XBIN location
+    therin = Path(path_split) / 'THERIN'
+    xbin = Path(path_split) / 'XBIN'
+
+    # stores the momentary P, T condition passed to Theriak for calculation
+    with open(therin, 'w') as file_object:
+        file_object.write(therin_condition)
+    # opens THERIN and writes new P,T condition
+    # with open('THERIN', 'a') as file_object:
+        file_object.write("\n")
+        file_object.write(whole_rock_write)
+    with open(xbin, 'w') as file_object:
+        file_object.write(database)
+        file_object.write("\n")
+        file_object.write("no")
+
     # stores the momentary P, T condition passed to Theriak for calculation
     with open('THERIN', 'w') as file_object:
         file_object.write(therin_condition)
@@ -326,17 +352,10 @@ def run_theriak(theriak_path, database, temperature, pressure, whole_rock):
     # # opens THERIN and writes more input parameters as elemental composition
 
     ####################################
-    # Option 1 - Old approach
-    ####
-    # t0 = time.time()
-    # output = check_output([file_to_open, 'XBIN', 'THERIN'])
-    # t1 = time.time()
-    # print(f"The time of option 1 is: {t1-t0}")
-
-    ####################################
     # Option 2 - New approach
-    ####
-    # t0 = time.time()
+    """cmd = subprocess.Popen([file_to_open, xbin, therin],
+                       stdout=subprocess.PIPE, stderr=subprocess.PIPE)"""
+
     cmd = subprocess.Popen([file_to_open, 'XBIN', 'THERIN'],
                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     cmdout, cmderr = cmd.communicate()
@@ -883,12 +902,11 @@ def garnet_bulk_from_dataframe(frame, moles, volumePermole, volume):
     # normalization to 1 mol
     rec_moles = volume/volumePermole
     frame = frame * 1/rec_moles
-
     for el in frame.index:
         if el == 'E':
             pass
         else:
-            element_val_str = float(frame.loc[el])
+            element_val_str = frame.loc[el][0]
             element_val_str = '{:f}'.format(element_val_str)
             new_bulk1.append(el+'('+element_val_str+')')
             # old version
@@ -1841,7 +1859,7 @@ class Isotope_calc():
 
         # read oxygen isotope frac database
 
-        main_folder = Path(__file__).parent.absolute()
+        main_folder = Path.cwd()
         file_to_open = main_folder / "DataFiles" / "DO18db2.0.3.dat"
 
         df = pd.read_csv(file_to_open, sep=" ", header=None)
@@ -1940,12 +1958,13 @@ class Isotope_calc():
 
 class Garnet_recalc():
 
-    def __init__(self, dataclass, temperature, pressure):
+    def __init__(self, theriak, dataclass, temperature, pressure):
         self.mineral = dataclass
         self.recalc_volume = 0
         self.recalc_weight = 0
         self.temperature = temperature
         self.pressure = pressure
+        self.theriak_path = theriak
 
     def recalculation_of_garnets(self):
         for garnet in self.mineral:

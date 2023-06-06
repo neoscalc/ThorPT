@@ -13,15 +13,11 @@ import os
 import matplotlib.pyplot as plt
 import h5py
 import copy
-import keyboard
 
 from pathlib import Path
-from tunorrad import *
-from Pathfinder import *
-
-from dataclasses import dataclass, field
-
-# from bulk_2d import *
+from thorpt_thorPT.valhalla.tunorrad import *
+from thorpt_thorPT.valhalla.Pathfinder import *
+from dataclasses import dataclass
 
 
 
@@ -537,7 +533,7 @@ class ThorPT_Routines():
                         # take al modelled garnets
                         # LINK - Metastable garnet call
                         print(f"1MStab-Grt {temperature} --- {pressures[num]}")
-                        metastable_garnet = Garnet_recalc(master_rock[item]['garnet'], temperature, pressures[num])
+                        metastable_garnet = Garnet_recalc(self.theriak, master_rock[item]['garnet'], temperature, pressures[num])
                         metastable_garnet.recalculation_of_garnets()
                         print(f"Fluid volume = {master_rock[item]['fluid_volume_new']} ccm")
                         print(f"Solid volume = {master_rock[item]['solid_volume_new']} ccm")
@@ -549,7 +545,7 @@ class ThorPT_Routines():
                         print("protocol")
                         # take all garnets but last one
                         print(f"2MStab-Grt {temperature} --- {pressures[num]}")
-                        metastable_garnet = Garnet_recalc(master_rock[item]['garnet'][:-1], temperature, pressures[num])
+                        metastable_garnet = Garnet_recalc(self.theriak, master_rock[item]['garnet'][:-1], temperature, pressures[num])
                         metastable_garnet.recalculation_of_garnets()
                         print(f"Fluid volume = {master_rock[item]['fluid_volume_new']} ccm")
                         print(f"Solid volume = {master_rock[item]['solid_volume_new']} ccm")
@@ -1215,7 +1211,7 @@ class ThorPT_Routines():
                         print("Garnet protocol")
                         # take al modelled garnets
                         # LINK - Metastable garnet call
-                        metastable_garnet = Garnet_recalc(master_rock[item]['garnet'], temperature, pressures[num])
+                        metastable_garnet = Garnet_recalc(self.theriak, master_rock[item]['garnet'], temperature, pressures[num])
                         metastable_garnet.recalculation_of_garnets()
                         print(f"Fluid volume = {master_rock[item]['fluid_volume_new']} ccm")
                         print(f"Solid volume = {master_rock[item]['solid_volume_new']} ccm")
@@ -1225,7 +1221,7 @@ class ThorPT_Routines():
                     if len(master_rock[item]['garnet']) > 1 and master_rock[item]['garnet_check'][-1] == 1:
                         print("protocol")
                         # take all garnets but last one
-                        metastable_garnet = Garnet_recalc(master_rock[item]['garnet'][:-1], temperature, pressures[num])
+                        metastable_garnet = Garnet_recalc(self.theriak, master_rock[item]['garnet'][:-1], temperature, pressures[num])
                         metastable_garnet.recalculation_of_garnets()
                         print(f"Fluid volume = {master_rock[item]['fluid_volume_new']} ccm")
                         print(f"Solid volume = {master_rock[item]['solid_volume_new']} ccm")
@@ -1650,7 +1646,6 @@ class ThorPT_Routines():
         # plt.show()
         # //////////////////////////////////////////////////////////////////////////
         # ------------------- Data storing in hdf5----------------------
-        main_folder = Path(__file__).parent.absolute()
         no_go = ['minimization', 'model_oxygen',
                 'fluid_calculation', 'fluid_extraction', 'reactivity']
         meta_h5 = ['bulk', 'new_bulk', 'database',
@@ -1658,10 +1653,6 @@ class ThorPT_Routines():
 
         # ANCHOR - static path
         if defined_path is False:
-            f_path = file_save_path()
-        else:
-            # channel
-
             # static
             destination = r"C:\Users\Markmann\PhD\Data\03_Proj01_PetroModelling\Angiboust_OszGarnet"
             # transimitting
@@ -1671,6 +1662,12 @@ class ThorPT_Routines():
 
             # Selecting path + file-name + file-type
             f_path = destination + f"\{defined_path[:-4]}" + ".hdf5"
+        else:
+            # when data_reduction comes with init input
+            f_path = file_save_path()
+            f_path = Path(f_path)
+
+
 
         with h5py.File(f_path, 'w') as hf:
 
@@ -1765,11 +1762,10 @@ class ThorPT_Routines():
             ===============================\nHDF5 data saved\n====================\
                 ================================')
         # copy the init file to data destination folder
-        source = main_folder / "DataFiles" / "_initmulti_.txt"
-        pos = f_path.rfind("/")
-        if defined_path is False:
-            destination = f_path[:pos+1]
-            shutil.copy(source, destination)
-        else:
-            pass
+        source = Path(defined_path)
+        f_path = str(f_path)
+        pos = f_path.rfind("\\")
+        destination = Path(f_path[:pos+1])
+        shutil.copy(source, destination)
+
 

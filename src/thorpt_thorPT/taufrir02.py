@@ -1459,7 +1459,7 @@ class ThorPT_plots():
 
         frac_bool = self.rockdic[rock_tag].frac_bool
 
-        tag_in = input("Please provide what you want to convert to a stack. ['vol%', 'volume', 'volume[ccm]', 'wt', 'wt%', 'wt[g]']")
+        tag_in = input("Please provide what you want to convert to a stack. ['vol%', 'volume[ccm]', 'wt%', 'wt[g]']")
         tag='df_'+tag_in
         # compile data for plotting
         system_vol_pre = self.rockdic[rock_tag].systemVolPre

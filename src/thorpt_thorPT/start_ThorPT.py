@@ -9,12 +9,11 @@ status: 17.02.2023
 import numpy as np
 import pandas as pd
 import os
-from Pathfinder import *
-from routines_ThorPT import *
+from thorpt_thorPT.valhalla.Pathfinder import *
+from thorpt_thorPT.valhalla.routines_ThorPT import *
 from pathlib import Path
 import copy
-from dataclasses import dataclass, field
-from playsound import playsound
+from dataclasses import dataclass
 from tkinter import filedialog
 
 def file_opener():
@@ -47,11 +46,9 @@ class rockactivity:
     function: any
     react: any
 
-print("File call __name__ is set to: {}" .format(__name__))
 
 
-if __name__ == '__main__':
-
+def run_routine():
     set_origin()
 
     # Starting up and select the init file to model
@@ -221,12 +218,6 @@ if __name__ == '__main__':
             pass
         else:
             init_data['shearstress'] = 200
-
-        if extraction == 'bulk2d':
-            bulk_2d = True
-        else:
-            bulk_2d = False
-
 
         # /////////////////////////////////////////////////////
         # Preparing input data for modelling routine
@@ -489,7 +480,7 @@ if __name__ == '__main__':
             ThorPT.data_reduction(init_file)
 
     # Directing to sounds - play at end
-    dirname = os.path.dirname(os.path.abspath(__file__))
+    # dirname = os.path.dirname(os.path.abspath(__file__))
     # playsound(os.path.abspath(f'{dirname}/DataFiles/sound/wow.mp3'))
     # playsound(os.path.abspath(f'{dirname}/DataFiles/sound/Tequila.mp3'))
 
@@ -498,9 +489,9 @@ if __name__ == '__main__':
 
 
 
-
-
-
+if __name__ == '__main__':
+    print("File call __name__ is set to: {}" .format(__name__))
+    run_routine()
 
 
 
