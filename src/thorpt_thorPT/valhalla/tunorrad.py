@@ -310,20 +310,22 @@ def run_theriak(theriak_path, database, temperature, pressure, whole_rock):
         data_folder = main_folder / "_theriak" / "MAC" / "Programs"
         file_to_open = data_folder / "theriak"
     """
-
-    path_split = theriak_path.split("\\")
+    """path_split = theriak_path.split("\\")
+    print(path_split)
     pos = path_split.index("_theriak")
-    path_split = '\\'.join(path_split[:6])
+    path_split = '\\'.join(path_split[:pos])
+
+    # define THERIN and XBIN location
+    therin = Path(path_split) / 'THERIN'
+    xbin = Path(path_split) / 'XBIN'"""
+
+    print('theriak_path.split("\\")')
 
     # theriak_base = r"C:\TheriakDominoWIN\GeochemSoc2020\Programs\theriak.exe"
     # 'r' because Win vs Mac backslash '\' must be '/'
     whole_rock_write = "1   " + whole_rock
 
-    # define THERIN and XBIN location
-    therin = Path(path_split) / 'THERIN'
-    xbin = Path(path_split) / 'XBIN'
-
-    # stores the momentary P, T condition passed to Theriak for calculation
+    """# stores the momentary P, T condition passed to Theriak for calculation
     with open(therin, 'w') as file_object:
         file_object.write(therin_condition)
     # opens THERIN and writes new P,T condition
@@ -333,7 +335,7 @@ def run_theriak(theriak_path, database, temperature, pressure, whole_rock):
     with open(xbin, 'w') as file_object:
         file_object.write(database)
         file_object.write("\n")
-        file_object.write("no")
+        file_object.write("no")"""
 
     # stores the momentary P, T condition passed to Theriak for calculation
     with open('THERIN', 'w') as file_object:

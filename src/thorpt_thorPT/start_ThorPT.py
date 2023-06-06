@@ -9,8 +9,10 @@ status: 17.02.2023
 import numpy as np
 import pandas as pd
 import os
-from thorpt_thorPT.valhalla.Pathfinder import *
-from thorpt_thorPT.valhalla.routines_ThorPT import *
+# from thorpt_thorPT.valhalla.Pathfinder import *
+# from thorpt_thorPT.valhalla.routines_ThorPT import *
+from valhalla.Pathfinder import *
+from valhalla.routines_ThorPT import *
 from pathlib import Path
 import copy
 from dataclasses import dataclass

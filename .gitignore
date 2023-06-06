@@ -1,6 +1,7 @@
 
 /src/thorpt_thorPT/meta.json
 /src/thorpt_thorPT/ThkOut.txt
+/src/thorpt_thorPT/valhalla/output_Pathfinder.txt
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
