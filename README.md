@@ -16,7 +16,9 @@ There are two ways to use the package at the moment. Prerequisit is in both case
 https://github.com/Theriak-Domino/theriak-domino
 
 Getting started:
+
 1.1 (Recommended for all users) Quick start: Get the jupyter working directory that includes all instructions and direct connection to ThorPT.
+
 1.2 (Recommended to users familair with coding) Install the package manually into your python environment and develop your own script.
 
 # 1.1 Use the package with the jupyter environment
@@ -25,6 +27,8 @@ Download the jupyter working directory that includes:
 - Datafiles directory with
     - initial file
     - examples to model
+
+Before starting open the "_init_.txt" file in the working directory and in the first line behind "Theriak:" write the path of the directory of the working "theriak" version. (It is the path to the folder where the theriak executable of theriak-domino is located. In the version from 06.06.2023 this is usually the "programs" folder from the software.)
 
 # 1.2.1 Install the package
 ThorPT is public on the test PyPi servers and will be published on the offical servers soon. You can get the package by using the following command to import it to your python environment.
