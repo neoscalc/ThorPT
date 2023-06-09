@@ -1,5 +1,5 @@
 # ThorPT - This is ThorPT
-ThorPT is a modelling package for geolgical purpose. Fluid production in the crust is a fundamental process in the earth's geochemical cycling and ThorPT is specified for modelling this fluid production and fluid transfer. It includes the latest developments in petrogeochemical modelling and helps the user to test different szenarios:
+ThorPT is a modelling package for geolgical purpose. Fluid production in the crust is a fundamental process in the earth's geochemical cycling and ThorPT is specified for modelling this fluid production and fluid transfer. It includes the latest developments in petrogeochemical modelling and helps the user to test different scenarios:
 - Single rock modelling:
     1. Petrological purposes to test changes in mineral assemblages and coupled fluid production, e.g., while prograde metamorphism
     2. Mechanical testing of the rock based on the Mohr-Coulomb theory
@@ -49,9 +49,6 @@ start_ThorPT.run_routine()
 
 # 1.2.4 Plotting module with ThorPT
 Plotting is based on the taufrir module. This module comprises pre defined plots for phase assemblages, oxygen isotopes and several plots for visualising the fluid production and transfer. Options are possible to save the image files and generate a gif.
-
-First steps with taufir:
-
 
 
 First steps:
