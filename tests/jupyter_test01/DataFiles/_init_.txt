@@ -1,0 +1,45 @@
+*theriak directory
+Theriak:C:\TheriakDominoWIN.2023.06.06\Programs
+*Base settings
+Path:Finder
+*options: Finder
+Input-arguments:Mod4, stored, GPa, 0.03, 20, 1
+*Arguments for Pathfinder mod, path for interpolation (stored, new), unit of pressure, convergence speed, slab angle, transmition on/off (2/1)
+Extraction scheme:Always extraction
+*options: No extraction, Always extraction, Mohr-Coulomb-Permea2
+Min Permea: 1e-21
+ShearStress: 48
+***
+Database:tc55
+*options: 'tc55', 'tc55_no_grt', 'tc55_Serp'
+Bulk:[50.69, 1.69, 14.76, 8.80, 1.86, 0.0, 7.61, 11.44, 2.80, 0.16, 0.6, 0.0]
+*     SIO2    TIO2 AL2O3 FEO  FE2O3 MNO   MGO  CAO    NA2O   K2O   H2O  CO2
+OxygenVal:5.0
+Tensile strength:40.0
+Geometry:[500,1,1]
+Cohesion:50
+Friction:0.7
+ShearStress: 35
+***
+Database:tc55
+*options: 'tc55', 'tc55_no_grt', 'tc55_Serp'
+Bulk:[48.59, 1.25, 16.48, 4.22, 5.94, 0.0, 7.07, 13.66, 2.20, 0.59, 0.6, 0.0]
+*     SIO2    TIO2 AL2O3 FEO  FE2O3 MNO   MGO  CAO    NA2O   K2O   H2O  CO2
+OxygenVal:5.0
+Tensile strength:40.0
+Geometry:[500,1,1]
+Cohesion:50
+Friction:0.7
+ShearStress: 45
+***
+Database:tc55
+*options: 'tc55', 'tc55_no_grt', 'tc55_Serp'
+Bulk:[58.94, 0.74, 16.32, 5.15, 1.27, 0.0, 2.58, 1.07, 1.70, 3.48, 0.6, 0.0]
+*     SIO2    TIO2 AL2O3 FEO  FE2O3 MNO   MGO  CAO    NA2O   K2O   H2O  CO2
+OxygenVal:15.0
+Tensile strength:5.0
+Geometry:[400,1,1]
+Cohesion:50
+Friction:0.6
+ShearStress: 131
+***
