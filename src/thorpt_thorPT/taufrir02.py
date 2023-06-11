@@ -2,7 +2,7 @@
 Written by
 Thorsten Markmann
 thorsten.markmann@geo.unibe.ch
-status: 03.06.2023
+status: 11.06.2023
 """
 
 # Plotting module for ThorPT
@@ -25,6 +25,7 @@ import imageio
 from imageio import imread
 import copy
 from dataclasses import dataclass, field
+from dataclasses import fields
 
 
 def file_opener():
@@ -404,7 +405,7 @@ class Simple_binary_plot():
         # TODO - Add exception when user aborts input or gives no input - Needs a default mode (x,y)
         x_ax_label = input("Please provide the x-axis label...")
         y_ax_label = input("Please provide the y-axis label...")
-        plt.scatter(self.x, self.y, s=15)
+        plt.scatter(self.x, self.y, s=18, c='#7fffd4', markeredgecolor='black')
         plt.xlabel(x_ax_label)
         plt.ylabel(y_ax_label)
 
@@ -567,14 +568,19 @@ class ThorPT_hdf5_reader():
                 for item in f[group_key]['df_var_dictionary'].keys():
                     df_var_d[item] = pd.DataFrame(
                         f[group_key]['df_var_dictionary'][item])
+                    if len(phases) > len(df_var_d[item].columns):
+                        pass
+                    else:
+                        df_var_d[item].columns = phases
                 # element data
                 td_data = pd.DataFrame(f[group_key]['df_element_total'])
+                td_data_tag = list(f[group_key].attrs['el_index'])
+                td_data = td_data.T
+                td_data.columns = td_data_tag
                 # Get the chemical potential data
                 pot_tag = list(f[group_key].attrs['pot_tag'])
                 p_data = pd.DataFrame(f[group_key]['pot_data'])
                 p_data.index = pot_tag
-                # element data
-                td_data = pd.DataFrame(f[group_key]['df_element_total'])
 
                 # Oxygen fractionation data
                 # oxygen isotope data
@@ -1570,6 +1576,74 @@ class ThorPT_plots():
         plt.clf()
         plt.close()
 
+    def binary_plot(self, rock_tag, img_save=False):
+
+        data = self.rockdic[rock_tag]
+        attributes = [field.name for field in fields(data)]
+
+        # TODO - Add exception when user aborts input or gives no input - Needs a default mode (x,y)
+        x_ax_label = input("Please provide the x-axis data...")
+        y_ax_label = input("Please provide the y-axis data...")
+
+        whitelist = ['N', 'vol%', 'volume[ccm]', 'wt%', 'wt[g]']
+
+        if x_ax_label in attributes:
+            if x_ax_label == 'temperature':
+                xdata = data.temperature
+            if x_ax_label == 'pressure':
+                xdata = data.pressure
+            if x_ax_label == 'depth':
+                xdata = data.depth
+            if x_ax_label == 'systemVolPost':
+                xdata = data.systemVolPost
+            if x_ax_label == 'permeability':
+                xdata = data.permeability
+            if x_ax_label == 'extracted_fluid_volume':
+                xdata = data.extracted_fluid_volume
+            if x_ax_label == 'porosity':
+                xdata = data.porosity
+            if x_ax_label == 'time_int_flux':
+                xdata = data.time_int_flux
+        elif x_ax_label in whitelist:
+            sel_d = data.phase_data[f'df_{x_ax_label}']
+            xdata = input(f"Your x data query requires a phase input from the following list:\n{sel_d.columns}")
+            xdata = data.phase_data[f'df_{x_ax_label}'][xdata]
+        else:
+            print("Selected data for x label is not available.")
+
+        if y_ax_label in attributes:
+            if y_ax_label == 'temperature':
+                ydata = data.temperature
+            if y_ax_label == 'pressure':
+                ydata = data.pressure
+            if y_ax_label == 'depth':
+                ydata = data.depth
+            if y_ax_label == 'systemVolPost':
+                ydata = data.systemVolPost
+            if y_ax_label == 'permeability':
+                ydata = data.permeability
+            if y_ax_label == 'extracted_fluid_volume':
+                ydata = data.extracted_fluid_volume
+            if y_ax_label == 'porosity':
+                ydata = data.porosity
+            if y_ax_label == 'time_int_flux':
+                ydata = data.time_int_flux
+        elif y_ax_label in whitelist:
+            sel_d = data.phase_data[f'df_{y_ax_label}']
+            ydata = input(f"Your x data query requires a phase input from the following list:\n{sel_d.columns}")
+            ydata = data.phase_data[f'df_{y_ax_label}'][ydata]
+        else:
+            print("Selected data for x label is not available.")
+
+        plt.scatter(xdata, ydata, s=24, c='#7fffd4', edgecolor='black')
+        plt.xlabel(x_ax_label)
+        plt.ylabel(y_ax_label)
+        # saving option from user input
+        if img_save is True:
+            plt.savefig(Path(self.mainfolder /
+                        f"{self.rock_key}_binary_plot.png"), dpi=300)
+        else:
+            plt.show()
 
 if __name__ == '__main__':
 
@@ -1581,6 +1655,11 @@ if __name__ == '__main__':
     compPlot = ThorPT_plots(
         data.filename, data.mainfolder, data.rock, data.compiledrock)
 
+    print("The 'data.rock[key]' keys are:")
+    for key in data.rock.keys():
+        print(key)
+
+    compPlot.binary_plot(rock_tag='rock0')
     compPlot.phases_stack_plot(rock_tag='rock0', img_save=False)
     compPlot.boxplot_to_GIF(rock_tag='rock0', img_save=False, gif_save=False)
     compPlot.pt_path_plot(rock_tag='rock0', img_save=False, gif_save=False)
@@ -1588,4 +1667,6 @@ if __name__ == '__main__':
     compPlot.time_int_flux_plot(rock_tag='rock0', img_save=False, gif_save=False)
     compPlot.porosity_plot(rock_tag='rock0', img_save=False, gif_save=False)
     compPlot.release_fluid_volume_plot(rock_tag='rock0', img_save=False, gif_save=False)
-    print()
+
+
+
