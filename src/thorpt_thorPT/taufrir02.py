@@ -1052,8 +1052,6 @@ class ThorPT_plots():
                 q_ti, extraction_boolean)
 
         if len(np.unique(self.rockdic[rock_tag].frac_bool)) == 1 and np.unique(self.rockdic[rock_tag].frac_bool)[-1] == 0:
-            filtered_porosity = np.zeros(
-                len(self.rockdic[rock_tag].frac_bool))
             filtered_q_ti = np.zeros(len(self.rockdic[rock_tag].frac_bool))
             filtered_int_flux = np.zeros(len(self.rockdic[rock_tag].frac_bool))
 
@@ -1585,9 +1583,10 @@ class ThorPT_plots():
         x_ax_label = input("Please provide the x-axis data...")
         y_ax_label = input("Please provide the y-axis data...")
 
-        whitelist = ['N', 'vol%', 'volume[ccm]', 'wt%', 'wt[g]']
+        whitelist_attributes = ['temperature', 'pressure', 'depth', 'systemVolPost', 'permeability', 'extracted_fluid_volume', 'porosity', 'time_int_flux2']
+        whitelist_phase_data = ['N', 'vol%', 'volume[ccm]', 'wt%', 'wt[g]']
 
-        if x_ax_label in attributes:
+        if x_ax_label in attributes and x_ax_label in whitelist_attributes:
             if x_ax_label == 'temperature':
                 xdata = data.temperature
             if x_ax_label == 'pressure':
@@ -1602,16 +1601,17 @@ class ThorPT_plots():
                 xdata = data.extracted_fluid_volume
             if x_ax_label == 'porosity':
                 xdata = data.porosity
-            if x_ax_label == 'time_int_flux':
-                xdata = data.time_int_flux
-        elif x_ax_label in whitelist:
+            if x_ax_label == 'time_int_flux2':
+                xdata = data.time_int_flux2
+        elif x_ax_label in whitelist_phase_data:
             sel_d = data.phase_data[f'df_{x_ax_label}']
             xdata = input(f"Your x data query requires a phase input from the following list:\n{sel_d.columns}")
             xdata = data.phase_data[f'df_{x_ax_label}'][xdata]
         else:
             print("Selected data for x label is not available.")
+            x_ax_label = False
 
-        if y_ax_label in attributes:
+        if y_ax_label in attributes and y_ax_label in whitelist_attributes:
             if y_ax_label == 'temperature':
                 ydata = data.temperature
             if y_ax_label == 'pressure':
@@ -1626,24 +1626,29 @@ class ThorPT_plots():
                 ydata = data.extracted_fluid_volume
             if y_ax_label == 'porosity':
                 ydata = data.porosity
-            if y_ax_label == 'time_int_flux':
-                ydata = data.time_int_flux
-        elif y_ax_label in whitelist:
+            if y_ax_label == 'time_int_flux2':
+                ydata = data.time_int_flux2
+        elif y_ax_label in whitelist_phase_data:
             sel_d = data.phase_data[f'df_{y_ax_label}']
             ydata = input(f"Your x data query requires a phase input from the following list:\n{sel_d.columns}")
             ydata = data.phase_data[f'df_{y_ax_label}'][ydata]
         else:
             print("Selected data for x label is not available.")
+            y_ax_label = False
 
-        plt.scatter(xdata, ydata, s=24, c='#7fffd4', edgecolor='black')
-        plt.xlabel(x_ax_label)
-        plt.ylabel(y_ax_label)
-        # saving option from user input
-        if img_save is True:
-            plt.savefig(Path(self.mainfolder /
-                        f"{self.rock_key}_binary_plot.png"), dpi=300)
+        if x_ax_label is False or y_ax_label is False:
+            print("No binary plot generated because no legit user input")
+            pass
         else:
-            plt.show()
+            plt.scatter(xdata, ydata, s=24, c='#7fffd4', edgecolor='black')
+            plt.xlabel(x_ax_label)
+            plt.ylabel(y_ax_label)
+            # saving option from user input
+            if img_save is True:
+                plt.savefig(Path(self.mainfolder /
+                            f"{self.rock_key}_binary_plot.png"), dpi=300)
+            else:
+                plt.show()
 
 if __name__ == '__main__':
 
@@ -1667,6 +1672,9 @@ if __name__ == '__main__':
     compPlot.time_int_flux_plot(rock_tag='rock0', img_save=False, gif_save=False)
     compPlot.porosity_plot(rock_tag='rock0', img_save=False, gif_save=False)
     compPlot.release_fluid_volume_plot(rock_tag='rock0', img_save=False, gif_save=False)
+
+
+
 
 
 
