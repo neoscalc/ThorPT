@@ -8,7 +8,7 @@ status: 17.02.2023
 
 # from subprocess import check_output
 from pathlib import Path
-from collections import Iterable
+from collections.abc import Iterable
 import pandas as pd
 import numpy as np
 import scipy

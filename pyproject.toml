@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "thorpt-thorPT"
-version = "0.1.7"
+version = "0.1.8"
 authors = [
   { name="Thorsten Markmann", email="thorsten.markmann@unibe.ch" },
 ]
