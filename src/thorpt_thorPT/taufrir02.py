@@ -439,6 +439,9 @@ class Rock:
     phases2: any
     phase_data: any
     td_data: any
+    oxygen_data: any
+    bulk_deltao_pre: any
+    bulk_deltao_post: any
 
     group_key: str
     extracted_fluid_volume: any
@@ -686,6 +689,9 @@ class ThorPT_hdf5_reader():
                     phases2=phases2,
                     phase_data=df_var_d,
                     td_data=td_data,
+                    oxygen_data = d_oxy,
+                    bulk_deltao_pre= save_bulk_oxygen_pre,
+                    bulk_deltao_post= save_bulk_oxygen_post,
                     group_key=group_key,
                     extraction_boolean=extraction_boolean,
                     extracted_fluid_volume=v_fluid_extr,
@@ -1457,14 +1463,19 @@ class ThorPT_plots():
 
     def phases_stack_plot(self, rock_tag, img_save=False):
 
+        # XMT naming and coloring
+        database = self.rockdic[rock_tag].database
+        phases2 = self.rockdic[rock_tag].phases2
+        legend_phases, color_set = phases_and_colors_XMT(database, phases2)
+
         phases = self.rockdic[rock_tag].phases
         phase_data = self.rockdic[rock_tag].phase_data
-        td_data = self.rockdic[rock_tag].td_data
-
         frac_bool = self.rockdic[rock_tag].frac_bool
 
+        # Input for the variable of interest
         tag_in = input("Please provide what you want to convert to a stack. ['vol%', 'volume[ccm]', 'wt%', 'wt[g]']")
         tag='df_'+tag_in
+
         # compile data for plotting
         system_vol_pre = self.rockdic[rock_tag].systemVolPre
         system_vol_post = self.rockdic[rock_tag].systemVolPost
@@ -1476,10 +1487,15 @@ class ThorPT_plots():
         line = np.arange(1, len(temperatures)+1, 1)
 
         y = phase_data[tag].fillna(value=0)
-        y.columns = phases
-        y = Merge_phase_group(y)
-        label_list = list(y.index)
-        pal1 = sns.color_palette("tab20", 20)
+        y.columns = legend_phases
+        y = y.T
+        label_list = legend_phases
+
+        
+        # y.columns = phases
+        # y = Merge_phase_group(y)
+        # label_list = list(y.index)
+        # pal1 = sns.color_palette("tab20", 20)
 
         # plot
         plt.rc('axes', labelsize=10)
@@ -1488,8 +1504,12 @@ class ThorPT_plots():
         ax1 = host_subplot(111)
         #fig.suptitle('Phase changes for P-T-t')
         # main plot
+
+
+        # ax1.stackplot(line, y, labels=label_list,
+        #               colors=pal1, alpha=.8, edgecolor='black')
         ax1.stackplot(line, y, labels=label_list,
-                      colors=pal1, alpha=.8, edgecolor='black')
+                      colors=color_set, alpha=.8, edgecolor='black')
 
         # legend definition
         handles, labels = ax1.get_legend_handles_labels()
@@ -1650,6 +1670,51 @@ class ThorPT_plots():
             else:
                 plt.show()
 
+    def oxygen_isotopes(self, rock_tag, img_save=False):
+        """Plotting function for the modelled oxygen isotope data
+
+        Args:
+            rock_tag (str): the name of the rock such as "rock0", "rock1", ...
+            img_save (bool, optional): Optional argument to save the plot as an image to the directory. Defaults to False.
+        """
+        # XMT naming and coloring
+        database = self.rockdic[rock_tag].database
+        phases2 = self.rockdic[rock_tag].phases2
+        legend_phases, color_set = phases_and_colors_XMT(database, phases2)
+
+        # Plotting routine
+        summary = self.rockdic[rock_tag].oxygen_data.T.describe()
+        # oxyframe = Merge_phase_group(self.rockdic[rock_tag].oxygen_data)
+        oxyframe = self.rockdic[rock_tag].oxygen_data.T
+        oxyframe.columns = self.rockdic[rock_tag].temperature
+        oxyframe.index = legend_phases
+        fig, ax111 = plt.subplots(1, 1, figsize=(8, 5))
+        for t, phase in enumerate(list(oxyframe.index)):
+            ax111.plot(oxyframe.columns, oxyframe.loc[phase], '--d', color=color_set[t], linewidth=0.7, markeredgecolor='black')
+
+
+        ax111.plot(self.rockdic[rock_tag].temperature, self.rockdic[rock_tag].bulk_deltao_post, '-', c='black')
+        ax111.plot(self.rockdic[rock_tag].temperature, self.rockdic[rock_tag].bulk_deltao_pre, '-.', c='black')
+        legend_list = list(oxyframe.index) + ["pre bulk", "post bulk"]
+        ax111.legend(legend_list, bbox_to_anchor=(1.28, 0.9))
+        min_min = min(summary.loc['min'])
+        max_max = max(summary.loc['max'])
+        min_val = min_min - (max_max-min_min)*0.05
+        max_val = max_max + (max_max-min_min)*0.05
+        ax111.set_ylim(min_val, max_val)
+        ax111.set_ylabel("$\delta^{18}$O [‰ vs. VSMOW]")
+        ax111.set_xlabel("Temperature [°C]")
+        plt.subplots_adjust(right=0.8)
+
+        if img_save is True:
+            plt.savefig(Path(self.mainfolder /
+                            f"{self.rock_key}_oxygen_signatures.png"), dpi=300)
+        else:
+            plt.show()
+        plt.clf()
+        plt.close()
+
+
 if __name__ == '__main__':
 
     # Read variables from a hdf5 output file from ThorPT
@@ -1664,8 +1729,9 @@ if __name__ == '__main__':
     for key in data.rock.keys():
         print(key)
 
-    compPlot.binary_plot(rock_tag='rock0')
     compPlot.phases_stack_plot(rock_tag='rock0', img_save=False)
+    compPlot.oxygen_isotopes(rock_tag='rock0')
+    compPlot.binary_plot(rock_tag='rock0')
     compPlot.boxplot_to_GIF(rock_tag='rock0', img_save=False, gif_save=False)
     compPlot.pt_path_plot(rock_tag='rock0', img_save=False, gif_save=False)
     compPlot.permeability_plot(rock_tag='rock0', img_save=False, gif_save=False)
