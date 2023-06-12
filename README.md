@@ -23,13 +23,16 @@ Getting started:
 
 # 1.1 Use the package with the jupyter environment
 Download the jupyter working directory that includes:
-- Jupyter script
+- Jupyter notebook script to install all dependencies
+- Jupyter script to run ThorPT and containing functions
 - Datafiles directory with
     - initial file
     - examples to model
 
-Before starting open the "_init_.txt" file in the working directory and in the first line behind "Theriak:" write the path of the directory of the working "theriak" version. (It is the path to the folder where the theriak executable of theriak-domino is located. In the version from 06.06.2023 this is usually the "programs" folder from the software.)
+Before starting make sure you executed the cell in the "install_ThorPT" juopyter notebook!
+Before getting started with ThorPT you have to declare your theriak working directory. To do so, use and open the "_init_.txt" file contained in the released package you downloaded from the github. In the text file edit the first line behind "Theriak:". Here you have to write the path of the directory of the working "theriak" version you posses. (It is the path to the folder where the theriak executable of theriak-domino is located. In the version from 06.06.2023 this is usually the "programs" folder from the software.)
 
+# 1.2 Manual installation to your python environment
 # 1.2.1 Install the package
 ThorPT is public on the test PyPi servers and will be published on the offical servers soon. You can get the package by using the following command to import it to your python environment.
 
