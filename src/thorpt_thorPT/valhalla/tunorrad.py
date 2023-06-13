@@ -1884,7 +1884,7 @@ class Isotope_calc():
             ma.append(calc)
 
         # Using themo frac and oxygen data for endmembers to calculate isotope values for phases
-        # Sum part of euqation (7) from Vho 2020
+        # Sum part of equation (7) from Vho 2020
 
         # preparing fractionation for LES (linear equation system)
         ma = ma[1:]
