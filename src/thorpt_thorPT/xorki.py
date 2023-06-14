@@ -191,6 +191,7 @@ def mineral_translation(database):
     return translation_dic
 
 
+
 def Merge_phase_group(data):
     frame = data
     phases = list(frame.columns)
@@ -380,8 +381,7 @@ def create_gif(phase_data, mainfolder, filename, group_key, subfolder='default')
         image = imread(
             f'{mainfolder}/img_{filename}/{subfolder}/{group_key}/img_{i}.png')
         frames.append(image)
-    imageio.mimsave(
-        f'{mainfolder}/img_{filename}/{subfolder}/{group_key}/PT_path.gif', frames, fps=2)
+    imageio.mimsave(f'{mainfolder}/img_{filename}/{subfolder}/{group_key}/output.gif', frames, duration=2)
 
 
 # Progressbar init
@@ -517,7 +517,7 @@ class ThorPT_hdf5_reader():
             rocks = list(f.keys())
             for rock in rocks:
                 self.rock[rock] = 0
-            test = 0
+
 
             for group_key in rocks:
 
@@ -732,6 +732,9 @@ class ThorPT_plots():
 
     def boxplot_to_GIF(self, rock_tag, img_save=False, gif_save=False):
 
+        if gif_save is True:
+            img_save=True
+
         ts = self.rockdic[rock_tag].temperature
         database = self.rockdic[rock_tag].database
         phases = self.rockdic[rock_tag].phases
@@ -812,6 +815,9 @@ class ThorPT_plots():
                        group_key, subfolder=subfolder)
 
     def pt_path_plot(self, rock_tag, img_save=False, gif_save=False):
+
+        if gif_save is True:
+            img_save=True
 
         # Variables to be used
         ts = self.rockdic[rock_tag].temperature
@@ -896,6 +902,9 @@ class ThorPT_plots():
                        group_key, subfolder=subfolder)
 
     def permeability_plot(self, rock_tag, img_save=False, gif_save=False):
+
+        if gif_save is True:
+            img_save=True
 
         group_key = self.rockdic[rock_tag].group_key
 
@@ -1033,6 +1042,9 @@ class ThorPT_plots():
                        group_key, subfolder=subfolder)
 
     def time_int_flux_plot(self, rock_tag, img_save=False, gif_save=False):
+
+        if gif_save is True:
+            img_save=True
 
         group_key = self.rockdic[rock_tag].group_key
 
@@ -1210,6 +1222,9 @@ class ThorPT_plots():
 
     def porosity_plot(self, rock_tag, img_save=False, gif_save=False):
 
+        if gif_save is True:
+            img_save=True
+
         group_key = self.rockdic[rock_tag].group_key
 
         phases = self.rockdic[rock_tag].phases
@@ -1340,6 +1355,9 @@ class ThorPT_plots():
                        group_key, subfolder=subfolder)
 
     def release_fluid_volume_plot(self, rock_tag, img_save=False, gif_save=False):
+
+        if gif_save is True:
+            img_save=True
 
         ts = self.rockdic[rock_tag].temperature
         group_key = self.rockdic[rock_tag].group_key
@@ -1491,7 +1509,6 @@ class ThorPT_plots():
         y = y.T
         label_list = legend_phases
 
-        
         # y.columns = phases
         # y = Merge_phase_group(y)
         # label_list = list(y.index)
@@ -1514,7 +1531,7 @@ class ThorPT_plots():
         # legend definition
         handles, labels = ax1.get_legend_handles_labels()
         ax1.legend(
-            handles[::-1], labels[::-1], bbox_to_anchor=(1.4, 0.5), loc='right',
+            handles[::-1], labels[::-1], bbox_to_anchor=(1.43, 0.5), loc='right',
             borderaxespad=0.1, title="Stable phases", fontsize=8
         )
 
@@ -1729,10 +1746,11 @@ if __name__ == '__main__':
     for key in data.rock.keys():
         print(key)
 
+
     compPlot.phases_stack_plot(rock_tag='rock0', img_save=False)
+    compPlot.boxplot_to_GIF(rock_tag='rock0', img_save=True, gif_save=True)
     compPlot.oxygen_isotopes(rock_tag='rock0')
     compPlot.binary_plot(rock_tag='rock0')
-    compPlot.boxplot_to_GIF(rock_tag='rock0', img_save=False, gif_save=False)
     compPlot.pt_path_plot(rock_tag='rock0', img_save=False, gif_save=False)
     compPlot.permeability_plot(rock_tag='rock0', img_save=False, gif_save=False)
     compPlot.time_int_flux_plot(rock_tag='rock0', img_save=False, gif_save=False)
