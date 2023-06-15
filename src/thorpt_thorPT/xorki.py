@@ -20,6 +20,7 @@ import os
 from pathlib import Path
 from mpl_toolkits.axes_grid1 import host_subplot
 from matplotlib.ticker import (MultipleLocator, AutoMinorLocator)
+from tkinter import *
 from tkinter import filedialog
 import imageio
 from imageio import imread
@@ -29,13 +30,16 @@ from dataclasses import fields
 
 
 def file_opener():
+    root = Tk()
+    root.withdraw()
+    root.update()
     filein = filedialog.askopenfilename(
         title="Select h5-file to read",
         filetypes=(
             ("hdf5 file", "*.hdf5"),
             ("All files", "*.*"))
     )
-
+    root.update()
     return filein
 
 
