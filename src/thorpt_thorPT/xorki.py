@@ -1718,6 +1718,49 @@ class ThorPT_plots():
         oxyframe = self.rockdic[rock_tag].oxygen_data.T
         oxyframe.columns = self.rockdic[rock_tag].temperature
         oxyframe.index = legend_phases
+
+        # cleaning dataframe from multiple phase names - combine rows into one
+        if len(legend_phases) == len(np.unique(legend_phases)):
+            pass
+        else:
+            # copy information before manipulation
+            new_color_set = color_set.copy()
+            new_legend_phases = legend_phases.copy()
+
+            # routine to filter multiple assigned phase columns
+            for phase in legend_phases:
+                pcount = legend_phases.count(phase)
+                if pcount > 1:
+
+                    # get position of multiple name
+                    pos_list = []
+                    for i, item in enumerate(legend_phases):
+                        if item == phase:
+                            pos_list.append(i)
+
+                    # read lines to array, replace nan, combine, put nan back
+                    arr = np.zeros(len(oxyframe.columns))
+                    for j in pos_list:
+                        arr = arr + np.nan_to_num(np.array(oxyframe.iloc[j]))
+                    arr[arr == 0] = np.nan
+                    arr = pd.DataFrame(arr)
+                    arr.index = oxyframe.columns
+                    arr.columns = [phase]
+
+                    # update dataframe, legend and color from multiple entries - add it at end
+                    # delete
+                    oxyframe = oxyframe.drop(phase)
+                    it = 0
+                    for num in pos_list:
+                        num = num - it
+                        del legend_phases[num]
+                        del color_set[num]
+                        it+=1
+                    # repair
+                    oxyframe = pd.concat([oxyframe,arr.T], axis=0)
+                    legend_phases.append(phase)
+                    color_set.append(new_color_set[pos_list[0]])
+
         fig, ax111 = plt.subplots(1, 1, figsize=(8, 5))
         for t, phase in enumerate(list(oxyframe.index)):
             ax111.plot(oxyframe.columns, oxyframe.loc[phase], '--d',
@@ -1761,9 +1804,15 @@ if __name__ == '__main__':
     for key in data.rock.keys():
         print(key)
 
-    compPlot.boxplot_to_GIF(rock_tag='rock1', img_save=True, gif_save=True)
-    compPlot.phases_stack_plot(rock_tag='rock0', img_save=False)
+    compPlot.phases_stack_plot(rock_tag='rock1', img_save=False)
+    compPlot.phases_stack_plot(rock_tag='rock2', img_save=False)
     compPlot.oxygen_isotopes(rock_tag='rock0')
+    compPlot.oxygen_isotopes(rock_tag='rock1')
+    compPlot.oxygen_isotopes(rock_tag='rock2')
+    compPlot.time_int_flux_plot(
+            rock_tag='rock1', img_save=False, gif_save=False)
+    compPlot.boxplot_to_GIF(rock_tag='rock1', img_save=True, gif_save=True)
+
     compPlot.binary_plot(rock_tag='rock0')
     compPlot.pt_path_plot(rock_tag='rock0', img_save=False, gif_save=False)
     compPlot.permeability_plot(
