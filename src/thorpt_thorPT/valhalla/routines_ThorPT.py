@@ -211,7 +211,7 @@ def fluid_injection_isotope_recalculation(isotope_data, oxygen_data, input_delta
         index=input_deltaO['Phases']
             )
     # influx data to reclaculate with
-    input_deltaO = float(temp_input.loc['water.fluid'])
+    input_deltaO = np.float64(temp_input.loc['water.fluid'])
     input_oxygen = interaction_factor * input_oxygen
     # recalculation by factors
     bulk_deltaO = sum(phase_oxygen*phase_doxy / sum(phase_oxygen))

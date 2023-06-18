@@ -195,7 +195,6 @@ def mineral_translation(database):
     return translation_dic
 
 
-
 def Merge_phase_group(data):
     frame = data
     phases = list(frame.columns)
@@ -385,7 +384,8 @@ def create_gif(phase_data, mainfolder, filename, group_key, subfolder='default')
         image = imread(
             f'{mainfolder}/img_{filename}/{subfolder}/{group_key}/img_{i}.png')
         frames.append(image)
-    imageio.mimsave(f'{mainfolder}/img_{filename}/{subfolder}/{group_key}/output.gif', frames, duration=1)
+    imageio.mimsave(
+        f'{mainfolder}/img_{filename}/{subfolder}/{group_key}/output.gif', frames, duration=1)
 
 
 # Progressbar init
@@ -418,6 +418,7 @@ class Simple_binary_plot():
             plt.savefig(Path("plotting_results/PTt_path.png"), dpi=400)
 
 
+# single rock data as dataclass
 @dataclass
 class Rock:
     name: str
@@ -425,6 +426,7 @@ class Rock:
     temperature: any
     pressure: any
     depth: any
+    time: any
 
     systemVolPre: any
     systemVolPost: any
@@ -457,6 +459,8 @@ class Rock:
     v_permeability: any
     v_timeintflux: any
 
+
+# Compiled data as dataclass
 @dataclass
 class CompiledData:
     all_tensile: any
@@ -477,6 +481,7 @@ class CompiledData:
     all_database: any
 
 
+# HDF5 reader
 class ThorPT_hdf5_reader():
 
     def __init__(self):
@@ -521,7 +526,6 @@ class ThorPT_hdf5_reader():
             rocks = list(f.keys())
             for rock in rocks:
                 self.rock[rock] = 0
-
 
             for group_key in rocks:
 
@@ -679,6 +683,7 @@ class ThorPT_hdf5_reader():
                     temperature=ts,
                     pressure=ps,
                     depth=depth,
+                    time=vtime[1],
                     systemVolPost=v_post,
                     systemVolPre=v_pre,
                     fluidbefore=fluid_before,
@@ -693,9 +698,9 @@ class ThorPT_hdf5_reader():
                     phases2=phases2,
                     phase_data=df_var_d,
                     td_data=td_data,
-                    oxygen_data = d_oxy,
-                    bulk_deltao_pre= save_bulk_oxygen_pre,
-                    bulk_deltao_post= save_bulk_oxygen_post,
+                    oxygen_data=d_oxy,
+                    bulk_deltao_pre=save_bulk_oxygen_pre,
+                    bulk_deltao_post=save_bulk_oxygen_post,
                     group_key=group_key,
                     extraction_boolean=extraction_boolean,
                     extracted_fluid_volume=v_fluid_extr,
@@ -737,7 +742,7 @@ class ThorPT_plots():
     def boxplot_to_GIF(self, rock_tag, img_save=False, gif_save=False):
 
         if gif_save is True:
-            img_save=True
+            img_save = True
 
         ts = self.rockdic[rock_tag].temperature
         database = self.rockdic[rock_tag].database
@@ -811,7 +816,6 @@ class ThorPT_plots():
                 print("=====Progress=====")
                 progress(ic)
 
-
         # reading images and put it to GIF
         if gif_save is True:
             # call gif function
@@ -821,7 +825,7 @@ class ThorPT_plots():
     def pt_path_plot(self, rock_tag, img_save=False, gif_save=False):
 
         if gif_save is True:
-            img_save=True
+            img_save = True
 
         # Variables to be used
         ts = self.rockdic[rock_tag].temperature
@@ -908,7 +912,7 @@ class ThorPT_plots():
     def permeability_plot(self, rock_tag, img_save=False, gif_save=False):
 
         if gif_save is True:
-            img_save=True
+            img_save = True
 
         group_key = self.rockdic[rock_tag].group_key
 
@@ -1048,7 +1052,7 @@ class ThorPT_plots():
     def time_int_flux_plot(self, rock_tag, img_save=False, gif_save=False):
 
         if gif_save is True:
-            img_save=True
+            img_save = True
 
         group_key = self.rockdic[rock_tag].group_key
 
@@ -1215,7 +1219,7 @@ class ThorPT_plots():
             ax4.annotate("Pervasive", (10**(1+0.2), 5),
                          fontsize=16, bbox=props)
             ax4.set_title('T:{:.2f} °C P:{:.2f} GPa'.format(
-                    ts[i], ps[i]/10000), fontsize=18)
+                ts[i], ps[i]/10000), fontsize=18)
             plt.show()
 
         # reading images and put it to GIF
@@ -1227,7 +1231,7 @@ class ThorPT_plots():
     def porosity_plot(self, rock_tag, img_save=False, gif_save=False):
 
         if gif_save is True:
-            img_save=True
+            img_save = True
 
         group_key = self.rockdic[rock_tag].group_key
 
@@ -1265,26 +1269,27 @@ class ThorPT_plots():
             k = 0
             kk = len(ts)
             progress(int(k/kk)*100)
-            os.makedirs(f'{self.mainfolder}/img_{self.filename}', exist_ok=True)
+            os.makedirs(
+                f'{self.mainfolder}/img_{self.filename}', exist_ok=True)
 
             for i in range(len(phase_data.index)):
                 os.makedirs(
                     f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}', exist_ok=True)
                 # -------------------------------------------------------------------
                 fig = plt.figure(constrained_layout=False,
-                                facecolor='0.9', figsize=(9, 9))
+                                 facecolor='0.9', figsize=(9, 9))
                 gs = fig.add_gridspec(nrows=3, ncols=3, left=0.15,
-                                    right=0.95, hspace=0.6, wspace=0.5)
+                                      right=0.95, hspace=0.6, wspace=0.5)
 
                 ax4 = fig.add_subplot(gs[:, :])
                 ax4.plot(unfiltered_porosity[:i+1]*100,
-                        depth[:i+1]/1000, 'd--', color='green')
+                         depth[:i+1]/1000, 'd--', color='green')
                 if False in filtered_porosity.mask[:i+1]:
                     # plot 4
                     ax4.plot(
                         filtered_porosity[:i+1]*100, depth[:i+1]/1000, 'd--', color='black', alpha=0.7)
                     ax4.plot(filtered_porosity[i:i+1]*100, depth[i:i+1]/1000, 'd',
-                            color='#7fffd4', markersize=8, markeredgecolor='black')
+                             color='#7fffd4', markersize=8, markeredgecolor='black')
                 else:
                     # plot 4
                     ax4.plot(np.ones(i+1)*1e-30, depth[:i+1]/1000, 'd')
@@ -1317,21 +1322,21 @@ class ThorPT_plots():
 
         else:
             fig = plt.figure(constrained_layout=False,
-                                facecolor='0.9', figsize=(9, 9))
+                             facecolor='0.9', figsize=(9, 9))
             gs = fig.add_gridspec(nrows=3, ncols=3, left=0.15,
-                                    right=0.95, hspace=0.6, wspace=0.5)
+                                  right=0.95, hspace=0.6, wspace=0.5)
             ax4 = fig.add_subplot(gs[:, :])
 
             # looping the array
             for i in range(len(phase_data.index)):
                 ax4.plot(unfiltered_porosity[:i+1]*100,
-                        depth[:i+1]/1000, 'd--', color='green')
+                         depth[:i+1]/1000, 'd--', color='green')
                 if False in filtered_porosity.mask[:i+1]:
                     # plot 4
                     ax4.plot(
                         filtered_porosity[:i+1]*100, depth[:i+1]/1000, 'd--', color='black', alpha=0.7)
                     ax4.plot(filtered_porosity[i:i+1]*100, depth[i:i+1]/1000, 'd',
-                            color='#7fffd4', markersize=8, markeredgecolor='black')
+                             color='#7fffd4', markersize=8, markeredgecolor='black')
                 else:
                     # plot 4
                     ax4.plot(np.ones(i+1)*1e-30, depth[:i+1]/1000, 'd')
@@ -1361,7 +1366,7 @@ class ThorPT_plots():
     def release_fluid_volume_plot(self, rock_tag, img_save=False, gif_save=False):
 
         if gif_save is True:
-            img_save=True
+            img_save = True
 
         ts = self.rockdic[rock_tag].temperature
         group_key = self.rockdic[rock_tag].group_key
@@ -1495,8 +1500,9 @@ class ThorPT_plots():
         frac_bool = self.rockdic[rock_tag].frac_bool
 
         # Input for the variable of interest
-        tag_in = input("Please provide what you want to convert to a stack. ['vol%', 'volume[ccm]', 'wt%', 'wt[g]']")
-        tag='df_'+tag_in
+        tag_in = input(
+            "Please provide what you want to convert to a stack. ['vol%', 'volume[ccm]', 'wt%', 'wt[g]']")
+        tag = 'df_'+tag_in
 
         # compile data for plotting
         system_vol_pre = self.rockdic[rock_tag].systemVolPre
@@ -1525,7 +1531,6 @@ class ThorPT_plots():
         ax1 = host_subplot(111)
         #fig.suptitle('Phase changes for P-T-t')
         # main plot
-
 
         # ax1.stackplot(line, y, labels=label_list,
         #               colors=pal1, alpha=.8, edgecolor='black')
@@ -1605,7 +1610,6 @@ class ThorPT_plots():
         ax2.axis["right"].major_ticklabels.set_visible(False)
         ax2.axis["right"].major_ticks.set_visible(False)
 
-
         # save image
         if img_save is True:
             plt.savefig(Path(self.mainfolder /
@@ -1624,7 +1628,8 @@ class ThorPT_plots():
         x_ax_label = input("Please provide the x-axis data...")
         y_ax_label = input("Please provide the y-axis data...")
 
-        whitelist_attributes = ['temperature', 'pressure', 'depth', 'systemVolPre', 'systemVolPost', 'permeability', 'extracted_fluid_volume', 'porosity', 'time_int_flux2']
+        whitelist_attributes = ['temperature', 'pressure', 'depth', 'time', 'systemVolPre',
+                                'systemVolPost', 'permeability', 'extracted_fluid_volume', 'porosity', 'time_int_flux2']
         whitelist_phase_data = ['N', 'vol%', 'volume[ccm]', 'wt%', 'wt[g]']
 
         if x_ax_label in attributes and x_ax_label in whitelist_attributes:
@@ -1634,6 +1639,8 @@ class ThorPT_plots():
                 xdata = data.pressure
             if x_ax_label == 'depth':
                 xdata = data.depth
+            if x_ax_label == 'time':
+                xdata = data.time
             if x_ax_label == 'systemVolPost':
                 xdata = data.systemVolPost
             if x_ax_label == 'permeability':
@@ -1646,7 +1653,8 @@ class ThorPT_plots():
                 xdata = data.time_int_flux2
         elif x_ax_label in whitelist_phase_data:
             sel_d = data.phase_data[f'df_{x_ax_label}']
-            xdata = input(f"Your x data query requires a phase input from the following list:\n{sel_d.columns}")
+            xdata = input(
+                f"Your x data query requires a phase input from the following list:\n{sel_d.columns}")
             xdata = data.phase_data[f'df_{x_ax_label}'][xdata]
         else:
             print("Selected data for x label is not available.")
@@ -1671,7 +1679,8 @@ class ThorPT_plots():
                 ydata = data.time_int_flux2
         elif y_ax_label in whitelist_phase_data:
             sel_d = data.phase_data[f'df_{y_ax_label}']
-            ydata = input(f"Your x data query requires a phase input from the following list:\n{sel_d.columns}")
+            ydata = input(
+                f"Your x data query requires a phase input from the following list:\n{sel_d.columns}")
             ydata = data.phase_data[f'df_{y_ax_label}'][ydata]
         else:
             print("Selected data for x label is not available.")
@@ -1711,11 +1720,13 @@ class ThorPT_plots():
         oxyframe.index = legend_phases
         fig, ax111 = plt.subplots(1, 1, figsize=(8, 5))
         for t, phase in enumerate(list(oxyframe.index)):
-            ax111.plot(oxyframe.columns, oxyframe.loc[phase], '--d', color=color_set[t], linewidth=0.7, markeredgecolor='black')
+            ax111.plot(oxyframe.columns, oxyframe.loc[phase], '--d',
+                       color=color_set[t], linewidth=0.7, markeredgecolor='black')
 
-
-        ax111.plot(self.rockdic[rock_tag].temperature, self.rockdic[rock_tag].bulk_deltao_post, '-', c='black')
-        ax111.plot(self.rockdic[rock_tag].temperature, self.rockdic[rock_tag].bulk_deltao_pre, '-.', c='black')
+        ax111.plot(self.rockdic[rock_tag].temperature,
+                   self.rockdic[rock_tag].bulk_deltao_post, '-', c='black')
+        ax111.plot(self.rockdic[rock_tag].temperature,
+                   self.rockdic[rock_tag].bulk_deltao_pre, '-.', c='black')
         legend_list = list(oxyframe.index) + ["pre bulk", "post bulk"]
         ax111.legend(legend_list, bbox_to_anchor=(1.28, 0.9))
         min_min = min(summary.loc['min'])
@@ -1729,7 +1740,7 @@ class ThorPT_plots():
 
         if img_save is True:
             plt.savefig(Path(self.mainfolder /
-                            f"{self.rock_key}_oxygen_signatures.png"), dpi=300)
+                             f"{self.rock_key}_oxygen_signatures.png"), dpi=300)
         else:
             plt.show()
         plt.clf()
@@ -1755,13 +1766,10 @@ if __name__ == '__main__':
     compPlot.oxygen_isotopes(rock_tag='rock0')
     compPlot.binary_plot(rock_tag='rock0')
     compPlot.pt_path_plot(rock_tag='rock0', img_save=False, gif_save=False)
-    compPlot.permeability_plot(rock_tag='rock0', img_save=False, gif_save=False)
-    compPlot.time_int_flux_plot(rock_tag='rock0', img_save=False, gif_save=False)
+    compPlot.permeability_plot(
+        rock_tag='rock0', img_save=False, gif_save=False)
+    compPlot.time_int_flux_plot(
+        rock_tag='rock0', img_save=False, gif_save=False)
     compPlot.porosity_plot(rock_tag='rock0', img_save=False, gif_save=False)
-    compPlot.release_fluid_volume_plot(rock_tag='rock0', img_save=False, gif_save=False)
-
-
-
-
-
-
+    compPlot.release_fluid_volume_plot(
+        rock_tag='rock0', img_save=False, gif_save=False)
