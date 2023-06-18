@@ -1251,7 +1251,10 @@ class Therm_dyn_ther_looper:
 
             phase_oxygen = np.array(collect_phases)
             phase_oxygen[min_pos] = 0
-            self.df_all_elements.loc['O'][min_pos] = 0
+            # ANCHOR syntax fix pandas - caviat from jupyter notebook
+            self.df_all_elements.loc['O', phase_list[min_pos]] = 0
+            # self.df_all_elements.loc['O'][min_pos] = 0
+            # self.df_all_elements.loc['O'].iloc[min_pos] = 0
             phase_doxy = oxygen_data['delta_O']
 
             new_O_bulk = sum(phase_oxygen*phase_doxy / sum(phase_oxygen))
@@ -1435,7 +1438,7 @@ class Ext_method_master:
         b = 1/internal_friction
         c = -cohesion/internal_friction
 
-        # TODO - static fix to 45°
+        # REVIEW - static fix to 45°
         self.angle = 45
 
         # #########################################
@@ -1444,10 +1447,19 @@ class Ext_method_master:
         litho = self.pressure/10 # convert Bar to MPa
 
         # differential stress from shear stress input, recasted after Cox et al. 2010
-        diff_stress = 2*shear_stress/np.sin(2*self.angle*np.pi/180)
-        self.diff_stress = diff_stress
+        self.diff_stress = 2*shear_stress/np.sin(2*self.angle*np.pi/180)
 
+        # NOTE - setting lithostatic pressure for sig1
         # sigma 1 or sigma 3, it defines the stress regime
+        sig1 = litho
+        sig3 = litho - self.diff_stress
+
+        # normal stress after Cox et al. 2010
+        # normal stress = lithostatic when theta is 45°
+        normal_stress = ((sig1+sig3)/2) - ((sig1-sig3)/2) * np.cos(2*self.angle*np.pi/180)
+
+        # REVIEW sig1-sig3 version 18.06.2023 before revision from workshop
+        """# sigma 1 or sigma 3, it defines the stress regime
         sig1 = litho + diff_stress/2
         sig3 = litho - diff_stress/2
 
@@ -1458,7 +1470,7 @@ class Ext_method_master:
         # reevaluate sig1 and sig3 after assigning normal_stress
         # remain same values if theta is 45°
         sig1 = normal_stress + diff_stress/2
-        sig3 = normal_stress - diff_stress/2
+        sig3 = normal_stress - diff_stress/2"""
 
         # Critical fluid pressure
         crit_fluid_pressure = cohesion/internal_friction + ((sig1+sig3)/2) - (
@@ -1471,8 +1483,11 @@ class Ext_method_master:
         vol_new = self.solid_t1 + self.fluid_t1
 
         # Fluid pressure calculation
+        # Duesterhoft 2019 method
         hydro2 = normal_stress + normal_stress/vol_t0 * (vol_t0-(vol_new-vol_t0))-normal_stress
+        # purely volume ratio method
         hydro = normal_stress * vol_new/vol_t0
+        # NOTE fluid pressure after Duesterhoft 2019
         hydro = hydro2
 
         # brittle shear failure check
@@ -1502,7 +1517,7 @@ class Ext_method_master:
         output = checkCollision(a, b, c, x=pos, y=0, radius=r)
 
         # Condition 4T >= differential stress for extensional brittle failure
-        if self.tensile_strength*4 > diff_stress:
+        if self.tensile_strength*4 > self.diff_stress:
             print("\tRe-evaluate failure test circle...")
 
             # Hydrofracture criterion - double checked if envelope was hit earlier than tensile strength

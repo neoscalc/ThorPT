@@ -385,7 +385,7 @@ def create_gif(phase_data, mainfolder, filename, group_key, subfolder='default')
         image = imread(
             f'{mainfolder}/img_{filename}/{subfolder}/{group_key}/img_{i}.png')
         frames.append(image)
-    imageio.mimsave(f'{mainfolder}/img_{filename}/{subfolder}/{group_key}/output.gif', frames, duration=2)
+    imageio.mimsave(f'{mainfolder}/img_{filename}/{subfolder}/{group_key}/output.gif', frames, duration=1)
 
 
 # Progressbar init
@@ -1624,7 +1624,7 @@ class ThorPT_plots():
         x_ax_label = input("Please provide the x-axis data...")
         y_ax_label = input("Please provide the y-axis data...")
 
-        whitelist_attributes = ['temperature', 'pressure', 'depth', 'systemVolPost', 'permeability', 'extracted_fluid_volume', 'porosity', 'time_int_flux2']
+        whitelist_attributes = ['temperature', 'pressure', 'depth', 'systemVolPre', 'systemVolPost', 'permeability', 'extracted_fluid_volume', 'porosity', 'time_int_flux2']
         whitelist_phase_data = ['N', 'vol%', 'volume[ccm]', 'wt%', 'wt[g]']
 
         if x_ax_label in attributes and x_ax_label in whitelist_attributes:
@@ -1750,9 +1750,8 @@ if __name__ == '__main__':
     for key in data.rock.keys():
         print(key)
 
-
+    compPlot.boxplot_to_GIF(rock_tag='rock1', img_save=True, gif_save=True)
     compPlot.phases_stack_plot(rock_tag='rock0', img_save=False)
-    compPlot.boxplot_to_GIF(rock_tag='rock0', img_save=True, gif_save=True)
     compPlot.oxygen_isotopes(rock_tag='rock0')
     compPlot.binary_plot(rock_tag='rock0')
     compPlot.pt_path_plot(rock_tag='rock0', img_save=False, gif_save=False)
