@@ -1,11 +1,11 @@
 *theriak directory
-Theriak:C:\TheriakDominoWIN.2023.06.06\Programs
+Theriak:C:\TheriakDominoWIN.2023.06.11\Programs
 *Base settings
 Path:Finder
 *options: Finder
-Input-arguments:Mod4, stored, GPa, 0.03, 20, 1
+Input-arguments:Mod4, stored, GPa, 0.03, 20, 2
 *Arguments for Pathfinder mod, path for interpolation (stored, new), unit of pressure, convergence speed, slab angle, transmition on/off (2/1)
-Extraction scheme:Always extraction
+Extraction scheme:Mohr-Coulomb-Permea2
 *options: No extraction, Always extraction, Mohr-Coulomb-Permea2
 Min Permea: 1e-21
 ShearStress: 48
