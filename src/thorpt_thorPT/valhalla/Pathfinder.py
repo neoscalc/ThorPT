@@ -472,6 +472,7 @@ class Digi_Pathfinder:
                 ("jpeg files", "*.jpg"),
                 ("png files", "*.png"))
         )
+        root.update()
         if len(filein) == 0:
             # nothing selected, return
             return
@@ -479,6 +480,7 @@ class Digi_Pathfinder:
         # show the image
         img = mpimg.imread(filein)
         _, ax = plt.subplots()
+
         ax.imshow(img)
         ax.axis('off')  # clear x-axis and y-axis
 

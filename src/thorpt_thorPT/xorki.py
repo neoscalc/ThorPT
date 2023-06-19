@@ -1076,15 +1076,22 @@ class ThorPT_plots():
                 unfiltered_int_flux, extraction_boolean)
             filtered_q_ti = np.ma.masked_array(
                 q_ti, extraction_boolean)
+            regional_filtered_flux = filtered_q_ti
+
 
         if len(np.unique(self.rockdic[rock_tag].frac_bool)) == 1 and np.unique(self.rockdic[rock_tag].frac_bool)[-1] == 0:
             filtered_q_ti = np.zeros(len(self.rockdic[rock_tag].frac_bool))
             filtered_int_flux = np.zeros(len(self.rockdic[rock_tag].frac_bool))
+            regional_filtered_flux = filtered_q_ti
 
+
+        if len(extraction_boolean) == 0:
+            regional_filtered_flux = unfiltered_int_flux
+            arr = np.invert(np.array(unfiltered_int_flux, dtype=bool))
+            filtered_int_flux = np.ma.masked_array(
+                regional_filtered_flux, arr)
         # saving subfolder
         subfolder = 'time_int_flux'
-
-        regional_filtered_flux = filtered_q_ti
 
         if img_save is True:
 
@@ -1804,6 +1811,7 @@ if __name__ == '__main__':
     for key in data.rock.keys():
         print(key)
 
+    compPlot.time_int_flux_plot(rock_tag='rock2')
     compPlot.phases_stack_plot(rock_tag='rock1', img_save=False)
     compPlot.phases_stack_plot(rock_tag='rock2', img_save=False)
     compPlot.oxygen_isotopes(rock_tag='rock0')
