@@ -58,7 +58,7 @@ First steps:
 Import taufrir module
 Read variables from a hdf5 with the function
 ```python
-from thorpt_thorPT.taufrir02 import *
+from thorpt_thorPT.xorki import *
 data = ThorPT_hdf5_reader()
 data.open_ThorPT_hdf5()
 ```
