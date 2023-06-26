@@ -1355,6 +1355,7 @@ class Ext_method_master:
         self.frac_respo = 0
         self.angle = subduction_angle
         self.diff_stress = 0
+        self.failure_dictionary = {}
 
     def couloumb_method(self, t_ref_solid, tensile=20):
         """
@@ -1453,7 +1454,6 @@ class Ext_method_master:
         # Update system condition of fracturing
         self.fracture = fracturing
         print("End fracture modul")
-
 
     def couloumb_method2(self, shear_stress, friction, cohesion):
         """
@@ -1757,9 +1757,20 @@ class Ext_method_master:
         # Duesterhoft 2019 method
         hydro = normal_stress + normal_stress/vol_t0 * (vol_t0-(vol_new-vol_t0))-normal_stress
 
+        # Mohr circle arguments
         r = self.diff_stress/2
         center = sig1-r
         pos = center - hydro
+
+        # Coulomb failure envelope
+        a = -1
+        b = 1/internal_friction
+        c = -cohesion/internal_friction
+
+        # Critical fluid pressures
+        crit_fluid_pressure = cohesion/internal_friction + ((sig1+sig3)/2) - (
+                (sig1-sig3)/2)*np.cos(2*self.angle*np.pi/180) - ((sig1-sig3)/2/internal_friction)*np.sin(2*self.angle*np.pi/180)
+        pf_crit_griffith = (8*self.tensile_strength*(sig1+sig3)-((sig1-sig3)**2))/(16*self.tensile_strength)
 
         # ##########################################
         # Failure envelope test
@@ -1768,15 +1779,10 @@ class Ext_method_master:
             print(f"Diff.-stress is {self.diff_stress} and > than T*5.66")
 
             # Test possible extensional fracturing
-            a = -1
-            b = 1/internal_friction
-            c = -cohesion/internal_friction
             output, minimum = checkCollision_linear(a, b, c, x=pos, y=0, radius=r)
             print(f"Maximum differential stress calculated as {minimum*2} MPa, but is {self.diff_stress}.")
 
             # Critical fluid pressure
-            crit_fluid_pressure = cohesion/internal_friction + ((sig1+sig3)/2) - (
-                (sig1-sig3)/2)*np.cos(2*self.angle*np.pi/180) - ((sig1-sig3)/2/internal_friction)*np.sin(2*self.angle*np.pi/180)
             print(f"Difference of fluid pressure and critical fluid pressure is:\n{crit_fluid_pressure-hydro} (Pf_crit - Pf)")
 
             if output is True:
@@ -1792,8 +1798,6 @@ class Ext_method_master:
             print(f"Diff.-stress is {self.diff_stress} and < than T*5.66 and > T*4")
             output, minimum = checkCollision_curve(pos=pos, diff=self.diff_stress, tensile=cohesion/2)
             print(f"Maximum differential stress calculated as {minimum*2} MPa, but is {self.diff_stress}.")
-
-            pf_crit_griffith = (8*self.tensile_strength*(sig1+sig3)-((sig1-sig3)**2))/(16*self.tensile_strength)
             print(f"Difference of fluid pressure and critical fluid pressure is:\n{pf_crit_griffith-hydro} (Pf_crit - Pf)")
 
             if output is True:
@@ -1821,6 +1825,28 @@ class Ext_method_master:
             print(self.diff_stress)
             self.frac_respo = 0
 
+        self.failure_dictionary = {
+            "friction coeff": internal_friction.copy(),
+            "cohesion": cohesion,
+            "diff stress":self.diff_stress.copy(),
+            "radius": r.copy(),
+            "center": center.copy(),
+            "effective position": pos.copy(),
+            "critical fluid pressure normal": crit_fluid_pressure.copy(),
+            "critical fluid pressure griffith": pf_crit_griffith.copy(),
+            "fluid pressure": hydro.copy(),
+            "normal pressure": normal_stress.copy(),
+            "vol t0":vol_t0.copy(),
+            "solid t0":self.solid_t0.copy(),
+            "fluid t0":self.fluid_t0.copy(),
+            "vol t1":vol_new.copy(),
+            "solid t1":self.solid_t1.copy(),
+            "fluid t1":self.fluid_t1.copy(),
+            "sigma 1":sig1.copy(),
+            "sigma 3":sig3.copy(),
+            "angle": self.angle.copy(),
+            "fracture key": self.frac_respo.copy()
+            }
 
         if self.frac_respo > 0:
             fracturing = True
@@ -1833,7 +1859,6 @@ class Ext_method_master:
         # Update system condition of fracturing
         self.fracture = fracturing
         print("End fracture modul")
-
 
     def factor_method(self):
         """

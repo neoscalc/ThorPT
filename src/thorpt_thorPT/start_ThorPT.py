@@ -419,6 +419,7 @@ def run_routine():
             master_rock[tag]['cohesion'] = init_data['cohesion'][i]
             master_rock[tag]['shear'] = init_data['shear'][i]
             master_rock[tag]['Extraction scheme'] = init_data['Extraction scheme']
+            master_rock[tag]['failure module'] = []
 
             # metastable garnet
             master_rock[tag]['garnet'] = []

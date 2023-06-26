@@ -607,7 +607,9 @@ class ThorPT_Routines():
                     # !!!!Assumption: fracturing of the system
                     # if condition = open system, free water gets extracted
                     fracturing_flag = False # Trigger by default False - active when coulomb module becomes positive
-                    if factor_method is True or dynamic_method is True or steady_method is True or coulomb is True or coulomb_permea is True or coulomb_permea2 is True:
+                    failure_mech = master_rock[item]['Extraction scheme']
+                    if failure_mech in ['Factor', 'Dynamic', 'Steady', 'Mohr-Coulomb-Permea2', 'Mohr-Coulomb-Griffith']:
+                    # if factor_method is True or dynamic_method is True or steady_method is True or coulomb is True or coulomb_permea is True or coulomb_permea2 is True:
 
                         # virtual momentary fluid flux and permeabiltiy test
                         mü_water = 1e-4
@@ -696,13 +698,8 @@ class ThorPT_Routines():
 
                         # ##############################################
                         # LINK Coulomb method tests
-                        if coulomb_permea is True:
-                            print("\t===== Mohr-Couloumb.Permea method active =====")
-                            # Fluid factor setting
-                            master_rock[item]['fluid_calculation'].couloumb_method(
-                                t_ref_solid=master_rock[item]['track_refolidv'])
 
-                        if coulomb_permea2 is True:
+                        if failure_mech == 'Mohr-Coulomb-Permea2':
                             print("\t===== Mohr-Couloumb.Permea2 method active =====")
                             # Call the coulomb method no 2 - fixed diff stress failure test
                             # LINK - diff stress input here
@@ -711,18 +708,30 @@ class ThorPT_Routines():
                                 friction=master_rock[item]['friction'],
                                 cohesion=master_rock[item]['cohesion']
                                 )
+                        elif failure_mech == 'Mohr-Coulomb-Griffith':
+                            master_rock[item]['fluid_calculation'].mohr_cloulomb_griffith(
+                                shear_stress=master_rock[item]['shear'],
+                                friction=master_rock[item]['friction'],
+                                cohesion=master_rock[item]['cohesion']
+                            )
+                            master_rock[item]['failure module'].append(
+                                master_rock[item]['fluid_calculation'].failure_dictionary)
 
-                        if coulomb is True:
-                            print("\t===== Mohr-Couloumb method active =====")
-                            # Fluid factor setting
-                            master_rock[item]['fluid_calculation'].couloumb_method(
-                                t_ref_solid=master_rock[item]['track_refolidv'])
+                        # LINK ii) Steady state fluid extraction
+                        elif failure_mech == 'Steady':
+                            print("===== steady method active =====")
+                            master_rock[item]['fracture bool'].append(3)
+                            fracturing_flag = True
 
+                        else:
+                            fracturing_flag = False
                         # ##############################################
                         # LINK Coulomb mechanical trigger
                         # Tracking fracturing from coulomb approach methods
                         # Editing trigger
-                        if coulomb is True or coulomb_permea2 is True or coulomb_permea is True:
+                        # if coulomb is True or coulomb_permea2 is True or coulomb_permea is True:
+
+                        if failure_mech in ['Factor', 'Dynamic', 'Steady', 'Mohr-Coulomb-Permea2', 'Mohr-Coulomb-Griffith']:
 
                             # store the differential stresses
                             master_rock[item]['diff. stress'].append(
@@ -749,7 +758,6 @@ class ThorPT_Routines():
                                 print("!!! Below minimum permeability!")
                             # # FIXME modified extraction criteria - minimum permeability is never reached 06.03.2023
                             if fracturing_flag is True:
-
                                 print("Enter fluid extraction")
                                 master_rock[item]['fluid_extraction'] = Fluid_master(
                                     phase_data=master_rock[item]['minimization'].df_phase_data.loc[:, 'water.fluid'],
@@ -1361,31 +1369,17 @@ class ThorPT_Routines():
                                 friction=master_rock[item]['friction'],
                                 cohesion=master_rock[item]['cohesion']
                             )
+                            master_rock[item]['failure module'].append(
+                                master_rock[item]['fluid_calculation'].failure_dictionary)
 
                         # LINK ii) Steady state fluid extraction
                         elif failure_mech == 'Steady':
                             print("===== steady method active =====")
-                            master_rock[item]['fluid_extraction'] = Fluid_master(
-                                phase_data=master_rock[item]['minimization'].df_phase_data.loc[:, 'water.fluid'],
-                                ext_data=master_rock[item]['extracted_fluid_data'],
-                                temperature=num+1,
-                                new_fluid_V=master_rock[item]['fluid_volume_new'],
-                                sys_H=master_rock[item]['total_hydrogen'],
-                                element_frame=master_rock[item]['df_element_total'],
-                                st_fluid_post=master_rock[item]['st_fluid_after']
-                            )
-                            master_rock[item]['fluid_extraction'].hydrogen_ext_all()
-                            master_rock[item]['extracted_fluid_data'] = master_rock[item]['fluid_extraction'].ext_data
-                            # save time and system volume to list at extraction
-                            master_rock[item]['df_element_total'] = master_rock[item]['fluid_extraction'].element_frame
-                            master_rock[item]['extr_time'].append(track_time[num])
-                            # step system total volume (for surface ---> time integrated fluid flux)
-                            master_rock[item]['extr_svol'].append(
-                                np.sum(master_rock[item]['df_var_dictionary']['df_volume[ccm]'].iloc[:, -1]))
                             master_rock[item]['fracture bool'].append(3)
+                            fracturing_flag = True
 
                         else:
-                            pass
+                            fracturing_flag = False
 
                         # ##############################################
                         # LINK Coulomb mechanical trigger
@@ -1459,7 +1453,7 @@ class ThorPT_Routines():
 
                         # Starts steady scheme
                         # LINK ii) old Steady state fluid extraction
-                        if steady_method is True:
+                        """if steady_method is True:
                             print("===== steady method active =====")
                             master_rock[item]['fluid_extraction'] = Fluid_master(
                                 phase_data=master_rock[item]['minimization'].df_phase_data.loc[:, 'water.fluid'],
@@ -1478,7 +1472,7 @@ class ThorPT_Routines():
                             # step system total volume (for surface ---> time integrated fluid flux)
                             master_rock[item]['extr_svol'].append(
                                 np.sum(master_rock[item]['df_var_dictionary']['df_volume[ccm]'].iloc[:, -1]))
-                            master_rock[item]['fracture bool'].append(3)
+                            master_rock[item]['fracture bool'].append(3)"""
 
 
                     # OPTION no extraction
