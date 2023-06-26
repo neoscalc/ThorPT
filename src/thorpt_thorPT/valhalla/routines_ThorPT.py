@@ -211,7 +211,7 @@ def fluid_injection_isotope_recalculation(isotope_data, oxygen_data, input_delta
         index=input_deltaO['Phases']
             )
     # influx data to reclaculate with
-    input_deltaO = np.float64(temp_input.loc['water.fluid'])
+    input_deltaO = np.float64(temp_input.loc['water.fluid', 0])
     input_oxygen = interaction_factor * input_oxygen
     # recalculation by factors
     bulk_deltaO = sum(phase_oxygen*phase_doxy / sum(phase_oxygen))
@@ -785,71 +785,6 @@ class ThorPT_Routines():
                                     master_rock[item]['solid_volume_before'])
                                 master_rock[item]['fracture bool'][-1] = 0
 
-                        # #######################################################################
-                        # Start factor method scheme
-                        if factor_method is True:
-                            print("===== factor method active =====")
-                            # Fluid factor setting
-                            master_rock[item]['fluid_calculation'].factor_method()
-                            fluid_fac = master_rock[item]['save_factor'][-1]
-                            fracture_value = 1 + master_rock[item]['tensile strength'] / \
-                                (pressures[num]/10)
-                            print(
-                                f"\nThe calculated extensional fracturing fator is: .... {fracture_value}\n")
-                            print(f"Check factor: {fluid_fac}")
-
-                            # checking with the fluid factor and decision for fracturing or not
-                            if fluid_fac >= fracture_value or fluid_fac == -np.inf or fluid_fac == np.inf:
-                                master_rock[item]['fluid_extraction'] = Fluid_master(
-                                    phase_data=master_rock[item]['minimization'].df_phase_data.loc[:, 'water.fluid'],
-                                    ext_data=master_rock[item]['extracted_fluid_data'],
-                                    temperature=num+1,
-                                    new_fluid_V=master_rock[item]['fluid_volume_new'],
-                                    sys_H=master_rock[item]['total_hydrogen'],
-                                    fluid_H=master_rock[item]['fluid_hydrogen'],
-                                    element_frame=master_rock[item]['df_element_total'],
-                                    st_fluid_post=master_rock[item]['st_fluid_after']
-                                )
-
-                                master_rock[item]['fluid_extraction'].hydrogen_ext_all()
-                                master_rock[item]['extracted_fluid_data'] = master_rock[item]['fluid_extraction'].ext_data
-                                # save time and system volume to list at extraction
-                                master_rock[item]['df_element_total'] = master_rock[item]['fluid_extraction'].element_frame
-                                master_rock[item]['extr_time'].append(
-                                    track_time[num])
-                                # step system total volume (for surface ---> time integrated fluid flux)
-                                master_rock[item]['extr_svol'].append(
-                                    np.sum(master_rock[item]['df_var_dictionary']['df_volume[ccm]'].iloc[:, -1]))
-                                master_rock[item]['track_refolidv'] = []
-                            else:
-                                master_rock[item]['track_refolidv'].append(
-                                    master_rock[item]['solid_volume_before'])
-                            master_rock[item]['fracture bool'].append(4)
-
-                        # #######################################################################
-                        # Starts steady scheme
-                        if steady_method is True:
-                            print("===== steady method active =====")
-                            master_rock[item]['fluid_extraction'] = Fluid_master(
-                                phase_data=master_rock[item]['minimization'].df_phase_data.loc[:, 'water.fluid'],
-                                ext_data=master_rock[item]['extracted_fluid_data'],
-                                temperature=num+1,
-                                new_fluid_V=master_rock[item]['fluid_volume_new'],
-                                sys_H=master_rock[item]['total_hydrogen'],
-                                element_frame=master_rock[item]['df_element_total'],
-                                st_fluid_post=master_rock[item]['st_fluid_after']
-                                )
-
-                            master_rock[item]['fluid_extraction'].hydrogen_ext_all()
-                            master_rock[item]['extracted_fluid_data'] = master_rock[item]['fluid_extraction'].ext_data
-                            # save time and system volume to list at extraction
-                            master_rock[item]['df_element_total'] = master_rock[item]['fluid_extraction'].element_frame
-                            master_rock[item]['extr_time'].append(track_time[num])
-                            # step system total volume (for surface ---> time integrated fluid flux)
-                            master_rock[item]['extr_svol'].append(
-                                np.sum(master_rock[item]['df_var_dictionary']['df_volume[ccm]'].iloc[:, -1]))
-                            master_rock[item]['fracture bool'].append(6)
-
                     # Starts no extraction scheme
                     else:
                         print("////// %s No extraction enabled! %s //////")
@@ -858,7 +793,6 @@ class ThorPT_Routines():
                     # LINK Static: Recalculate bulk delta O after extraction
                     # Recalculate bulk rock oxygen value after possible extraction
                     new_O_bulk = oxygen_isotope_recalculation(master_rock[item]['save_oxygen'], master_rock[item]['df_element_total'])
-
                     master_rock[item]['bulk_oxygen'] = new_O_bulk
                     # bulk_oxygen = (rockOxy*bulk_oxygen - oxy_mole_fluid *
                     #                 fluid_oxygen)/(rockOxy - oxy_mole_fluid)
@@ -1451,30 +1385,6 @@ class ThorPT_Routines():
                                     master_rock[item]['solid_volume_before'])
                                 master_rock[item]['fracture bool'][-1] = 0
 
-                        # Starts steady scheme
-                        # LINK ii) old Steady state fluid extraction
-                        """if steady_method is True:
-                            print("===== steady method active =====")
-                            master_rock[item]['fluid_extraction'] = Fluid_master(
-                                phase_data=master_rock[item]['minimization'].df_phase_data.loc[:, 'water.fluid'],
-                                ext_data=master_rock[item]['extracted_fluid_data'],
-                                temperature=num+1,
-                                new_fluid_V=master_rock[item]['fluid_volume_new'],
-                                sys_H=master_rock[item]['total_hydrogen'],
-                                element_frame=master_rock[item]['df_element_total'],
-                                st_fluid_post=master_rock[item]['st_fluid_after']
-                            )
-                            master_rock[item]['fluid_extraction'].hydrogen_ext_all()
-                            master_rock[item]['extracted_fluid_data'] = master_rock[item]['fluid_extraction'].ext_data
-                            # save time and system volume to list at extraction
-                            master_rock[item]['df_element_total'] = master_rock[item]['fluid_extraction'].element_frame
-                            master_rock[item]['extr_time'].append(track_time[num])
-                            # step system total volume (for surface ---> time integrated fluid flux)
-                            master_rock[item]['extr_svol'].append(
-                                np.sum(master_rock[item]['df_var_dictionary']['df_volume[ccm]'].iloc[:, -1]))
-                            master_rock[item]['fracture bool'].append(3)"""
-
-
                     # OPTION no extraction
                     # Starts no extraction scheme
                     else:
@@ -1487,7 +1397,6 @@ class ThorPT_Routines():
                     new_O_bulk = oxygen_isotope_recalculation(
                         master_rock[item]['save_oxygen'],
                         master_rock[item]['df_element_total'])
-
                     # Overwrite for new bulk rock oxygen signature
                     master_rock[item]['bulk_oxygen'] = new_O_bulk
                     # bulk_oxygen = (rockOxy*bulk_oxygen - oxy_mole_fluid *
@@ -1737,6 +1646,19 @@ class ThorPT_Routines():
                             hf[rock].attrs.create(item, master_rock[rock][item])
                         if item == 'line':
                             hf[rock].attrs.create(item, master_rock[rock][item])
+
+                    elif item == 'failure module':
+                        item_list = list(master_rock[rock][item][0].keys())
+                        dataframe_fracture_module = pd.DataFrame(np.zeros((len(master_rock[rock][item]), len(item_list))))
+                        dataframe_fracture_module.columns = item_list
+                        for kkey in item_list:
+                            stored = []
+                            for element in master_rock[rock][item]:
+                                stored.append(element[kkey])
+                            dataframe_fracture_module[kkey] = stored
+
+                        dataset = hf.create_dataset(f"{rock}/{item}", data=dataframe_fracture_module, compression="gzip")
+                        hf[f"{rock}/{item}"].attrs.create('header', item_list)
 
                     elif item == 'garnet':
                         tts = []

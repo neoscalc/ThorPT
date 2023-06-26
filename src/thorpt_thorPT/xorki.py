@@ -1578,11 +1578,13 @@ class ThorPT_plots():
         mark_extr = np.array(system_vol_pre-system_vol_post, dtype='bool')
         twin1.plot(line, y2, '1--', c='blue')
         if len(frac_bool) > 0:
-            if 1 in frac_bool or 2 in frac_bool:
+            if 1 in frac_bool or 2 in frac_bool or 3 in frac_bool:
                 extension_bool = np.isin(frac_bool, 1)
-                shear_bool = np.isin(frac_bool, 2)
+                extend_shear_bool = np.isin(frac_bool, 2)
+                compress_shear_bool = np.isin(frac_bool, 3)
                 twin1.plot(line[extension_bool], y2[extension_bool], 'Dr')
-                twin1.plot(line[shear_bool], y2[shear_bool], 'Dg')
+                twin1.plot(line[extend_shear_bool], y2[extend_shear_bool], 'Dg')
+                twin1.plot(line[compress_shear_bool], y2[compress_shear_bool], 'Db')
         else:
             pass
         twin1.set_ylabel("Vol% of fluid-filled porosity")

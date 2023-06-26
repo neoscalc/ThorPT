@@ -18,6 +18,7 @@ import time
 from dataclasses import dataclass, field
 from typing import List
 from scipy.optimize import minimize
+import copy
 
 
 @dataclass
@@ -1791,7 +1792,7 @@ class Ext_method_master:
             else:
                 print("---> No failure")
 
-            mcg_plot(cohesion, internal_friction, self.diff_stress, self.shear_stress, sig1, hydro)
+            # mcg_plot(cohesion, internal_friction, self.diff_stress, self.shear_stress, sig1, hydro)
 
         elif self.diff_stress < self.tensile_strength*5.66 and self.diff_stress > 4*self.tensile_strength:
             print("Extensional shear failure test")
@@ -1806,7 +1807,7 @@ class Ext_method_master:
             else:
                 print("---> No failure")
 
-            mcg_plot(cohesion, internal_friction, self.diff_stress, self.shear_stress, sig1, hydro)
+            # mcg_plot(cohesion, internal_friction, self.diff_stress, self.shear_stress, sig1, hydro)
 
         elif self.diff_stress <= 4*self.tensile_strength:
             print("Pure extensional failure test")
@@ -1818,7 +1819,7 @@ class Ext_method_master:
             else:
                 print("---> No failure")
 
-            mcg_plot(cohesion, internal_friction, self.diff_stress, self.shear_stress, sig1, hydro)
+            # mcg_plot(cohesion, internal_friction, self.diff_stress, self.shear_stress, sig1, hydro)
 
         else:
             print("Differential stress seems to have a problem. We decided to test the value. The value is:\n")
@@ -1826,26 +1827,26 @@ class Ext_method_master:
             self.frac_respo = 0
 
         self.failure_dictionary = {
-            "friction coeff": internal_friction.copy(),
-            "cohesion": cohesion,
-            "diff stress":self.diff_stress.copy(),
-            "radius": r.copy(),
-            "center": center.copy(),
-            "effective position": pos.copy(),
-            "critical fluid pressure normal": crit_fluid_pressure.copy(),
-            "critical fluid pressure griffith": pf_crit_griffith.copy(),
-            "fluid pressure": hydro.copy(),
-            "normal pressure": normal_stress.copy(),
-            "vol t0":vol_t0.copy(),
-            "solid t0":self.solid_t0.copy(),
-            "fluid t0":self.fluid_t0.copy(),
-            "vol t1":vol_new.copy(),
-            "solid t1":self.solid_t1.copy(),
-            "fluid t1":self.fluid_t1.copy(),
-            "sigma 1":sig1.copy(),
-            "sigma 3":sig3.copy(),
-            "angle": self.angle.copy(),
-            "fracture key": self.frac_respo.copy()
+            "friction coeff": copy.deepcopy(internal_friction),
+            "cohesion": (cohesion),
+            "diff stress":(self.diff_stress),
+            "radius": copy.deepcopy(r),
+            "center": copy.deepcopy(center),
+            "effective position": copy.deepcopy(pos),
+            "critical fluid pressure normal": copy.deepcopy(crit_fluid_pressure),
+            "critical fluid pressure griffith": copy.deepcopy(pf_crit_griffith),
+            "fluid pressure": copy.deepcopy(hydro),
+            "normal pressure": copy.deepcopy(normal_stress),
+            "vol t0":copy.deepcopy(vol_t0),
+            "solid t0":copy.deepcopy(self.solid_t0),
+            "fluid t0":copy.deepcopy(self.fluid_t0),
+            "vol t1":copy.deepcopy(vol_new),
+            "solid t1":copy.deepcopy(self.solid_t1),
+            "fluid t1":copy.deepcopy(self.fluid_t1),
+            "sigma 1":copy.deepcopy(sig1),
+            "sigma 3":copy.deepcopy(sig3),
+            "angle": copy.deepcopy(self.angle),
+            "fracture key": copy.deepcopy(self.frac_respo)
             }
 
         if self.frac_respo > 0:
