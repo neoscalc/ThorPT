@@ -16,10 +16,10 @@ import copy
 
 from pathlib import Path
 
-from thorpt_thorPT.valhalla.tunorrad import *
-from thorpt_thorPT.valhalla.Pathfinder import *
-# from valhalla.tunorrad import *
-# from valhalla.Pathfinder import *
+# from thorpt_thorPT.valhalla.tunorrad import *
+# from thorpt_thorPT.valhalla.Pathfinder import *
+from valhalla.tunorrad import *
+from valhalla.Pathfinder import *
 from dataclasses import dataclass
 
 
@@ -1276,7 +1276,10 @@ class ThorPT_Routines():
                     # !!!!Assumption: fracturing of the system
                     # if condition = open system, free water gets extracted
                     fracturing_flag = False # Trigger by default False - active when coulomb module becomes positive
-                    if factor_method is True or dynamic_method is True or steady_method is True or coulomb is True or coulomb_permea is True or coulomb_permea2 is True:
+                    failure_mech = master_rock[item]['Extraction scheme']
+                    if failure_mech in ['Factor', 'Dynamic', 'Steady', 'Mohr-Coulomb-Permea2', 'Mohr-Coulomb-Griffith']:
+                        # ANCHOR work in progres GRIFFITH
+                    # if factor_method is True or dynamic_method is True or steady_method is True or coulomb is True or coulomb_permea is True or coulomb_permea2 is True:
                         # LINK Fluid flux & permeability
                         # Fluid flux check - Virtual calculation
                         # Hypothetically momentary fluid flux and permeabiltiy test
@@ -1344,7 +1347,7 @@ class ThorPT_Routines():
 
                         # Latest failure criterion 07.02.2023
                         # LINK i) Mohr-Coulomb failure w. diff. stress input and min. permeabiltiy
-                        if coulomb_permea2 is True:
+                        if failure_mech == 'Mohr-Coulomb-Permea2':
                             print("\t===== Mohr-Couloumb.Permea2 method active =====")
                             master_rock[item]['fluid_calculation'].couloumb_method2(
                                 shear_stress=master_rock[item]['shear'],
@@ -1352,11 +1355,44 @@ class ThorPT_Routines():
                                 cohesion=master_rock[item]['cohesion']
                                 )
 
+                        elif failure_mech == 'Mohr-Coulomb-Griffith':
+                            master_rock[item]['fluid_calculation'].mohr_cloulomb_griffith(
+                                shear_stress=master_rock[item]['shear'],
+                                friction=master_rock[item]['friction'],
+                                cohesion=master_rock[item]['cohesion']
+                            )
+
+                        # LINK ii) Steady state fluid extraction
+                        elif failure_mech == 'Steady':
+                            print("===== steady method active =====")
+                            master_rock[item]['fluid_extraction'] = Fluid_master(
+                                phase_data=master_rock[item]['minimization'].df_phase_data.loc[:, 'water.fluid'],
+                                ext_data=master_rock[item]['extracted_fluid_data'],
+                                temperature=num+1,
+                                new_fluid_V=master_rock[item]['fluid_volume_new'],
+                                sys_H=master_rock[item]['total_hydrogen'],
+                                element_frame=master_rock[item]['df_element_total'],
+                                st_fluid_post=master_rock[item]['st_fluid_after']
+                            )
+                            master_rock[item]['fluid_extraction'].hydrogen_ext_all()
+                            master_rock[item]['extracted_fluid_data'] = master_rock[item]['fluid_extraction'].ext_data
+                            # save time and system volume to list at extraction
+                            master_rock[item]['df_element_total'] = master_rock[item]['fluid_extraction'].element_frame
+                            master_rock[item]['extr_time'].append(track_time[num])
+                            # step system total volume (for surface ---> time integrated fluid flux)
+                            master_rock[item]['extr_svol'].append(
+                                np.sum(master_rock[item]['df_var_dictionary']['df_volume[ccm]'].iloc[:, -1]))
+                            master_rock[item]['fracture bool'].append(3)
+
+                        else:
+                            pass
+
                         # ##############################################
                         # LINK Coulomb mechanical trigger
                         # Tracking fracturing from coulomb approach methods
                         # Editing trigger
-                        if coulomb is True or coulomb_permea2 is True or coulomb_permea is True:
+                        # if coulomb is True or coulomb_permea2 is True or coulomb_permea is True:
+                        if failure_mech in ['Factor', 'Dynamic', 'Steady', 'Mohr-Coulomb-Permea2', 'Mohr-Coulomb-Griffith']:
 
                             # store the differential stresses
                             master_rock[item]['diff. stress'].append(
@@ -1422,7 +1458,7 @@ class ThorPT_Routines():
                                 master_rock[item]['fracture bool'][-1] = 0
 
                         # Starts steady scheme
-                        # LINK ii) Steady state fluid extraction
+                        # LINK ii) old Steady state fluid extraction
                         if steady_method is True:
                             print("===== steady method active =====")
                             master_rock[item]['fluid_extraction'] = Fluid_master(
@@ -1443,11 +1479,14 @@ class ThorPT_Routines():
                             master_rock[item]['extr_svol'].append(
                                 np.sum(master_rock[item]['df_var_dictionary']['df_volume[ccm]'].iloc[:, -1]))
                             master_rock[item]['fracture bool'].append(3)
+
+
+                    # OPTION no extraction
                     # Starts no extraction scheme
                     else:
                         master_rock[item]['reactivity'].react=False
-
                         print("////// %s No extraction enabled! %s //////")
+
                     # //////////////////////////////////////////////////////////////////////////
                     # LINK Recalculate the oxygen isotope signature
                     # Recalculate bulk rock oxygen value after possible extraction

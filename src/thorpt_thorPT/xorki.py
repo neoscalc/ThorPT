@@ -1811,6 +1811,7 @@ if __name__ == '__main__':
     for key in data.rock.keys():
         print(key)
 
+    compPlot.phases_stack_plot(rock_tag='rock2', img_save=False)
     compPlot.time_int_flux_plot(rock_tag='rock2')
     compPlot.phases_stack_plot(rock_tag='rock1', img_save=False)
     compPlot.phases_stack_plot(rock_tag='rock2', img_save=False)

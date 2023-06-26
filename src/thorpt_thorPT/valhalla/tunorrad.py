@@ -9,6 +9,7 @@ status: 17.02.2023
 # from subprocess import check_output
 from pathlib import Path
 from collections.abc import Iterable
+from matplotlib import pyplot as plt
 import pandas as pd
 import numpy as np
 import scipy
@@ -16,6 +17,7 @@ import subprocess
 import time
 from dataclasses import dataclass, field
 from typing import List
+from scipy.optimize import minimize
 
 
 @dataclass
@@ -56,6 +58,57 @@ def checkCollision(a, b, c, x, y, radius):
 
     return output
 
+def checkCollision_linear(a, b, c, x, y, radius):
+    # Finding the distance of line
+    # from center.
+    dist = ((abs(a * x + b * y + c)) /
+            np.sqrt(a * a + b * b))
+
+    # Checking if the distance is less
+    # than, greater than or equal to radius.
+    if (radius == dist):
+        output = "Touch"
+    elif (radius > dist):
+        output = "Intersect"
+    else:
+        output = "Outside"
+
+    if output == "Touch" or output == "Intersect":
+        collision = True
+    else:
+        collision = False
+
+    return collision, dist
+
+def checkCollision_curve(pos, diff, tensile):
+    # Finding the minimum distance of circle center to curve
+
+    # Defining the function for griffith failure
+    def f(normal, T=tensile):
+        return np.sqrt(4*normal*T +4*T**2)
+
+    P = np.array([pos,0])
+
+    def objective(X):
+        X = np.array(X)
+        return np.linalg.norm(X - P)
+
+    def c1(X):
+        x,y = X
+        return f(x) - y
+
+    sol = minimize(objective, x0=[P[0], f(P[0])], constraints={'type': 'eq', 'fun': c1})
+    X = sol.x
+
+    minimum = objective(X)
+    r = diff/2
+
+    if r >= minimum:
+        collision = True
+    else:
+        collision = False
+
+    return collision, minimum
 
 def check_redo_bulk(bulk):
     bulk = bulk
@@ -1420,7 +1473,7 @@ class Ext_method_master:
 
         # test before executing module - phase data fluid volume should be equal the self.fluid_t1
         if self.phase_data['water.fluid']['volume[ccm]'] != self.fluid_t1:
-            print("Inequality in new fluid volume")
+            print("Inconsistency in new fluid volume")
             # keyboard.wait('esc')
 
         #################################
@@ -1513,6 +1566,13 @@ class Ext_method_master:
         center = normal_stress
         pos = center - hydro
 
+        # macroscopic griffith criterion
+
+        normal_stress_line = np.linspace(-cohesion/2, 0, 100)
+        fail_tau = np.sqrt(4*(normal_stress_line)*(cohesion/2)+4*(cohesion/2)**2)
+
+        pf_crit_griffith = (8*self.tensile_strength*(sig1+sig3)-((sig1-sig3)**2))/(16*self.tensile_strength)
+
         # Test possible extensional fracturing
         output = checkCollision(a, b, c, x=pos, y=0, radius=r)
 
@@ -1547,6 +1607,29 @@ class Ext_method_master:
                     print(f"\t-->Extensional fracturing")
 
         # NOTE testing with plot
+        # arrays for plotting the Mohr-Coloumb diagramm
+        normal_stress_line = np.linspace(-60, 2000, 100)
+        tkrit = cohesion + internal_friction*normal_stress_line
+        tau_griffith = np.sqrt(4*(cohesion/2)*(normal_stress_line+(cohesion/2)))
+        # mohr circle
+        theta = np.linspace(0, 2*np.pi, 100)
+        x1f = r*np.cos(theta) + pos
+        x2f = r*np.sin(theta)
+        x1f2 = r*np.cos(theta) + center
+        plt.figure(1003)
+        plt.plot(normal_stress_line, tkrit, 'r-', x1f, x2f, 'b--', x1f2, x2f, 'g-')
+        plt.plot(normal_stress_line, tau_griffith, 'r--')
+        label = "{:.2f}".format(self.diff_stress)
+        plt.annotate(label, (sig3-sig1, 0),
+                    textcoords="offset points", xytext=(0, 10), ha='center')
+        plt.axvline(color='red', x=-cohesion/2)
+        plt.axvline(color='black', x=0)
+        plt.axhline(color='black', y=0)
+        plt.xlabel(r"$\sigma\ MPa$")
+        plt.ylabel(r"$\tau\ MPa$")
+        plt.ylim(-1, 100)
+        plt.xlim(-125, 200)
+        plt.show()
         """
         if self.rock_item == 'rock1':
             # arrays for plotting the Mohr-Coloumb diagramm
@@ -1559,7 +1642,7 @@ class Ext_method_master:
             x1f2 = r*np.cos(theta) + center
             plt.figure(1003)
             plt.plot(normal_stress_line, tkrit, 'r-', x1f, x2f, 'b--', x1f2, x2f, 'g-')
-            label = "{:.2f}".format(diff_stress)
+            label = "{:.2f}".format(self.diff_stress)
             plt.annotate(label, (sig3-sig1, 0),
                         textcoords="offset points", xytext=(0, 10), ha='center')
             plt.axvline(color='red', x=-self.tensile_strength)
@@ -1571,6 +1654,181 @@ class Ext_method_master:
             plt.xlim(-125, 200)
             # plt.show()
         """
+
+        # Update system condition of fracturing
+        self.fracture = fracturing
+        print("End fracture modul")
+
+    def mohr_cloulomb_griffith(self, shear_stress, friction, cohesion):
+        """
+        026.06.2023
+        Estimates on
+        1) differential stress (sig1 is lithostatic, shear resolves sig3),
+        2) tensile strength (estimates from literature and experiments therein),
+        3) fluid pressure from volume change (Duesterhoft 2019)
+        Blanpied et al. 1992 state that low effective stresses can lead to slide failure
+        or even extensional failure eventhough the system has low differential stresses.
+        Extraction of water/fluid when the shear envelope or tensile strength are intersectedf
+        - idea similar to Etheridge (2020) - no fluid factor approach
+        """
+
+        # NOTE testing with plot
+        # arrays for plotting the Mohr-Coloumb diagramm
+        def mcg_plot(cohesion, internal_friction, diff_stress, shear_stress, sig1, hydro):
+
+            # ##########################################
+            # Mohr Circle
+            r = diff_stress/2
+            center = sig1-r
+            pos = center - hydro
+
+            # plotting conditions
+            stress_line = np.linspace(-60, 2000, 100)
+            tkrit = cohesion + internal_friction*stress_line
+            tau_griffith = np.sqrt(4*(cohesion/2)*(stress_line+(cohesion/2)))
+            # mohr circle
+            theta = np.linspace(0, 2*np.pi, 100)
+            x1f = r*np.cos(theta) + pos
+            x2f = r*np.sin(theta)
+            x1f2 = r*np.cos(theta) + center
+            plt.figure(10001)
+            plt.plot(stress_line, tkrit, 'r-', x1f, x2f, 'b--', x1f2, x2f, 'g-')
+            plt.plot(stress_line, tau_griffith, 'r--')
+            label = "{:.2f}".format(self.diff_stress)
+            plt.annotate(label, (sig3-sig1, 0),
+                        textcoords="offset points", xytext=(0, 10), ha='center')
+            plt.axvline(color='red', x=-cohesion/2)
+            plt.axvline(color='black', x=0)
+            plt.axhline(color='black', y=0)
+            plt.xlabel(r"$\sigma\ MPa$")
+            plt.ylabel(r"$\tau\ MPa$")
+            plt.ylim(-1, 100)
+            plt.xlim(-60, 200)
+            plt.show()
+
+
+        print("M-C-G test module answer:")
+        print('\tsolid_t0:{}\n\tsolid_t1:{}\n\tfluid_t0:{}\n\tfluid_t1:{}'.format(self.solid_t0,
+              self.solid_t1, self.fluid_t0, self.fluid_t1))
+
+        # test before executing module - phase data fluid volume should be equal the self.fluid_t1
+        if self.phase_data['water.fluid']['volume[ccm]'] != self.fluid_t1:
+            print("Inconsistency in new fluid volume")
+            # keyboard.wait('esc')
+
+        #################################
+        # Mohr-Coulomb rock yield
+        # linear equation of the critical line
+        # 50 for y axis intercept: large depth with 200MPa < normal stress < 2000 MPa
+        # slope of 0.6
+        # LINK Mohr-Coulomb slope for failure
+        cohesion = 50
+        internal_friction = 0.75
+
+        # REVIEW - static fix to 45°
+        # 45 degree gives that diff stress is two time shear stress (and not more)
+        self.angle = 27
+
+        # #########################################
+        # New method 16.02.2023 - brittle shear failure - Cox et al. 2010
+        # define: lithostatic pressure, differential stress, sigma1, sigma3, normal stress
+        litho = self.pressure/10 # convert Bar to MPa
+
+        # differential stress from shear stress input, recasted after Cox et al. 2010
+        self.diff_stress = 2*shear_stress/np.sin(2*self.angle*np.pi/180)
+
+        # NOTE - setting lithostatic pressure for sig1
+        # sigma 1 or sigma 3, it defines the stress regime
+        sig1 = litho
+        sig3 = litho - self.diff_stress
+
+        # #########################################
+        # Normal stress of the system defined after Cox et al 2010
+        # normal stress after Cox et al. 2010
+        # normal stress = lithostatic when theta is 90°
+        normal_stress = ((sig1+sig3)/2) - ((sig1-sig3)/2) * np.cos(2*self.angle*np.pi/180)
+
+        # #########################################
+        # Fluid pressure
+        # get system conditions at present step and previous step
+        vol_t0 = self.solid_t0 + self.fluid_t0
+        vol_new = self.solid_t1 + self.fluid_t1
+        # Fluid pressure calculation
+        # Duesterhoft 2019 method
+        hydro = normal_stress + normal_stress/vol_t0 * (vol_t0-(vol_new-vol_t0))-normal_stress
+
+        r = self.diff_stress/2
+        center = sig1-r
+        pos = center - hydro
+
+        # ##########################################
+        # Failure envelope test
+        if self.diff_stress >= self.tensile_strength*5.66:
+            print("Compressive shear failure test")
+            print(f"Diff.-stress is {self.diff_stress} and > than T*5.66")
+
+            # Test possible extensional fracturing
+            a = -1
+            b = 1/internal_friction
+            c = -cohesion/internal_friction
+            output, minimum = checkCollision_linear(a, b, c, x=pos, y=0, radius=r)
+            print(f"Maximum differential stress calculated as {minimum*2} MPa, but is {self.diff_stress}.")
+
+            # Critical fluid pressure
+            crit_fluid_pressure = cohesion/internal_friction + ((sig1+sig3)/2) - (
+                (sig1-sig3)/2)*np.cos(2*self.angle*np.pi/180) - ((sig1-sig3)/2/internal_friction)*np.sin(2*self.angle*np.pi/180)
+            print(f"Difference of fluid pressure and critical fluid pressure is:\n{crit_fluid_pressure-hydro} (Pf_crit - Pf)")
+
+            if output is True:
+                print("---> Failure due to compressive shear.")
+                self.frac_respo = 3
+            else:
+                print("---> No failure")
+
+            mcg_plot(cohesion, internal_friction, self.diff_stress, self.shear_stress, sig1, hydro)
+
+        elif self.diff_stress < self.tensile_strength*5.66 and self.diff_stress > 4*self.tensile_strength:
+            print("Extensional shear failure test")
+            print(f"Diff.-stress is {self.diff_stress} and < than T*5.66 and > T*4")
+            output, minimum = checkCollision_curve(pos=pos, diff=self.diff_stress, tensile=cohesion/2)
+            print(f"Maximum differential stress calculated as {minimum*2} MPa, but is {self.diff_stress}.")
+
+            pf_crit_griffith = (8*self.tensile_strength*(sig1+sig3)-((sig1-sig3)**2))/(16*self.tensile_strength)
+            print(f"Difference of fluid pressure and critical fluid pressure is:\n{pf_crit_griffith-hydro} (Pf_crit - Pf)")
+
+            if output is True:
+                print("---> Failure due to extensional shear.")
+                self.frac_respo = 2
+            else:
+                print("---> No failure")
+
+            mcg_plot(cohesion, internal_friction, self.diff_stress, self.shear_stress, sig1, hydro)
+
+        elif self.diff_stress <= 4*self.tensile_strength:
+            print("Pure extensional failure test")
+            print(f"Diff.-stress is {self.diff_stress} and < T*4")
+
+            if sig3-hydro <= -cohesion/2:
+                print("---> Failure due to pure extensional fail.")
+                self.frac_respo = 1
+            else:
+                print("---> No failure")
+
+            mcg_plot(cohesion, internal_friction, self.diff_stress, self.shear_stress, sig1, hydro)
+
+        else:
+            print("Differential stress seems to have a problem. We decided to test the value. The value is:\n")
+            print(self.diff_stress)
+            self.frac_respo = 0
+
+
+        if self.frac_respo > 0:
+            fracturing = True
+        elif self.frac_respo == 0:
+            fracturing = False
+        else:
+            print("The fracturing response failed. Thorsten has to work more here.")
+
 
         # Update system condition of fracturing
         self.fracture = fracturing

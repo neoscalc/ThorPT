@@ -9,10 +9,10 @@ status: 17.02.2023
 import numpy as np
 import pandas as pd
 import os
-from thorpt_thorPT.valhalla.Pathfinder import *
-from thorpt_thorPT.valhalla.routines_ThorPT import *
-# from valhalla.Pathfinder import *
-# from valhalla.routines_ThorPT import *
+# from thorpt_thorPT.valhalla.Pathfinder import *
+# from thorpt_thorPT.valhalla.routines_ThorPT import *
+from valhalla.Pathfinder import *
+from valhalla.routines_ThorPT import *
 from pathlib import Path
 import copy
 from dataclasses import dataclass
@@ -209,6 +209,10 @@ def run_routine():
                     pos = entry.index(":")
                     shear = entry[pos+1:]
                     init_data['shear'].append(float(shear))
+                if 'Extraction scheme' in entry:
+                    pos = entry.index(":")
+                    rock_mechanics = entry[pos+1:]
+                    init_data['Extraction scheme'] = rock_mechanics
 
 
         init_data['Database'] = database
@@ -238,7 +242,7 @@ def run_routine():
         path = init_data['Path']
         rock_bulk = init_data['Bulk']
         oxygen = init_data['Oxygen']
-        extraction = init_data['Extraction']
+        # is already set: extraction = init_data['Extraction']
         lowest_permeability = init_data['Min Permeability']
         # NOTE deactivated general shear stress to unique shear
         # shear_stress = init_data['shearstress']
@@ -414,6 +418,7 @@ def run_routine():
             master_rock[tag]['friction'] = init_data['friction'][i]
             master_rock[tag]['cohesion'] = init_data['cohesion'][i]
             master_rock[tag]['shear'] = init_data['shear'][i]
+            master_rock[tag]['Extraction scheme'] = init_data['Extraction scheme']
 
             # metastable garnet
             master_rock[tag]['garnet'] = []
