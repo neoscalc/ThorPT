@@ -1051,9 +1051,6 @@ class ThorPT_plots():
 
     def time_int_flux_plot(self, rock_tag, img_save=False, gif_save=False):
 
-        if gif_save is True:
-            img_save = True
-
         group_key = self.rockdic[rock_tag].group_key
 
         phases = self.rockdic[rock_tag].phases
@@ -1093,7 +1090,7 @@ class ThorPT_plots():
         # saving subfolder
         subfolder = 'time_int_flux'
 
-        if img_save is True:
+        if gif_save is True:
 
             print("\n\nGenerating time-int. fluid flux images. Please wait...")
             # Start progress bar
@@ -1186,15 +1183,20 @@ class ThorPT_plots():
                 #          depth[:i+1]/1000, 'd--', color='green')
                 # ax4.plot(regional_flux[:i+1],
                 #          depth[:i+1]/1000, 'd--', color='green', markersize=3, alpha=0.5)
-                if False in filtered_int_flux.mask[:i+1]:
-                    # plot 4
-                    # ax4.plot(filtered_int_flux[:i+1], depth[:i+1]/1000, 'd--', color='black', alpha=0.7)
-                    # ax4.plot(filtered_int_flux[i:i+1], depth[i:i+1]/1000, 'd',
-                    #          color='#7fffd4', markersize=8, markeredgecolor='black')
-                    ax4.plot(
-                        regional_filtered_flux[:i+1], depth[:i+1]/1000, 'd--', color='black', alpha=0.7, markersize=10)
-                    ax4.plot(regional_filtered_flux[i:i+1], depth[i:i+1]/1000, 'd',
-                             color='#7fffd4', markersize=15, markeredgecolor='black')
+                # Test whether it is a masked array
+                if np.ma.isMaskedArray(filtered_int_flux) is True:
+                    if False in filtered_int_flux.mask[:i+1]:
+                        # plot 4
+                        # ax4.plot(filtered_int_flux[:i+1], depth[:i+1]/1000, 'd--', color='black', alpha=0.7)
+                        # ax4.plot(filtered_int_flux[i:i+1], depth[i:i+1]/1000, 'd',
+                        #          color='#7fffd4', markersize=8, markeredgecolor='black')
+                        ax4.plot(
+                            regional_filtered_flux[:i+1], depth[:i+1]/1000, 'd--', color='black', alpha=0.7, markersize=10)
+                        ax4.plot(regional_filtered_flux[i:i+1], depth[i:i+1]/1000, 'd',
+                                color='#7fffd4', markersize=15, markeredgecolor='black')
+                    else:
+                        # plot 4
+                        ax4.plot(np.ones(i+1)*1e-30, depth[:i+1]/1000, 'd')
                 else:
                     # plot 4
                     ax4.plot(np.ones(i+1)*1e-30, depth[:i+1]/1000, 'd')
@@ -1227,7 +1229,16 @@ class ThorPT_plots():
                          fontsize=16, bbox=props)
             ax4.set_title('T:{:.2f} °C P:{:.2f} GPa'.format(
                 ts[i], ps[i]/10000), fontsize=18)
-            plt.show()
+
+            if img_save is True:
+                os.makedirs(
+                    f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}', exist_ok=True)
+                plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}/fluid_flux_summary.png',
+                            transparent=False, facecolor='white')
+                # plt.pause(2)
+                plt.close()
+            else:
+                plt.show()
 
         # reading images and put it to GIF
         if gif_save is True:
@@ -1495,7 +1506,9 @@ class ThorPT_plots():
             create_gif(phase_data, self.mainfolder, self.filename,
                        group_key, subfolder=subfolder)
 
-    def phases_stack_plot(self, rock_tag, img_save=False):
+    def phases_stack_plot(self, rock_tag, img_save=False, val_tag=False):
+        group_key = self.rockdic[rock_tag].group_key
+        subfolder = 'stack_plot'
 
         # XMT naming and coloring
         database = self.rockdic[rock_tag].database
@@ -1507,9 +1520,18 @@ class ThorPT_plots():
         frac_bool = self.rockdic[rock_tag].frac_bool
 
         # Input for the variable of interest
-        tag_in = input(
-            "Please provide what you want to convert to a stack. ['vol%', 'volume[ccm]', 'wt%', 'wt[g]']")
-        tag = 'df_'+tag_in
+        if val_tag is False:
+            tag_in = input(
+                "Please provide what you want to convert to a stack. ['vol%', 'volume[ccm]', 'wt%', 'wt[g]']")
+            tag = 'df_'+tag_in
+        else:
+            tag_in = val_tag
+            if val_tag in ['vol%', 'volume[ccm]', 'wt%', 'wt[g]']:
+                tag = 'df_'+tag_in
+                pass
+            else:
+                print("Try again and select a proper value for stack plot input")
+                quit()
 
         # compile data for plotting
         system_vol_pre = self.rockdic[rock_tag].systemVolPre
@@ -1621,8 +1643,10 @@ class ThorPT_plots():
 
         # save image
         if img_save is True:
-            plt.savefig(Path(self.mainfolder /
-                        f"{self.rock_key}_new_stack_plot.png"), dpi=300)
+            os.makedirs(
+                    f'{self.mainfolder}/img_{self.filename}/{subfolder}', exist_ok=True)
+            plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}_stack_plot.png',
+                            transparent=False, facecolor='white')
         else:
             plt.show()
         plt.clf()
@@ -1716,6 +1740,9 @@ class ThorPT_plots():
             rock_tag (str): the name of the rock such as "rock0", "rock1", ...
             img_save (bool, optional): Optional argument to save the plot as an image to the directory. Defaults to False.
         """
+        group_key = self.rockdic[rock_tag].group_key
+        subfolder = 'oxygen_plot'
+
         # XMT naming and coloring
         database = self.rockdic[rock_tag].database
         phases2 = self.rockdic[rock_tag].phases2
@@ -1791,8 +1818,10 @@ class ThorPT_plots():
         plt.subplots_adjust(right=0.8)
 
         if img_save is True:
-            plt.savefig(Path(self.mainfolder /
-                             f"{self.rock_key}_oxygen_signatures.png"), dpi=300)
+            os.makedirs(
+                    f'{self.mainfolder}/img_{self.filename}/{subfolder}', exist_ok=True)
+            plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}_oxygen_isotope_plot.png',
+                            transparent=False, facecolor='white')
         else:
             plt.show()
         plt.clf()
@@ -1812,14 +1841,13 @@ if __name__ == '__main__':
     print("The 'data.rock[key]' keys are:")
     for key in data.rock.keys():
         print(key)
+        compPlot.phases_stack_plot(rock_tag=key, img_save=True, val_tag='vol%')
+    
+        compPlot.time_int_flux_plot(rock_tag=key, img_save=True)
+    
+    # compPlot.oxygen_isotopes(rock_tag=key, img_save=True)
 
-    compPlot.phases_stack_plot(rock_tag='rock2', img_save=False)
-    compPlot.time_int_flux_plot(rock_tag='rock2')
-    compPlot.phases_stack_plot(rock_tag='rock1', img_save=False)
-    compPlot.phases_stack_plot(rock_tag='rock2', img_save=False)
-    compPlot.oxygen_isotopes(rock_tag='rock0')
-    compPlot.oxygen_isotopes(rock_tag='rock1')
-    compPlot.oxygen_isotopes(rock_tag='rock2')
+    """
     compPlot.time_int_flux_plot(
             rock_tag='rock1', img_save=False, gif_save=False)
     compPlot.boxplot_to_GIF(rock_tag='rock1', img_save=True, gif_save=True)
@@ -1832,4 +1860,4 @@ if __name__ == '__main__':
         rock_tag='rock0', img_save=False, gif_save=False)
     compPlot.porosity_plot(rock_tag='rock0', img_save=False, gif_save=False)
     compPlot.release_fluid_volume_plot(
-        rock_tag='rock0', img_save=False, gif_save=False)
+        rock_tag='rock0', img_save=False, gif_save=False)"""

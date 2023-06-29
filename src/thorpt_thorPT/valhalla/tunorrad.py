@@ -1684,7 +1684,7 @@ class Ext_method_master:
             pos = center - hydro
 
             # plotting conditions
-            stress_line = np.linspace(-60, 2000, 100)
+            stress_line = np.linspace(-60, 2000, 10000)
             tkrit = cohesion + internal_friction*stress_line
             tau_griffith = np.sqrt(4*(cohesion/2)*(stress_line+(cohesion/2)))
             # mohr circle
@@ -1829,6 +1829,7 @@ class Ext_method_master:
         self.failure_dictionary = {
             "friction coeff": copy.deepcopy(internal_friction),
             "cohesion": (cohesion),
+            "shear stress": shear_stress,
             "diff stress":(self.diff_stress),
             "radius": copy.deepcopy(r),
             "center": copy.deepcopy(center),
