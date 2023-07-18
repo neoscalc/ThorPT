@@ -80,7 +80,7 @@ class Pathfinder_Theoule:
     # Takes pressure and temperature array from digitized P-T path
     # Links path to time dependend subduction calculated on speed and angle
     # to match calculated pressure values with spline temperature from digitized path
-    def __init__(self, temperatures, pressures, sub_angle=False, plate_speed=False, dt=10000):
+    def __init__(self, temperatures, pressures, path_increment, sub_angle=False, plate_speed=False, dt=10000):
         if plate_speed is False:
             self.speed = float(input("Give me a speed in m/year:\n"))
         else:
@@ -95,6 +95,10 @@ class Pathfinder_Theoule:
         self.rho = [2800, 3300]
         self.time = [0]
         self.depth = []
+        self.p_increment = np.float64(path_increment[0])
+        self.t_increment = np.float64(path_increment[1])
+        self.lower_t_bound = np.float64(path_increment[2])
+
 
     def prograde(self):
         # prepare spline from input P-T
@@ -132,7 +136,7 @@ class Pathfinder_Theoule:
 
         # filter option #1 - rough 300 bar filter, no caution for temperature
         if f_option == 1:
-            while np.diff(c_p_list)[0] < 300:
+            while np.diff(c_p_list)[0] < self.p_increment:
                 num = round(300/np.diff(c_p_list)[0])
                 del c_p_list[::num]
                 del self.time[::num]
@@ -145,7 +149,7 @@ class Pathfinder_Theoule:
             newlist = [c_p_list[0]]
             for val in c_p_list:
                 step = val - newlist[-1]
-                if step >= 300:
+                if step >= self.p_increment:
                     newlist.append(val)
             c_p_list = np.array(newlist)
             yinterp = splev(c_p_list, spl)
@@ -155,7 +159,7 @@ class Pathfinder_Theoule:
             new_y = [c_p_list[0]]
             for val in yinterp:
                 step = val - new_x[-1]
-                if step >= 10:
+                if step >= self.t_increment:
                     new_x.append(val)
                     index = yinterp.index(val)
                     new_y.append(newlist[index])
@@ -165,7 +169,6 @@ class Pathfinder_Theoule:
 
         # option 3 - most convenient approach 13.02.2022
         # TODO: energy potential argument
-
         if f_option == 3:
             new_x = [yinterp[0]]
             new_y = [c_p_list[0]]
@@ -176,7 +179,7 @@ class Pathfinder_Theoule:
                 step_t = yinterp[i] - new_x[-1]
                 # define minimum pressure difference for step
                 # NOTE "pro pressure steps?"
-                if step_p >= 500:
+                if step_p >= self.p_increment:
                 # if step_p >= 100 and step_t >= 1:
                     new_y.append(val)
                     new_x.append(yinterp[i])
@@ -184,7 +187,7 @@ class Pathfinder_Theoule:
                     new_t.append(self.time[i])
                 # define minimum temperature difference for step
                 # NOTE "pro temperature steps?"
-                elif step_t >= 15:
+                elif step_t >= self.t_increment:
                 # elif step_t >= 1:
                     new_y.append(val)
                     new_x.append(yinterp[i])
@@ -198,7 +201,7 @@ class Pathfinder_Theoule:
 
         # Selecting only steps with temperature >= 350 °C
         frame = pd.DataFrame([yinterp, c_p_list, self.time, self.depth])
-        cut_T = 400
+        cut_T = self.lower_t_bound
         yinterp = np.array(frame.iloc[0][frame.iloc[0] >= cut_T])
         c_p_list = np.array(frame.iloc[1][frame.iloc[0] >= cut_T])
         self.time = np.array(frame.iloc[2][frame.iloc[0] >= cut_T])
@@ -305,7 +308,7 @@ class Pathfinder_Theoule:
 
         # Selecting only steps with temperature >= 350 °C
         frame = pd.DataFrame([yinterp, c_p_list, self.time, self.depth])
-        cut_T = 400
+        cut_T = self.lower_t_bound
         yinterp = np.array(frame.iloc[0][frame.iloc[0] >= cut_T])
         c_p_list = np.array(frame.iloc[1][frame.iloc[0] >= cut_T])
         self.time = np.array(frame.iloc[2][frame.iloc[0] >= cut_T])
@@ -804,7 +807,7 @@ class call_Pathfinder:
         self.depth = nasa.depth
 
     # Deactivated loop - this is the up-to-date version for prograde digitized path modelling
-    def execute_digi_mod2(self, path_arguments=False):
+    def execute_digi_mod2(self, path_arguments=False, path_increment=False):
 
         answers = ["new", "stored"]
         # Choose new digitization or stored
@@ -934,7 +937,8 @@ class call_Pathfinder:
                 temperatures, pressures,
                 plate_speed=path_arguments[3],
                 sub_angle=path_arguments[4],
-                dt=self.dt
+                dt=self.dt,
+                path_increment=path_increment
                 )
 
         if loop is True:
@@ -1113,7 +1117,7 @@ class Pathfinder:
         self.mod3 = Pub_pathfinder()
         self.theoule = call_Pathfinder()
 
-    def connect_extern(self, path_arguments=False):
+    def connect_extern(self, path_arguments=False, path_increment=False):
 
         main_folder = Path(__file__).parent.absolute()
         file_to_open = main_folder / "output_Pathfinder.txt"
@@ -1124,6 +1128,11 @@ class Pathfinder:
         else:
             # Take stated answer from init file
             answer = path_arguments[0]
+
+        # default setting if no path increments are given as input
+        if path_increment is False:
+            path_increment = [500, 15, 350]
+
 
         if answer == 'Mod1':
             # Subduction path
@@ -1187,9 +1196,9 @@ class Pathfinder:
         if answer == 'Mod4':
             # Theoule mod for fitting a subduction rate to a digitized P-T path - only prograde
             if path_arguments is False:
-                self.theoule.execute_digi_mod2()
+                self.theoule.execute_digi_mod2(path_increment=path_increment)
             else:
-                self.theoule.execute_digi_mod2(path_arguments)
+                self.theoule.execute_digi_mod2(path_arguments, path_increment)
 
             # store P and T values
             self.temperature = self.theoule.temp
@@ -1235,7 +1244,7 @@ class Pathfinder:
         df.to_csv(file_to_open, sep=',', header=True, index=False)
 
 
-"""
-nasa = Pathfinder()
-nasa.connect_extern()
-"""
+if __name__ == '__main__':
+
+    nasa = Pathfinder()
+    nasa.connect_extern()

@@ -374,7 +374,6 @@ def run_theriak(theriak_path, database, temperature, pressure, whole_rock):
         file_object.write(database)
         file_object.write("\n")
         file_object.write("no")"""
-
     # initializes the list were the theriak output is stored
     therin_condition = '    ' + str(temperature) + '    ' + str(pressure)
     file_to_open = Path(theriak_path)
@@ -1723,8 +1722,8 @@ class Ext_method_master:
         # 50 for y axis intercept: large depth with 200MPa < normal stress < 2000 MPa
         # slope of 0.6
         # LINK Mohr-Coulomb slope for failure
-        cohesion = 50
-        internal_friction = 0.75
+        cohesion = cohesion
+        internal_friction = friction
 
         # REVIEW - static fix to 45°
         # 45 degree gives that diff stress is two time shear stress (and not more)
@@ -1998,7 +1997,12 @@ class System_status:
         for key in self.hydrate_data.keys():
             self.hydrate_data[key] = self.hydrate_data[key].T
             # self.hydrate_data[key].index = temperatures
-            self.hydrate_data[key].index = line
+            if len(line) > len(self.hydrate_data[key].index):
+                # FIXME line list of hydrated phases is wrong
+                print("line list of hydrated phases is wrong")
+                self.hydrate_data[key].index = np.arange(0, len(self.hydrate_data[key].index),1)
+            else:
+                self.hydrate_data[key].index = line
 
         self.df_element_total = self.df_element_total.T
 

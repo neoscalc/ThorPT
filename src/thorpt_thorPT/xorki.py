@@ -22,8 +22,8 @@ from mpl_toolkits.axes_grid1 import host_subplot
 from matplotlib.ticker import (MultipleLocator, AutoMinorLocator)
 from tkinter import *
 from tkinter import filedialog
-import imageio
-from imageio import imread
+import imageio.v2
+from imageio.v2 import imread
 import copy
 from dataclasses import dataclass, field
 from dataclasses import fields
@@ -385,7 +385,7 @@ def create_gif(phase_data, mainfolder, filename, group_key, subfolder='default')
             f'{mainfolder}/img_{filename}/{subfolder}/{group_key}/img_{i}.png')
         frames.append(image)
     imageio.mimsave(
-        f'{mainfolder}/img_{filename}/{subfolder}/{group_key}/output.gif', frames, duration=1)
+        f'{mainfolder}/img_{filename}/{subfolder}/{group_key}/output.gif', frames, duration=400)
 
 
 # Progressbar init
@@ -396,6 +396,126 @@ def progress(percent=0, width=40):
     spaces = " " * right
     percents = f"{percent:.0f}%"
     print("\r[", tags, spaces, "]", percents, sep="", end="", flush=True)
+
+def clean_frame(dataframe_to_clean, legend_phases, color_set):
+            dataframe = dataframe_to_clean.copy()
+            # copy information before manipulation
+            new_color_set = color_set.copy()
+            new_legend_phases = legend_phases.copy()
+
+            # routine to filter multiple assigned phase columns
+            for phase in legend_phases:
+                pcount = legend_phases.count(phase)
+                if pcount > 1:
+
+                    # get position of multiple name
+                    pos_list = []
+                    for i, item in enumerate(legend_phases):
+                        if item == phase:
+                            pos_list.append(i)
+
+                    # read lines to array, replace nan, combine, put nan back
+                    arr = np.zeros(len(dataframe.columns))
+                    for j in pos_list:
+                        arr = arr + np.nan_to_num(np.array(dataframe.iloc[j]))
+                    arr[arr == 0] = np.nan
+                    arr = pd.DataFrame(arr)
+                    arr.index = dataframe.columns
+                    arr.columns = [phase]
+
+                    # update dataframe, legend and color from multiple entries - add it at end
+                    # delete
+                    dataframe = dataframe.drop(phase)
+                    it = 0
+                    for num in pos_list:
+                        num = num - it
+                        del legend_phases[num]
+                        del color_set[num]
+                        it+=1
+                    # repair
+                    dataframe = pd.concat([dataframe,arr.T], axis=0)
+                    legend_phases.append(phase)
+                    color_set.append(new_color_set[pos_list[0]])
+
+            return dataframe, legend_phases, color_set
+
+
+def depth_porosity(data_box, num_rocks=3, rock_colors=["#0592c1", "#f74d53", '#10e6ad'], rock_symbol = ['d', 's']):
+
+
+    for j, subdata in enumerate(data_box):
+        step = int(len(subdata.compiledrock.all_porosity)/num_rocks)
+
+        for i in range(num_rocks):
+            frac = np.concatenate(subdata.compiledrock.all_frac_bool[step*i:step*(i+1)])
+            x = np.concatenate(subdata.compiledrock.all_porosity[step*i:step*(i+1)])*100
+            y = np.concatenate(subdata.compiledrock.all_depth[step*i:step*(i+1)])/1000
+
+            y = y[frac>0]
+            x = x[frac>0]
+            plt.plot(x,y, rock_symbol[j], color=rock_colors[i], markeredgecolor='black')
+
+    plt.ylabel("Depth [km]")
+    plt.xlabel("Fluid-filled porosity @ extraction [Vol.%]")
+    plt.legend(['Basalt', 'Sediment', 'Serpentinite'])
+    plt.xscale('log')
+    plt.ylim(100,0)
+    plt.xlim(10e-4,10e2)
+    plt.show()
+
+def density_porosity(data_box, num_rocks=3, rock_colors=["#0592c1", "#f74d53", '#10e6ad'], rock_symbol = ['d', 's']):
+
+
+    for j, subdata in enumerate(data_box):
+        step = int(len(subdata.compiledrock.all_porosity)/num_rocks)
+
+        for i in range(num_rocks):
+            frac = np.concatenate(subdata.compiledrock.all_frac_bool[step*i:step*(i+1)])
+            x = np.concatenate(subdata.compiledrock.all_porosity[step*i:step*(i+1)])*100
+            y1 = np.concatenate(subdata.compiledrock.all_system_density_post[step*i:step*(i+1)])
+            y2 = np.concatenate(subdata.compiledrock.all_system_density_pre[step*i:step*(i+1)])
+            y = y1-y2
+            y = y[frac>0]
+            x = x[frac>0]
+            plt.plot(x,y, rock_symbol[j], color=rock_colors[i], markeredgecolor='black')
+
+    plt.ylabel(r"$\Delta$ density")
+    plt.xlabel("Fluid-filled porosity at extraction")
+    plt.legend(['Basalt', 'Sediment', 'Serpentinite'])
+    plt.yscale('log')
+    plt.xscale('log')
+    plt.ylim(0,0.5)
+    plt.xlim(0,25)
+    plt.show()
+
+def extraction_stress(data_box, num_rocks=3, rock_colors=["#0592c1", "#f74d53", '#10e6ad'], rock_symbol = ['d', 's'], rock_names=False):
+
+
+    for j, subdata in enumerate(data_box):
+        step = int(len(subdata.compiledrock.all_porosity)/num_rocks)
+
+        for i in range(num_rocks):
+            track_diff = []
+            track_shear = []
+            track_num_ext = []
+            for k, item in enumerate(subdata.compiledrock.all_diffs[step*i:step*(i+1)]):
+                diff = np.unique(item)[-1]
+                fracture_bool = subdata.compiledrock.all_frac_bool[k+step*i]
+                num_ext = len(fracture_bool[fracture_bool>0])
+                track_diff.append(diff)
+                # track_shear.append()
+                track_num_ext.append(num_ext)
+            if rock_names is False:
+                plt.plot(track_diff, track_num_ext, rock_symbol[j], color=rock_colors[i], markersize=14, markeredgecolor='black')
+            else:
+                plt.plot(track_diff, track_num_ext, rock_symbol[i], color=rock_colors[j], markersize=14, markeredgecolor='black')
+    plt.ylabel("# of extractions", fontsize=18)
+    plt.xlabel("Differential stress [$\it{MPa}$]", fontsize=18)
+
+    plt.yticks(fontsize=16)
+    plt.xticks(fontsize=16)
+
+    plt.show()
 
 
 class Simple_binary_plot():
@@ -416,6 +536,20 @@ class Simple_binary_plot():
         # saving option from user input
         if save is True:
             plt.savefig(Path("plotting_results/PTt_path.png"), dpi=400)
+
+@dataclass
+class Phasecomp:
+    name: str
+    temperature: float = field(metadata={'unit': 'degree C'})
+    pressure: float = field(metadata={'unit': 'bar'})
+    moles: float
+    volume: float = field(metadata={'unit': 'ccm'})
+    volp: float = field(metadata={'unit': 'V%'})
+    mass: float = field(metadata={'unit': 'g'})
+    massp: float = field(metadata={'unit': 'wt%'})
+    density: float = field(metadata={'unit': 'g/ccm'})
+    elements: any
+    volPmole: float = field(metadata={'unit': 'ccm/mol'})
 
 
 # single rock data as dataclass
@@ -459,10 +593,14 @@ class Rock:
     v_permeability: any
     v_timeintflux: any
 
+    garnet: any
+    garnets_bools: any
+
 
 # Compiled data as dataclass
 @dataclass
 class CompiledData:
+    all_ps: any
     all_tensile: any
     all_diffs: any
     all_frac_bool: any
@@ -475,10 +613,13 @@ class CompiledData:
     all_geometry: any
     all_system_vol_pre: any
     all_system_vol_post: any
+    all_system_density_pre: any
+    all_system_density_post: any
     all_fluid_before: any
     all_phases: any
     all_phases2: any
     all_database: any
+    all_porosity: any
 
 
 # HDF5 reader
@@ -494,6 +635,7 @@ class ThorPT_hdf5_reader():
     def open_ThorPT_hdf5(self):
 
         # lists for compiling data
+        all_ps = []
         all_tensile = []
         all_diffs = []
         all_frac_bool = []
@@ -506,11 +648,19 @@ class ThorPT_hdf5_reader():
         all_geometry = []
         all_system_vol_pre = []
         all_system_vol_post = []
+        all_system_density_pre = []
+        all_system_density_post = []
         all_fluid_before = []
         all_phases = []
         all_phases2 = []
         all_database = []
         all_td_data = []
+        all_porosity = []
+        garnets = {}
+        sysv = {}
+        sysv_post = {}
+        garnets_bools = {}
+        volume_data = {}
 
         o_file = file_opener()
 
@@ -564,6 +714,8 @@ class ThorPT_hdf5_reader():
 
                 system_vol_pre = sys_physc['system_vol_pre']
                 system_vol_post = sys_physc['system_vol_post']
+                system_density_pre = sys_physc['system_density_pre']
+                system_density_post = sys_physc['system_density_post']
 
                 # ////////////////////////////////////////////////////////
 
@@ -633,23 +785,35 @@ class ThorPT_hdf5_reader():
                 mass_abs_data.columns = phases
                 mass_abs_data[np.isnan(mass_abs_data) == True] = 0
 
-                solid_volumes = volume_data.T.sum()-volume_data['water.fluid']
-                solid_weight = mass_abs_data.T.sum(
-                )-mass_abs_data['water.fluid']
+                if 'water.fluid' in volume_data.columns:
+                    solid_volumes = volume_data.T.sum()-volume_data['water.fluid']
+                    solid_weight = mass_abs_data.T.sum(
+                    )-mass_abs_data['water.fluid']
+                else:
+                    solid_volumes = volume_data.T.sum()
+                    solid_weight = mass_abs_data.T.sum()
+
                 solid_density = np.array(
                     solid_weight)/np.array(solid_volumes)*1000
 
                 # massperc_fluid = mass_data['water.fluid']
-                massperc_fluid = mass_abs_data['water.fluid'] / \
-                    (mass_abs_data.T.sum()-mass_abs_data['water.fluid'])
+                if 'water.fluid' in mass_abs_data.columns:
+                    massperc_fluid = mass_abs_data['water.fluid'] / \
+                        (mass_abs_data.T.sum()-mass_abs_data['water.fluid'])
+                else:
+                    massperc_fluid = 0
+
                 q_ti = massperc_fluid*solid_density * \
                     (1-unfiltered_porosity)*bloc_a/area
 
                 # the new permeability
                 # ANCHOR
                 mü_water = 0.0001
-                density_cont = solid_density - \
-                    mass_abs_data['water.fluid']/volume_data['water.fluid']
+                if 'water.fluid' in mass_abs_data.columns:
+                    density_cont = solid_density - \
+                        mass_abs_data['water.fluid']/volume_data['water.fluid']
+                else:
+                    density_cont = 0
                 permeability2 = q_ti/(151000*365*24*60*60) * \
                     mü_water / 9.81 / density_cont
 
@@ -658,25 +822,36 @@ class ThorPT_hdf5_reader():
                 extraction_boolean = np.array(frac_bool, dtype=bool)
                 extraction_boolean = np.invert(extraction_boolean)
 
-                # Compiling section
-                all_tensile.append(tensile)
-                all_diffs.append(np.array(f[group_key]['diff. stress']))
-                all_frac_bool.append(frac_bool)
-                arr_line.append(line)
-                all_permea.append(permea)
-                all_t_flux.append(t_flux)
-                all_depth.append(depth)
-                all_virtual_perm.append(virtual_perm)
-                all_virtual_flux.append(virtual_flux)
-                all_geometry.append(geometry)
-                all_system_vol_pre.append(system_vol_pre)
-                all_system_vol_post.append(system_vol_post)
-                all_fluid_before.append(fluid_before)
-                all_phases.append(phases)
-                all_phases2.append(phases2)
-                all_database.append(database)
-                all_td_data.append(td_data)
 
+
+                #######################################################
+                el = list(f[group_key].attrs['garnet'])
+                params = {}
+                for item in f[group_key]['garnet']:
+                    if item == 'elements':
+                        params[item] = pd.DataFrame(f[group_key]['garnet'][item], index=el)
+                    elif item == 'name':
+                        params[item] = list(f[group_key]['garnet'][item])
+                    else:
+                        params[item] = np.array(f[group_key]['garnet'][item])
+
+                phase = Phasecomp(params['name'],
+                                params['temperature'],
+                                params['pressure'],
+                                params['moles'],
+                                params['volume'],
+                                params['volp'],
+                                params['mass'],
+                                params['massp'],
+                                params['density'],
+                                params['elements'],
+                                params['VolumePMole']
+                                )
+                garnets[group_key] = phase
+
+                garnets_bools[group_key] = np.array(f[group_key]['garnet_check'])
+
+                #######################################################
                 # Write the dataclass
                 self.rock[group_key] = Rock(
                     name=None,
@@ -709,9 +884,36 @@ class ThorPT_hdf5_reader():
                     time_int_flux=unfiltered_int_flux,
                     time_int_flux2=q_ti,
                     v_permeability=0,
-                    v_timeintflux=0)
+                    v_timeintflux=0,
+                    garnet=garnets,
+                    garnets_bools=garnets_bools)
+
+                #######################################################
+                # Compiling section
+                all_ps.append(ps)
+                all_tensile.append(tensile)
+                all_diffs.append(np.array(f[group_key]['diff. stress']))
+                all_frac_bool.append(frac_bool)
+                arr_line.append(line)
+                all_permea.append(permea)
+                all_t_flux.append(np.array(q_ti))
+                all_depth.append(depth)
+                all_virtual_perm.append(virtual_perm)
+                all_virtual_flux.append(virtual_flux)
+                all_geometry.append(geometry)
+                all_system_vol_pre.append(system_vol_pre)
+                all_system_vol_post.append(system_vol_post)
+                all_system_density_pre.append(system_density_pre)
+                all_system_density_post.append(system_density_post)
+                all_fluid_before.append(fluid_before)
+                all_phases.append(phases)
+                all_phases2.append(phases2)
+                all_database.append(database)
+                all_td_data.append(td_data)
+                all_porosity.append(unfiltered_porosity)
 
                 self.compiledrock = CompiledData(
+                    all_ps,
                     all_tensile,
                     all_diffs,
                     all_frac_bool,
@@ -724,10 +926,18 @@ class ThorPT_hdf5_reader():
                     all_geometry,
                     all_system_vol_pre,
                     all_system_vol_post,
+                    all_system_density_pre,
+                    all_system_density_post,
                     all_fluid_before,
                     all_phases,
                     all_phases2,
-                    all_database)
+                    all_database,
+                    all_porosity)
+
+
+
+
+
 
 
 class ThorPT_plots():
@@ -1191,7 +1401,7 @@ class ThorPT_plots():
                         # ax4.plot(filtered_int_flux[i:i+1], depth[i:i+1]/1000, 'd',
                         #          color='#7fffd4', markersize=8, markeredgecolor='black')
                         ax4.plot(
-                            regional_filtered_flux[:i+1], depth[:i+1]/1000, 'd--', color='black', alpha=0.7, markersize=10)
+                            regional_filtered_flux[:i+1], depth[:i+1]/1000, 'd', color='black', alpha=0.7, markersize=10)
                         ax4.plot(regional_filtered_flux[i:i+1], depth[i:i+1]/1000, 'd',
                                 color='#7fffd4', markersize=15, markeredgecolor='black')
                     else:
@@ -1227,8 +1437,6 @@ class ThorPT_plots():
                          fontsize=16, bbox=props)
             ax4.annotate("Pervasive", (10**(1+0.2), 5),
                          fontsize=16, bbox=props)
-            ax4.set_title('T:{:.2f} °C P:{:.2f} GPa'.format(
-                ts[i], ps[i]/10000), fontsize=18)
 
             if img_save is True:
                 os.makedirs(
@@ -1245,6 +1453,107 @@ class ThorPT_plots():
             # call gif function
             create_gif(phase_data, self.mainfolder, self.filename,
                        group_key, subfolder=subfolder)
+
+    def time_int_flux_summary(self, img_save=False, rock_colors=["#0592c1", "#f74d53", '#10e6ad']):
+
+        # saving subfolder
+        subfolder = 'time_int_flux'
+
+        fig = plt.figure(constrained_layout=False,
+                        facecolor='0.9', figsize=(9, 9))
+        gs = fig.add_gridspec(nrows=3, ncols=3, left=0.15,
+                            right=0.95, hspace=0.6, wspace=0.5)
+        ax4 = fig.add_subplot(gs[:, :])
+
+        for i, rock_tag in enumerate(self.rockdic.keys()):
+
+            if len(self.rockdic.keys()) == 3:
+                rock_color = rock_colors[i]
+            else:
+                rock_color = "#7fffd4"
+
+            group_key = self.rockdic[rock_tag].group_key
+            phases = self.rockdic[rock_tag].phases
+            phase_data = self.rockdic[rock_tag].phase_data['df_N']
+            # Clean up dataframe to be used by mineral names and no NaN
+            phase_data.columns = phases
+            phase_data[np.isnan(phase_data) == True] = 0
+            ts = self.rockdic[rock_tag].temperature
+            ps = self.rockdic[rock_tag].pressure
+            depth = self.rockdic[rock_tag].depth
+            # Filter method of data array
+            unfiltered_int_flux = self.rockdic[rock_tag].time_int_flux
+            q_ti = self.rockdic[rock_tag].time_int_flux2
+            extraction_boolean = self.rockdic[rock_tag].extraction_boolean
+            if False in extraction_boolean:
+                filtered_int_flux = np.ma.masked_array(
+                    unfiltered_int_flux, extraction_boolean)
+                filtered_q_ti = np.ma.masked_array(
+                    q_ti, extraction_boolean)
+                regional_filtered_flux = filtered_q_ti
+            if len(np.unique(self.rockdic[rock_tag].frac_bool)) == 1 and np.unique(self.rockdic[rock_tag].frac_bool)[-1] == 0:
+                filtered_q_ti = np.zeros(len(self.rockdic[rock_tag].frac_bool))
+                filtered_int_flux = np.zeros(len(self.rockdic[rock_tag].frac_bool))
+                regional_filtered_flux = filtered_q_ti
+            if len(extraction_boolean) == 0:
+                regional_filtered_flux = unfiltered_int_flux
+                arr = np.invert(np.array(unfiltered_int_flux, dtype=bool))
+                filtered_int_flux = np.ma.masked_array(
+                    regional_filtered_flux, arr)
+
+            if np.ma.isMaskedArray(filtered_int_flux) is True:
+                if False in filtered_int_flux.mask[:]:
+                    # plot 4
+                    # ax4.plot(filtered_int_flux[:i+1], depth[:i+1]/1000, 'd--', color='black', alpha=0.7)
+                    # ax4.plot(filtered_int_flux[i:i+1], depth[i:i+1]/1000, 'd',
+                    #          color='#7fffd4', markersize=8, markeredgecolor='black')
+                    ax4.plot(regional_filtered_flux, depth/1000, 'd',
+                            color=rock_color, markersize=15, markeredgecolor='black')
+                else:
+                    # plot 4
+                    ax4.plot(np.ones(len(filtered_int_flux))*1e-30, depth/1000, 'd')
+            else:
+                # plot 4
+                ax4.plot(np.ones(len(filtered_int_flux))*1e-30, depth/1000, 'd')
+
+        # General plot edits
+        # Ax4 figure features
+        ax4.set_xscale('log')
+        ax4.set_xlim(10**0, 10**6)
+        ax4.set_ylim(100, 0)
+        ax4.set_xlabel("Time int.-flux [$m^{3}/m^{2}$]", fontsize=18)
+        ax4.set_ylabel("Depth [km]", fontsize=18)
+        # pervasive range
+        """ax4.fill_between([10**(2), 10**(4)], [100, 100],
+                        color="#a9d5b2", edgecolor='black', alpha=0.1)"""
+        ax4.fill_between([10**(1), 10**(4)], [100, 100],
+                        cmap="Purples", alpha=0.2, step='mid')
+        # channelized range
+        ax4.fill_between([10**(4), 10**(6)], [100, 100],
+                        color="#ca638f", alpha=0.1)
+        # regional range
+        """ax4.fill_between([10**(2.7-0.5), 10**(2.7+0.5)], [100, 100],
+                        color="#c5c5c5", edgecolor='black', alpha=0.5)"""
+        ax4.tick_params(axis='both', labelsize=20)
+        ax4.vlines(10**4, 0, 100, linestyles='--',
+                color='black', linewidth=4)
+        props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
+        # ax4.annotate("Regional range", (10**(2.7+0.5-0.3), 25), fontsize=16, bbox=props, rotation=90)
+        ax4.annotate("Channelized", (10**(4+0.2), 5),
+                    fontsize=16, bbox=props)
+        ax4.annotate("Pervasive", (10**(1+0.2), 5),
+                    fontsize=16, bbox=props)
+
+        if img_save is True:
+            os.makedirs(
+                f'{self.mainfolder}/img_{self.filename}/{subfolder}', exist_ok=True)
+            plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/fluid_flux_summary.png',
+                        transparent=False, facecolor='white')
+            # plt.pause(2)
+            plt.close()
+        else:
+            plt.show()
+
 
     def porosity_plot(self, rock_tag, img_save=False, gif_save=False):
 
@@ -1506,7 +1815,7 @@ class ThorPT_plots():
             create_gif(phase_data, self.mainfolder, self.filename,
                        group_key, subfolder=subfolder)
 
-    def phases_stack_plot(self, rock_tag, img_save=False, val_tag=False):
+    def phases_stack_plot(self, rock_tag, img_save=False, val_tag=False, transparent=False, fluid_porosity=True):
         group_key = self.rockdic[rock_tag].group_key
         subfolder = 'stack_plot'
 
@@ -1518,7 +1827,8 @@ class ThorPT_plots():
         phases = self.rockdic[rock_tag].phases
         phase_data = self.rockdic[rock_tag].phase_data
         frac_bool = self.rockdic[rock_tag].frac_bool
-
+        garnet = self.rockdic[rock_tag].garnet[rock_tag]
+        garnet_bool = self.rockdic[rock_tag].garnets_bools[rock_tag]
         # Input for the variable of interest
         if val_tag is False:
             tag_in = input(
@@ -1548,69 +1858,116 @@ class ThorPT_plots():
         y = y.T
         label_list = legend_phases
 
+        # cleaning dataframe from multiple phase names - combine rows into one
+        if len(legend_phases) == len(np.unique(legend_phases)):
+            pass
+        else:
+            y, legend_phases, color_set = clean_frame(y, legend_phases, color_set)
         # y.columns = phases
         # y = Merge_phase_group(y)
         # label_list = list(y.index)
         # pal1 = sns.color_palette("tab20", 20)
+        """if len(garnet_bool) < len(y.loc['Garnet']):
+            garnet_bool = np.insert(garnet_bool, 0, 0)
+        if len(garnet.volume) == len(y.loc['Garnet'][garnet_bool==1]):
+            y.loc['Garnet'][garnet_bool==1] = np.cumsum(garnet.volume)"""
+
+        if 'Garnet' in y.index:
+            y.loc['Garnet'][np.isnan(y.loc['Garnet'])] = 0
+            kk = 0
+            garnet_in = False
+            for k, xval in enumerate(y.loc['Garnet']):
+                if xval == 0 and garnet_in is True:
+                    y.loc['Garnet',k] = np.cumsum(garnet.volume[:1+kk])[-1]
+                elif xval == 0:
+                    pass
+                else:
+                    garnet_in = True
+                    y.loc['Garnet',k] = np.cumsum(garnet.volume[:1+kk])[-1]
+                    kk += 1
+            y.loc['Garnet'][y.loc['Garnet']==0] = np.nan
+
+        y = y/system_vol_pre[0]
 
         # plot
-        plt.rc('axes', labelsize=10)
-        plt.rc('xtick', labelsize=6)  # fontsize of the x tick labels
-        plt.rc('ytick', labelsize=8)  # fontsize of the y tick labels
+        plt.rc('axes', labelsize=16)
+        plt.rc('xtick', labelsize=12)  # fontsize of the x tick labels
+        plt.rc('ytick', labelsize=12)  # fontsize of the y tick labels
+        plt.figure(111, figsize=(7,5), facecolor=None, )
+
         ax1 = host_subplot(111)
         #fig.suptitle('Phase changes for P-T-t')
         # main plot
 
         # ax1.stackplot(line, y, labels=label_list,
         #               colors=pal1, alpha=.8, edgecolor='black')
-        ax1.stackplot(line, y, labels=label_list,
-                      colors=color_set, alpha=.8, edgecolor='black')
+        if transparent is True:
+            ax1.stackplot(line, y, labels=label_list,
+                    colors=color_set, alpha=.35, edgecolor='black')
+        else:
+            ax1.stackplot(line, y, labels=label_list,
+                                colors=color_set, alpha=.7, edgecolor='black')
 
         # legend definition
         handles, labels = ax1.get_legend_handles_labels()
-        ax1.legend(
-            handles[::-1], labels[::-1], bbox_to_anchor=(1.43, 0.5), loc='right',
-            borderaxespad=0.1, title="Stable phases", fontsize=8
+        legend = ax1.legend(
+            handles[::-1], labels[::-1], bbox_to_anchor=(1.7, 0.5), loc='right',
+            borderaxespad=0.1, title="Stable phases", fontsize=14
         )
+        def export_legend(legend, filename="legend.png"):
+            fig  = legend.figure
+            fig.canvas.draw()
+            bbox  = legend.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
+            os.makedirs(f'{self.mainfolder}/img_{self.filename}/{subfolder}', exist_ok=True)
+            fig.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{filename}', dpi="figure", bbox_inches=bbox)
 
+        export_legend(legend)
         # tick stepping
         con = round(10/len(line), 2)
         con = round(len(line)*con)
         step = round(len(line)/con)
         if step == 0:
             step = 1
+        if step == 4:
+            step=5
 
+        # if np.any(np.diff(temperatures)[np.diff(temperatures)<0]) is True:
         # define x-axis bottom (temperature) tick labels
         ax1.set_xticks(line[::step])
-
         if len(line) < len(temperatures):
             selected_temp = temperatures[list(line-1)]
-            ax1.set_xticklabels(np.around(selected_temp[::step], 1))
+            f_arr = np.around(selected_temp[::step], 0)
+            ax1.set_xticklabels(f_arr.astype(int))
         else:
-            ax1.set_xticklabels(np.around(temperatures[::step], 1))
+            f_arr = np.around(temperatures[::step], 0)
+            ax1.set_xticklabels(f_arr.astype(int))
         ax1.xaxis.set_minor_locator(AutoMinorLocator())
 
         # second y axis
         # free fluid content
-        twin1 = ax1.twinx()
+        fluid_porosity_color = "#4750d4"
         y2 = (st_fluid_before)/system_vol_pre*100
         # extraction steps
         # NOTE extraction marker boolean
         mark_extr = extraction_boolean = self.rockdic[rock_tag].extraction_boolean
         mark_extr = np.array(system_vol_pre-system_vol_post, dtype='bool')
-        twin1.plot(line, y2, '1--', c='blue')
-        if len(frac_bool) > 0:
-            if 1 in frac_bool or 2 in frac_bool or 3 in frac_bool:
-                extension_bool = np.isin(frac_bool, 1)
-                extend_shear_bool = np.isin(frac_bool, 2)
-                compress_shear_bool = np.isin(frac_bool, 3)
-                twin1.plot(line[extension_bool], y2[extension_bool], 'Dr')
-                twin1.plot(line[extend_shear_bool], y2[extend_shear_bool], 'Dg')
-                twin1.plot(line[compress_shear_bool], y2[compress_shear_bool], 'Db')
-        else:
-            pass
-        twin1.set_ylabel("Vol% of fluid-filled porosity")
-        twin1.set_ymargin(0)
+        if fluid_porosity is True:
+            twin1 = ax1.twinx()
+            twin1.plot(line, y2, 'o--', c=fluid_porosity_color, linewidth=2, markeredgecolor='black')
+            twin1.set_ylabel("Vol% of fluid-filled porosity", color=fluid_porosity_color, fontsize=15, weight='bold')
+            twin1.set_ymargin(0)
+
+            if len(frac_bool) > 0:
+                if 1 in frac_bool or 2 in frac_bool or 3 in frac_bool:
+                    extension_bool = np.isin(frac_bool, 1)
+                    extend_shear_bool = np.isin(frac_bool, 2)
+                    compress_shear_bool = np.isin(frac_bool, 3)
+                    twin1.plot(line[extension_bool], y2[extension_bool], 'Dr')
+                    twin1.plot(line[extend_shear_bool], y2[extend_shear_bool], 'Dg')
+                    twin1.plot(line[compress_shear_bool], y2[compress_shear_bool], 'Db')
+            else:
+                pass
+
 
         # define x-axis top (pressure) tick labels
         ax2 = ax1.twin()
@@ -1620,7 +1977,7 @@ class ThorPT_plots():
             selected_pres = pressures[list(line-1)]
             ax1.set_xticklabels(np.around(selected_pres[::step], 1))
         else:
-            ax2.set_xticklabels(np.around(np.array(pressures[::step])/1000, 1))
+            ax2.set_xticklabels(np.around(np.array(pressures[::step])/10000, 1))
 
         # labeling and style adjustments
         plt.subplots_adjust(right=0.75)
@@ -1635,18 +1992,37 @@ class ThorPT_plots():
                         linestyle='--', color='black')
             ax1.axvline(x=line[peakt], linewidth=1.5,
                         linestyle='--', color='red')
-        ax1.set_ylabel(tag[3:])
+        if tag[3:] == 'volume[ccm]':
+            ax1.set_ylabel("Relative volume")
+        else:
+            ax1.set_ylabel(tag[3:])
         ax1.set_xlabel('Temperature [°C]')
-        ax2.set_xlabel('Pressure in kBar (1$e^{3}$)')
+        ax2.set_xlabel('Pressure [GPa]')
         ax2.axis["right"].major_ticklabels.set_visible(False)
         ax2.axis["right"].major_ticks.set_visible(False)
 
+        if fluid_porosity is True:
+            twin1.tick_params(colors=fluid_porosity_color)
+            twin1.set_yticklabels(twin1.get_yticks(), weight='heavy', size=14)
+            ymax= np.round(max(y2),2)
+            twin1.set_ylim(0, np.round(ymax+ymax*0.05,2))
+
+        ax1.hlines(1, -2, max(line)+5, 'black', linewidth=1.5, linestyle='--')
+        ax1.set_xlim(0,max(line)+1)
+
+        ax1.set_facecolor("#fcfcfc")
+        ax1.set_alpha(0.5)
         # save image
         if img_save is True:
             os.makedirs(
                     f'{self.mainfolder}/img_{self.filename}/{subfolder}', exist_ok=True)
-            plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}_stack_plot.png',
-                            transparent=False, facecolor='white')
+            if transparent is True:
+                plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}_stack_plot_transparent.png',
+                                                transparent=False, facecolor='White')
+            else:
+                plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}_stack_plot.png',
+                                transparent=False, facecolor='White')
+
         else:
             plt.show()
         plt.clf()
@@ -1740,6 +2116,7 @@ class ThorPT_plots():
             rock_tag (str): the name of the rock such as "rock0", "rock1", ...
             img_save (bool, optional): Optional argument to save the plot as an image to the directory. Defaults to False.
         """
+
         group_key = self.rockdic[rock_tag].group_key
         subfolder = 'oxygen_plot'
 
@@ -1753,49 +2130,20 @@ class ThorPT_plots():
         # oxyframe = Merge_phase_group(self.rockdic[rock_tag].oxygen_data)
         oxyframe = self.rockdic[rock_tag].oxygen_data.T
         oxyframe.columns = self.rockdic[rock_tag].temperature
+
+        for item in ['"H"', '"Si"', '"Ti"', '"Al"']:
+            if item in legend_phases:
+                indi = legend_phases.index(item)
+                del legend_phases[indi]
+
         oxyframe.index = legend_phases
 
         # cleaning dataframe from multiple phase names - combine rows into one
         if len(legend_phases) == len(np.unique(legend_phases)):
             pass
         else:
-            # copy information before manipulation
-            new_color_set = color_set.copy()
-            new_legend_phases = legend_phases.copy()
+            oxyframe, legend_phases, color_set = clean_frame(oxyframe, legend_phases, color_set)
 
-            # routine to filter multiple assigned phase columns
-            for phase in legend_phases:
-                pcount = legend_phases.count(phase)
-                if pcount > 1:
-
-                    # get position of multiple name
-                    pos_list = []
-                    for i, item in enumerate(legend_phases):
-                        if item == phase:
-                            pos_list.append(i)
-
-                    # read lines to array, replace nan, combine, put nan back
-                    arr = np.zeros(len(oxyframe.columns))
-                    for j in pos_list:
-                        arr = arr + np.nan_to_num(np.array(oxyframe.iloc[j]))
-                    arr[arr == 0] = np.nan
-                    arr = pd.DataFrame(arr)
-                    arr.index = oxyframe.columns
-                    arr.columns = [phase]
-
-                    # update dataframe, legend and color from multiple entries - add it at end
-                    # delete
-                    oxyframe = oxyframe.drop(phase)
-                    it = 0
-                    for num in pos_list:
-                        num = num - it
-                        del legend_phases[num]
-                        del color_set[num]
-                        it+=1
-                    # repair
-                    oxyframe = pd.concat([oxyframe,arr.T], axis=0)
-                    legend_phases.append(phase)
-                    color_set.append(new_color_set[pos_list[0]])
 
         fig, ax111 = plt.subplots(1, 1, figsize=(8, 5))
         for t, phase in enumerate(list(oxyframe.index)):
@@ -1838,15 +2186,102 @@ if __name__ == '__main__':
     compPlot = ThorPT_plots(
         data.filename, data.mainfolder, data.rock, data.compiledrock)
 
-    print("The 'data.rock[key]' keys are:")
-    for key in data.rock.keys():
-        print(key)
-        compPlot.phases_stack_plot(rock_tag=key, img_save=True, val_tag='vol%')
-    
-        compPlot.time_int_flux_plot(rock_tag=key, img_save=True)
-    
-    # compPlot.oxygen_isotopes(rock_tag=key, img_save=True)
+    """
+    track_diff = []
+    track_shear = []
+    track_num_ext = []
+    for i, item in enumerate(data.compiledrock.all_diffs):
+        diff = np.unique(item)[-1]
+        fracture_bool = data.compiledrock.all_frac_bool[i]
+        num_ext = len(fracture_bool[fracture_bool>0])
+        track_diff.append(diff)
+        # track_shear.append()
+        track_num_ext.append(num_ext)
 
+
+    for i, item in enumerate(data.rock.keys()):
+        # y = data.compiledrock.all_depth[i]/1000
+        y = data.compiledrock.all_ps[i]
+        x = data.compiledrock.all_porosity[i]*100
+        x[x==0] = np.nan
+
+        plt.plot(x,y,'d')
+        plt.ylabel("Depth [km]")
+        plt.xlabel("Fluid-filled porosity [Vol.%]")
+        plt.ylim(100, 0)
+
+        num_rocks = 3
+        step = int(len(data.compiledrock.all_porosity)/num_rocks)
+        for i in range(num_rocks):
+            x = np.concatenate(data.compiledrock.all_porosity[step*i:step*(i+1)])*100
+            y = np.concatenate(data.compiledrock.all_ps[step*i:step*(i+1)])
+            plt.plot(x,y, 'd')
+        plt.xscale('log')
+        plt.legend(['Basalt', 'Sediment', 'Serpentinite'])
+
+        from matplotlib import colors
+        i = 0
+        dist1 = np.concatenate(data.compiledrock.all_porosity[step*i:step*(i+1)])*100
+        dist2 = np.concatenate(data.compiledrock.all_ps[step*i:step*(i+1)])
+        fig, ax = plt.subplots(tight_layout=True)
+        hist = ax.hist2d(dist1, dist2, bins=128, norm=colors.LogNorm())
+
+    for i, item in enumerate(data.rock.keys()):
+        y = data.compiledrock.all_depth[i]/1000
+        fracture_bool = data.compiledrock.all_frac_bool[i]
+        num_ext = len(fracture_bool[fracture_bool>0])
+        # plt.plot(num_ext,y,'d')"""
+
+
+    """
+    plt.plot(track_diff, track_num_ext, 'd-')
+    plt.ylabel("# of extractions")
+    plt.xlabel("Differential stress [$\it{MPa}$]")
+    """
+    compPlot.time_int_flux_summary(img_save=True, rock_colors=['#10e6ad', "#0592c1", "#f74d53"])
+
+
+    file_combination = False
+    num_files = 1
+    if file_combination is True:
+        data2 = ThorPT_hdf5_reader()
+        data_box = []
+        for i in range(num_files):
+            data2.open_ThorPT_hdf5()
+            data_box.append(copy.deepcopy(data2))
+
+        depth_porosity(
+            data_box, num_rocks=3,
+            rock_colors=["#0592c1", "#f74d53", '#10e6ad'],
+            rock_symbol = ['d', 'd', 'd', 's'])
+
+        density_porosity(
+            data_box, num_rocks=3,
+            rock_colors=["#0592c1", "#f74d53", '#10e6ad'],
+            rock_symbol = ['d', 'd', 'd','s'])
+
+        extraction_stress(
+            data_box, num_rocks=3,
+            rock_colors=["#0592c1", "#f74d53", '#10e6ad'],
+            rock_symbol = ['d--', 'd--', 'd--', 's--'], rock_names=True)
+
+
+
+    ##########################################
+    print("The 'data.rock[key]' keys are:")
+    evaluate_loop = True
+    if evaluate_loop is True:
+        for key in data.rock.keys():
+            print(key)
+            compPlot.phases_stack_plot(rock_tag=key, img_save=True,
+                        val_tag='volume[ccm]', transparent=True, fluid_porosity=True)
+
+        #compPlot.boxplot_to_GIF(rock_tag='rock004', img_save=True, gif_save=True)
+            compPlot.time_int_flux_plot(rock_tag=key, img_save=True)
+
+            # compPlot.oxygen_isotopes(rock_tag=key, img_save=True)
+
+        # compPlot.pt_path_plot(key, img_save=True, gif_save=True)
     """
     compPlot.time_int_flux_plot(
             rock_tag='rock1', img_save=False, gif_save=False)
@@ -1861,3 +2296,37 @@ if __name__ == '__main__':
     compPlot.porosity_plot(rock_tag='rock0', img_save=False, gif_save=False)
     compPlot.release_fluid_volume_plot(
         rock_tag='rock0', img_save=False, gif_save=False)"""
+
+    """dist1 = np.concatenate(data_box[0].compiledrock.all_porosity)*100
+    dist2 = np.concatenate(data_box[1].compiledrock.all_porosity)*100
+    plt.figure(102)
+    plt.hist(dist2, bins=128)
+    plt.yscale('log')
+    plt.figure(103)
+    plt.hist(dist1, bins=128)
+    plt.yscale('log')
+    """
+    """from matplotlib import colors
+    dist1 = np.concatenate(data_box[0].compiledrock.all_porosity)*100
+    dist2 = np.concatenate(data_box[1].compiledrock.all_porosity)*100
+    fig, ax = plt.subplots(tight_layout=True)
+    hist = ax.hist2d(dist1, dist2, bins=128, norm=colors.LogNorm())
+    fig, (ax1,ax2) = plt.subplots((1,2))
+    ax1.hist(dist1, bins=128)
+    ax2.hist(dist2, bins=128)
+    plt.show()"""
+
+    """from matplotlib import colors
+    dist1 = np.concatenate(data_box.compiledrock.all_porosity)*100
+    dist2 = np.concatenate(data_box.compiledrock.all_system_density_post)-np.concatenate(data.compiledrock.all_system_density_pre)
+    fig, ax = plt.subplots(tight_layout=True)
+    hist = ax.hist2d(dist1, dist2, bins=128, norm=colors.LogNorm())
+
+    frac = np.concatenate(data.compiledrock.all_frac_bool)
+    x = np.concatenate(data.compiledrock.all_porosity)*100
+    y1 = np.concatenate(data.compiledrock.all_system_density_post)
+    y2 = np.concatenate(data.compiledrock.all_system_density_pre)
+    y = y1-y2
+    y = y[frac>0]
+    x = x[frac>0]
+    plt.plot(x,y, 'd')"""

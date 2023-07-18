@@ -91,39 +91,43 @@ def run_routine():
 
         # take path, fracturing and further settings from init file applied to all rocks modelled
         path_arguments = False
+        path_incerement = False
         for entry in init:
             if '*' in entry:
                 pass
             else:
-                if 'Theriak' in entry:
+                if 'Theriak:' in entry:
                     print(f"Theriak path input:\n{entry}")
                     pos = entry.index(":")
-                    theriak = entry[pos+1:]
-                if 'Path' in entry:
+                    theriak = entry[pos+1:].split('\t')[-1]
+                if 'Path:' in entry:
                     print(f"PT path module:\n{entry}")
                     pos = entry.index(":")
-                    path = entry[pos+1:]
-                if 'Extraction scheme' in entry:
+                    path = entry[pos+1:].split('\t')[-1]
+                if 'Path-increments:' in entry:
+                    print(f"List of path increments, dP, dT:\n{entry}")
+                    pos = entry.index(":")
+                    path_incerement = entry[pos+1:].split('\t')[-1].split(', ')
+                if 'Extraction scheme:' in entry:
                     print(f"Extraction line:\n{entry}")
                     pos = entry.index(":")
-                    extraction = entry[pos+1:]
-                if 'Min Permea' in entry:
+                    extraction = entry[pos+1:].split('\t')[-1]
+                if 'Min Permea:' in entry:
                     pos = entry.index(":")
-                    lowestpermea = entry[pos+1:]
+                    lowestpermea = entry[pos+1:].split('\t')[-1]
                     init_data['Min Permeability'] = float(lowestpermea)
-                if 'ShearStress' in entry:
+                if 'ShearStress:' in entry:
                     pos = entry.index(":")
-                    shearstress = entry[pos+1:]
+                    shearstress = entry[pos+1:].split('\t')[-1]
                     init_data['shearstress'] = float(shearstress)
-                if 'Marco' in entry:
+                if 'Marco:' in entry:
                     init_data['Marco'] = True
-                if 'grt_frac_off' in entry:
+                if 'grt_frac_off:' in entry:
                     init_data['grt_frac_off'] = True
-                if 'Input-arguments' in entry:
+                if 'Input-arguments:' in entry:
                     print(f"List of input arguments:\n{entry}")
                     pos = entry.index(":")
-                    path_arguments = entry[pos+1:].split(', ')
-
+                    path_arguments = entry[pos+1:].split('\t')[-1].split(', ')
 
         # FIXME ROUTINE - static decision should be input answer
         # answer = int(input("Type 1 for multiple rock script. Type 2 for column interaction."))
@@ -157,7 +161,7 @@ def run_routine():
             if item == breaks[-1]:
                 pass
             else:
-                rocktag = "rock" + str(i)
+                rocktag = "rock" + f"{i:03}"
                 rock_dic[rocktag] = init[item+1:breaks[i+1]]
 
         database = []
@@ -174,44 +178,45 @@ def run_routine():
             for entry in rock_init:
                 if 'Database' in entry:
                     pos = entry.index(":")
-                    db = entry[pos+1:]
+                    db = entry[pos+1:].split('\t')[-1]
                     database.append(db + ".txt")
                 if 'Bulk' in entry:
                     pos = entry.index(":")
-                    bulkr = entry[pos+1:]
+                    bulkr = entry[pos+1:].split('\t')[-1]
+                    bulkr = bulkr.split('\t')[-1]
                     bulkr = bulkr[1:-1].split(',')
                     for j, item in enumerate(bulkr):
                         bulkr[j] = float(item)
                     bulk.append(bulkr)
                 if 'OxygenVal' in entry:
                     pos = entry.index(":")
-                    soxygen = entry[pos+1:]
+                    soxygen = entry[pos+1:].split('\t')[-1]
                     soxygen = float(soxygen)
                     oxygen.append(soxygen)
                 if 'Tensile strength' in entry:
                     pos = entry.index(":")
-                    tensile = entry[pos+1:]
+                    tensile = entry[pos+1:].split('\t')[-1]
                     init_data['Tensile strength'].append(float(tensile))
                 if 'Geometry' in entry:
                     pos = entry.index(":")
-                    abc = entry[pos+1:]
+                    abc = entry[pos+1:].split('\t')[-1]
                     abc = abc[1:-1].split(',')
                     init_data['geometry'].append(abc)
                 if 'Cohesion' in entry:
                     pos = entry.index(":")
-                    cohesion = entry[pos+1:]
+                    cohesion = entry[pos+1:].split('\t')[-1]
                     init_data['cohesion'].append(float(cohesion))
                 if 'Friction' in entry:
                     pos = entry.index(":")
-                    friction = entry[pos+1:]
+                    friction = entry[pos+1:].split('\t')[-1]
                     init_data['friction'].append(float(friction))
                 if 'ShearStress' in entry:
                     pos = entry.index(":")
-                    shear = entry[pos+1:]
+                    shear = entry[pos+1:].split('\t')[-1]
                     init_data['shear'].append(float(shear))
                 if 'Extraction scheme' in entry:
                     pos = entry.index(":")
-                    rock_mechanics = entry[pos+1:]
+                    rock_mechanics = entry[pos+1:].split('\t')[-1]
                     init_data['Extraction scheme'] = rock_mechanics
 
 
@@ -286,10 +291,14 @@ def run_routine():
             # Calling Pathfinder module and executing digitization function
             nasa = Pathfinder()
             # nasa.execute_digi()
-            if path_arguments is False:
+            if path_arguments is False and path_incerement is False:
                 nasa.connect_extern()
-            else:
+            elif path_arguments is False:
+                nasa.connect_extern(path_incerement)
+            elif path_incerement is False:
                 nasa.connect_extern(path_arguments)
+            else:
+                nasa.connect_extern(path_arguments, path_incerement)
             # Store P-T-t information
             temperatures = nasa.temperature
             pressures = nasa.pressure
@@ -366,7 +375,7 @@ def run_routine():
         master_rock = {}
         count = 0
         for i, item in enumerate(rock_bulk):
-            tag = 'rock' + str(i)
+            tag = 'rock' + f"{i:03}"
             master_rock[tag] = {}
 
             # double check counter
@@ -432,7 +441,8 @@ def run_routine():
             master_rock[tag]['live_permeability'] = []
 
             # Reactivity for fluid transport
-            if tag == 'rock0':
+            # FIXME - static rock name
+            if tag == 'rock000':
                 master_rock[tag]['reactivity'] = rockactivity(function='base', react=False)
             else:
                 master_rock[tag]['reactivity'] = rockactivity(function='stack', react=False)

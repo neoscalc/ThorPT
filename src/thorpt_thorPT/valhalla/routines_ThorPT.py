@@ -73,13 +73,20 @@ def whole_rock_convert_3(ready_mol_bulk=0):
 
     bulk = ready_mol_bulk
     new_bulk1 = []
+    scan_element = []
+    scan_val = []
     for el in bulk.index:
         if el == 'E':
             pass
         elif el == 'O':
+            scan_element.append(el)
+            scan_val.append(simple_iron)
             new_bulk1.append(el+'('+str(simple_iron)+')')
         else:
-            new_bulk1.append(el+'('+str(bulk[el])+')')
+            scan_element.append(el)
+            val = bulk.loc[el]
+            scan_val.append(np.round(val, 4))
+            new_bulk1.append(scan_element[-1]+'('+str(scan_val[-1])+')')
     new_bulk = ''.join(new_bulk1) + "    " + "*theriak-out preprocessed bulk"
 
     return new_bulk
@@ -94,7 +101,8 @@ def whole_rock_to_weight_normalizer(rock_bulk=[32.36, 0.4, 8.78, 2.91, 0.0, 0.0,
     num_cation_ext = [1, 1, 2, 1,  2,  1, 1, 1, 2, 2,  2, 1]
     #             SIO2   TIO2 AL2O3 FEO  FE2O3 MNO  MGO   CAO    NA2O  K2O
     num_cation = [1, 1, 2, 1,  2,  1, 1, 1, 2, 2]
-    #         SIO2 TIO2 AL2O3 FEO FE2O3 MNO MGO CAO NA2O K2O H2O CO2
+    #         SIO2 TIO2 AL2O3 FEO
+    #              FE2O3 MNO MGO CAO NA2O K2O H2O CO2
     num_oxy = [2,  2,   3,    1,  3,    1,  1,  1,  1,   1,  1,  2]
     oxide_mass = [60.09, 77.866, 101.96, 71.85,
                   159.68, 70.94, 40.3, 56.08, 61.98, 94.2]
@@ -340,6 +348,7 @@ class ThorPT_Routines():
                 print("¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦")
                 print("v v v v v v v v v v v v v v v v v v v v v v v v")
                 print(f"-> Forward modeling step initiated - {item}")
+                print(master_rock[item]['new_bulk'])
                 master_rock[item]['minimization'] = Therm_dyn_ther_looper(self.theriak,
                     master_rock[item]['database'], master_rock[item]['new_bulk'],
                     temperature, pressures[num], master_rock[item]['df_var_dictionary'],
@@ -430,8 +439,11 @@ class ThorPT_Routines():
                     rock_origin[item]['df_var_dictionary'][kkey] = copy.deepcopy(
                         cdata)
                 for kkey in rock_origin[item]['df_h2o_content_dic'].keys():
-                    cdata = pd.concat(
-                        [rock_origin[item]['df_h2o_content_dic'][kkey], master_rock[item]['df_h2o_content_dic'][kkey].iloc[:, -1]], axis=1)
+                    if len(master_rock[item]['df_h2o_content_dic'][kkey].index) > 0:
+                        cdata = pd.concat(
+                            [rock_origin[item]['df_h2o_content_dic'][kkey], master_rock[item]['df_h2o_content_dic'][kkey].iloc[:, -1]], axis=1)
+                    else:
+                        cdata = rock_origin[item]['df_h2o_content_dic'][kkey]
                     rock_origin[item]['df_h2o_content_dic'][kkey] = copy.deepcopy(
                         cdata)
 
@@ -709,22 +721,28 @@ class ThorPT_Routines():
                                 cohesion=master_rock[item]['cohesion']
                                 )
                         elif failure_mech == 'Mohr-Coulomb-Griffith':
+                            print("\t===== Mohr-Coulomb-Griffith method active =====")
                             master_rock[item]['fluid_calculation'].mohr_cloulomb_griffith(
                                 shear_stress=master_rock[item]['shear'],
                                 friction=master_rock[item]['friction'],
                                 cohesion=master_rock[item]['cohesion']
                             )
+
                             master_rock[item]['failure module'].append(
                                 master_rock[item]['fluid_calculation'].failure_dictionary)
 
                         # LINK ii) Steady state fluid extraction
                         elif failure_mech == 'Steady':
                             print("===== steady method active =====")
-                            master_rock[item]['fracture bool'].append(3)
+                            master_rock[item]['fluid_calculation'].frac_respo = 5
                             fracturing_flag = True
+                            master_rock[item]['fluid_calculation'].fracture = True
+                            master_rock[item]['failure module'].append("Steady")
 
                         else:
                             fracturing_flag = False
+                            master_rock[item]['fracture bool'].append(
+                                    master_rock[item]['fluid_calculation'].frac_respo)
                         # ##############################################
                         # LINK Coulomb mechanical trigger
                         # Tracking fracturing from coulomb approach methods
@@ -803,6 +821,7 @@ class ThorPT_Routines():
                     master_rock[item]['fracture bool'].append(0)
                     master_rock[item]['live_fluid-flux'].append(np.nan)
                     master_rock[item]['live_permeability'].append(np.nan)
+                    master_rock[item]['failure module'].append("None activated, no fluid.")
                     print(
                         f"No free water in the system for {item} - no fracturing model")
 
@@ -1302,18 +1321,22 @@ class ThorPT_Routines():
                                 shear_stress=master_rock[item]['shear'],
                                 friction=master_rock[item]['friction'],
                                 cohesion=master_rock[item]['cohesion']
-                            )
+                                )
                             master_rock[item]['failure module'].append(
                                 master_rock[item]['fluid_calculation'].failure_dictionary)
 
                         # LINK ii) Steady state fluid extraction
                         elif failure_mech == 'Steady':
                             print("===== steady method active =====")
-                            master_rock[item]['fracture bool'].append(3)
+                            master_rock[item]['fluid_calculation'].frac_respo = 5
                             fracturing_flag = True
+                            master_rock[item]['fluid_calculation'].fracture = True
+                            master_rock[item]['failure module'].append("Steady")
 
                         else:
                             fracturing_flag = False
+                            master_rock[item]['fracture bool'].append(
+                                    master_rock[item]['fluid_calculation'].frac_respo)
 
                         # ##############################################
                         # LINK Coulomb mechanical trigger
@@ -1407,6 +1430,7 @@ class ThorPT_Routines():
                     master_rock[item]['fracture bool'].append(0)
                     master_rock[item]['live_fluid-flux'].append(np.nan)
                     master_rock[item]['live_permeability'].append(np.nan)
+                    master_rock[item]['failure module'].append("None activated, no fluid.")
                     master_rock[item]['reactivity'].react=False
                     print(f"No free water in the system for {item} - no fracturing model")
                 # save bulk oxygen after extraction
@@ -1648,17 +1672,24 @@ class ThorPT_Routines():
                             hf[rock].attrs.create(item, master_rock[rock][item])
 
                     elif item == 'failure module':
-                        item_list = list(master_rock[rock][item][0].keys())
-                        dataframe_fracture_module = pd.DataFrame(np.zeros((len(master_rock[rock][item]), len(item_list))))
-                        dataframe_fracture_module.columns = item_list
-                        for kkey in item_list:
-                            stored = []
-                            for element in master_rock[rock][item]:
-                                stored.append(element[kkey])
-                            dataframe_fracture_module[kkey] = stored
+                        for subject in master_rock[rock][item]:
+                            if isinstance(subject, dict) is True:
+                                item_list = list(subject.keys())
+                                dataframe_fracture_module = pd.DataFrame(np.zeros((len(master_rock[rock][item]), len(item_list))))
+                                dataframe_fracture_module.columns = item_list
+                                for kkey in item_list:
+                                    stored = []
+                                    for element in master_rock[rock][item]:
+                                        if element == 'None activated, no fluid.':
+                                            stored.append(np.nan)
+                                        else:
+                                            stored.append(element[kkey])
+                                    dataframe_fracture_module[kkey] = stored
 
-                        dataset = hf.create_dataset(f"{rock}/{item}", data=dataframe_fracture_module, compression="gzip")
-                        hf[f"{rock}/{item}"].attrs.create('header', item_list)
+                                dataset = hf.create_dataset(f"{rock}/{item}", data=dataframe_fracture_module)
+                                hf[f"{rock}/{item}"].attrs.create('header', item_list)
+
+                                break
 
                     elif item == 'garnet':
                         tts = []
