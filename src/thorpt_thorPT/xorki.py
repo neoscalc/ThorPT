@@ -1554,7 +1554,6 @@ class ThorPT_plots():
         else:
             plt.show()
 
-
     def porosity_plot(self, rock_tag, img_save=False, gif_save=False):
 
         if gif_save is True:
@@ -1856,13 +1855,16 @@ class ThorPT_plots():
         y = phase_data[tag].fillna(value=0)
         y.columns = legend_phases
         y = y.T
-        label_list = legend_phases
+
+        # drop rows with all zeros
+        y = y.loc[(y != 0).any(axis=1)]
+        label_list = list(y.index)
 
         # cleaning dataframe from multiple phase names - combine rows into one
-        if len(legend_phases) == len(np.unique(legend_phases)):
+        if len(label_list) == len(np.unique(label_list)):
             pass
         else:
-            y, legend_phases, color_set = clean_frame(y, legend_phases, color_set)
+            y, legend_phases, color_set = clean_frame(y, label_list, color_set)
         # y.columns = phases
         # y = Merge_phase_group(y)
         # label_list = list(y.index)
@@ -1887,7 +1889,8 @@ class ThorPT_plots():
                     kk += 1
             y.loc['Garnet'][y.loc['Garnet']==0] = np.nan
 
-        y = y/system_vol_pre[0]
+        # nomrmalize the volume data to starting volume
+        y = y/y.sum()[0]
 
         # plot
         plt.rc('axes', labelsize=16)
@@ -1913,7 +1916,7 @@ class ThorPT_plots():
         legend = ax1.legend(
             handles[::-1], labels[::-1], bbox_to_anchor=(1.7, 0.5), loc='right',
             borderaxespad=0.1, title="Stable phases", fontsize=14
-        )
+            )
         def export_legend(legend, filename="legend.png"):
             fig  = legend.figure
             fig.canvas.draw()
@@ -2120,17 +2123,18 @@ class ThorPT_plots():
         group_key = self.rockdic[rock_tag].group_key
         subfolder = 'oxygen_plot'
 
-        # XMT naming and coloring
-        database = self.rockdic[rock_tag].database
-        phases2 = self.rockdic[rock_tag].phases2
-        legend_phases, color_set = phases_and_colors_XMT(database, phases2)
-
-        # Plotting routine
+        # Read the oxygen data from the dictionary
         summary = self.rockdic[rock_tag].oxygen_data.T.describe()
         # oxyframe = Merge_phase_group(self.rockdic[rock_tag].oxygen_data)
         oxyframe = self.rockdic[rock_tag].oxygen_data.T
         oxyframe.columns = self.rockdic[rock_tag].temperature
 
+        # XMT naming and coloring
+        database = self.rockdic[rock_tag].database
+        phases2 = oxyframe.index
+        legend_phases, color_set = phases_and_colors_XMT(database, phases2)
+
+        # Plotting routine
         for item in ['"H"', '"Si"', '"Ti"', '"Al"']:
             if item in legend_phases:
                 indi = legend_phases.index(item)
@@ -2276,10 +2280,10 @@ if __name__ == '__main__':
             compPlot.phases_stack_plot(rock_tag=key, img_save=True,
                         val_tag='volume[ccm]', transparent=True, fluid_porosity=True)
 
-        #compPlot.boxplot_to_GIF(rock_tag='rock004', img_save=True, gif_save=True)
+            #compPlot.boxplot_to_GIF(rock_tag='rock004', img_save=True, gif_save=True)
             compPlot.time_int_flux_plot(rock_tag=key, img_save=True)
 
-            # compPlot.oxygen_isotopes(rock_tag=key, img_save=True)
+            compPlot.oxygen_isotopes(rock_tag=key, img_save=True)
 
         # compPlot.pt_path_plot(key, img_save=True, gif_save=True)
     """

@@ -606,7 +606,13 @@ def read_theriak(theriak_path, database, temperature, pressure, whole_rock):
             current_number += 1
     except NameError:
         print("---ERROR:---What? No solid stable phases?")
-    df_Vol_Dens = pd.concat(data, axis=1)
+    
+    # test if data dictionary is empty
+    if not data:
+        df_Vol_Dens = pd.DataFrame(data)
+        print("---ERROR:---No solid stable phases detected.")
+    else:
+        df_Vol_Dens = pd.concat(data, axis=1)
     # writes the created 'data' dictionary which contains all
     # stable phases of solids into a DataFrame
     try:

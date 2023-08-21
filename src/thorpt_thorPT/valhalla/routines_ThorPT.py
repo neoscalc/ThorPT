@@ -298,6 +298,7 @@ class ThorPT_Routines():
         coulomb_permea = self.mechanical_methods[4]
         coulomb_permea2 = self.mechanical_methods[5]
 
+
         # Main variables fractionation
         grt_frac = self.garnet_fractionation
 
@@ -922,17 +923,21 @@ class ThorPT_Routines():
 
                             # add the H and O that is transfered
                             # FIXME - Addition of moles dependend on geometry
-                            external_rock_volume = (master_rock[rock_react_item]['st_solid'][-1] + master_rock[rock_react_item]['st_fluid_before'][-1])/1000000
+                            external_rock_volume = (master_rock[rock_react_item]['st_solid'][-1] + master_rock[rock_react_item]['st_fluid_before'][-1])/1_000_000
                             external_rock_geometry = master_rock[rock_react_item]['geometry']
                             external_rock_geometry = np.float64(external_rock_geometry[0])*np.float64(external_rock_geometry[1])*np.float64(external_rock_geometry[2])
 
-                            internal_volume = (master_rock[item]['fluid_volume_new'] + master_rock[item]['solid_volume_new'])/1000000
+                            internal_volume = (master_rock[item]['fluid_volume_new'] + master_rock[item]['solid_volume_new'])/1_000_000
                             internal_geometry = master_rock[item]['geometry']
                             internal_geometry = np.float64(internal_geometry[0])*np.float64(internal_geometry[1])*np.float64(internal_geometry[2])
 
                             fluid_influx_factor = external_rock_geometry * internal_volume / external_rock_volume / internal_geometry
 
-                            bulka['H'] += (master_rock[rock_react_item]['fluid_hydrogen'][-1]* fluid_influx_factor)
+                            # test if 'H' and 'O' are in the bulk rock index
+                            if 'H' not in bulka.index:
+                                bulka['H'] = 0
+                            # Add the H and O to the bulk rock accounting for the geometry
+                            bulka['H'] += (master_rock[rock_react_item]['fluid_hydrogen'][-1]*fluid_influx_factor)
                             bulka['O'] += (master_rock[rock_react_item]['fluid_oxygen'][-1]*fluid_influx_factor)
 
                             # calculate the new bulk rock composition
@@ -1074,8 +1079,13 @@ class ThorPT_Routines():
                     rock_origin[item]['df_var_dictionary'][kkey] = copy.deepcopy(
                         cdata)
                 for kkey in rock_origin[item]['df_h2o_content_dic'].keys():
-                    cdata = pd.concat(
-                        [rock_origin[item]['df_h2o_content_dic'][kkey], master_rock[item]['df_h2o_content_dic'][kkey].iloc[:, -1]], axis=1)
+                    # Testing if dataframe is empty
+                    if rock_origin[item]['df_h2o_content_dic'][kkey].empty is True:
+                        cdata = rock_origin[item]['df_h2o_content_dic'][kkey]
+                    # If not empty, merge data
+                    else:
+                        cdata = pd.concat(
+                            [rock_origin[item]['df_h2o_content_dic'][kkey], master_rock[item]['df_h2o_content_dic'][kkey].iloc[:, -1]], axis=1)
                     rock_origin[item]['df_h2o_content_dic'][kkey] = copy.deepcopy(
                         cdata)
                 cdata = master_rock[item]['df_element_total']
@@ -1746,6 +1756,10 @@ class ThorPT_Routines():
         f_path = str(f_path)
         pos = f_path.rfind("\\")
         destination = Path(f_path[:pos+1])
-        shutil.copy(source, destination)
+        # test if file already exists
+        if os.path.isfile(destination / source.name):
+            pass
+        else:
+            shutil.copy(source, destination)
 
 
