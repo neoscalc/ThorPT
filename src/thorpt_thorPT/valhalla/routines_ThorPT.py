@@ -1371,6 +1371,7 @@ class ThorPT_Routines():
                             if v_water/v_system >= 0.1:
                                 master_rock[item]['fluid_calculation'].fracture = True
                                 fracturing_flag = True
+                                master_rock[item]['fracture bool'][-1] = 10
                             else:
                                 fracturing_flag = master_rock[item]['fluid_calculation'].fracture
                             # print(f"\nThe calculated extensional fracturing fator is: .... {fracture_value}\n")

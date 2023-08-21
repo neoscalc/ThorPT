@@ -1961,13 +1961,15 @@ class ThorPT_plots():
             twin1.set_ymargin(0)
 
             if len(frac_bool) > 0:
-                if 1 in frac_bool or 2 in frac_bool or 3 in frac_bool:
+                if 1 in frac_bool or 2 in frac_bool or 3 in frac_bool or 10 in frac_bool:
                     extension_bool = np.isin(frac_bool, 1)
                     extend_shear_bool = np.isin(frac_bool, 2)
                     compress_shear_bool = np.isin(frac_bool, 3)
+                    ten_bool = np.isin(frac_bool, 10)
                     twin1.plot(line[extension_bool], y2[extension_bool], 'Dr')
                     twin1.plot(line[extend_shear_bool], y2[extend_shear_bool], 'Dg')
                     twin1.plot(line[compress_shear_bool], y2[compress_shear_bool], 'Db')
+                    twin1.plot(line[ten_bool], y2[ten_bool], 'D', c='violet')
             else:
                 pass
 
@@ -2179,6 +2181,117 @@ class ThorPT_plots():
         plt.clf()
         plt.close()
 
+    # function to plot a column consisting of all rocks showing the fluid content
+    def fluid_content(self, img_save=False):
+        """Plotting function for the fluid content of all rocks in the model and the glaucophane content in two subplots.
+
+        Args:
+            img_save (bool, optional): Optional argument to save the plot as an image to the directory. Defaults to False.
+        """
+
+
+        # set the color palette for the plot based on the number of rocks
+        color_palette = sns.color_palette("viridis", len(self.rockdic.keys()))
+        # plotting routine
+        fig, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1, figsize=(8, 5))
+        for i, rock in enumerate(self.rockdic.keys()):
+            # skip the first rock when i == 0
+            if i == 0:
+                pass
+            else:
+                # read the database from the rockdic and store it in a variable
+                database = self.rockdic[rock].database
+                phases2 = list(self.rockdic[rock].phase_data['df_vol%'].columns)
+                legend_phases, color_set = phases_and_colors_XMT(database, phases2)
+
+                # read the vol% data to a variable and replace the NaN values with 0 and transpose the dataframe
+                y = self.rockdic[rock].phase_data['df_vol%'].fillna(value=0)
+                y.columns = legend_phases
+                y = y.T
+
+                # drop rows with all zeros
+                y = y.loc[(y != 0).any(axis=1)]
+                legend_phases = list(y.index)
+
+                # clean the dataframe from multiple phase names - combine rows into one
+                if len(legend_phases) == len(np.unique(legend_phases)):
+                    pass
+                else:
+                    y, legend_phases, color_set = clean_frame(y, legend_phases, color_set)
+
+                # define the fluid content from the dataframe based on 'Water' and plot it
+                fluid_content = y.loc['Water']
+                ax1.plot(fluid_content,
+                        '-', c=color_palette[i], linewidth=1.2, markeredgecolor='black')
+                # if -Glaucophane- is in y plot it as a dashed line
+                if 'Glaucophane' in legend_phases:
+                    glaucophane_content = y.loc['Glaucophane']
+                    ax2.plot(glaucophane_content,
+                            '--', c=color_palette[i], linewidth=1.2, markeredgecolor='black')
+                # if -Omphacite- is in y plot it as a dashed line
+                if 'Omphacite' in legend_phases:
+                    omphacite_content = y.loc['Omphacite']
+                    ax3.plot(omphacite_content,
+                            '--', c=color_palette[i], linewidth=1.2, markeredgecolor='black')
+
+        # plot the water content of rock000 in ax3
+        ax4.plot(self.rockdic['rock000'].phase_data['df_vol%']['water.fluid'],
+                   '-', c='black', linewidth=2, markeredgecolor='black')
+
+        # set the y axis label and the x axis label for ax1
+        ax1.set_ylabel("Fluid content [vol%]")
+        # set the y axis label and the x axis label for ax2
+        ax2.set_ylabel("Glaucophane content [vol%]")
+        plt.subplots_adjust(right=0.8)
+        # set the y axis label and the x axis label for ax3
+        ax3.set_ylabel("Omphacite content [vol%]")
+        # ax3 is a plot for the ultramafic or another base rock
+        ax4.set_ylabel("Fluid content [vol%]")
+        ax4.set_xlabel("Time")
+        ax4.set_title("Baserock")
+
+        # define the range of the ax1 axis based on the number of time steps
+        x_range = np.arange(0, len(fluid_content), 1)
+        ax1.set_xticks(x_range)
+        # define the range of the ax2 axis based on the number of time steps
+        x_range = np.arange(0, len(fluid_content), 1)
+        ax2.set_xticks(x_range)
+        # define the range of the ax3 axis based on the number of time steps
+        x_range = np.arange(0, len(self.rockdic['rock000'].phase_data['df_vol%']['water.fluid']), 1)
+        ax3.set_xticks(x_range)
+
+        # add a legend to the figure on the right side
+        ax1.legend(self.rockdic.keys(), bbox_to_anchor=(1.28, 0.9))
+
+        # adjust the subplot spacing
+        plt.subplots_adjust(hspace=0.5)
+        # and size to fit the legend
+        plt.subplots_adjust(right=0.8)
+
+        # for each subplot annotate the lines with the rock name
+        for i, rock in enumerate(self.rockdic.keys()):
+            ax1.annotate(rock, xy=(1, 0), xycoords='axes fraction',
+                           fontsize=10, xytext=(-5, 5), textcoords='offset points',
+                           ha='right', va='bottom', color=color_palette[i])
+            ax2.annotate(rock, xy=(1, 0), xycoords='axes fraction',
+                           fontsize=10, xytext=(-5, 5), textcoords='offset points',
+                           ha='right', va='bottom', color=color_palette[i])
+            ax3.annotate(rock, xy=(1, 0), xycoords='axes fraction',
+                           fontsize=10, xytext=(-5, 5), textcoords='offset points',
+                           ha='right', va='bottom', color='black')
+
+
+        if img_save is True:
+            os.makedirs(
+                    f'{self.mainfolder}/img_{self.filename}/fluid_content', exist_ok=True)
+            plt.savefig(f'{self.mainfolder}/img_{self.filename}/fluid_content/fluid_content.png',
+                            transparent=False, facecolor='white')
+        else:
+            plt.show()
+        plt.clf()
+        plt.close()
+
+
 
 if __name__ == '__main__':
 
@@ -2273,6 +2386,7 @@ if __name__ == '__main__':
 
     ##########################################
     print("The 'data.rock[key]' keys are:")
+    compPlot.fluid_content(img_save=True)
     evaluate_loop = True
     if evaluate_loop is True:
         for key in data.rock.keys():
