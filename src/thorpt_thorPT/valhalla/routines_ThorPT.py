@@ -1367,7 +1367,12 @@ class ThorPT_Routines():
                                 (pressures[num]/10)
 
                             # Fracture flag trigger
-                            fracturing_flag = master_rock[item]['fluid_calculation'].fracture
+                            # activate fracture flag trigger when vol% of fluid is above or equal 10%
+                            if v_water/v_system >= 0.1:
+                                master_rock[item]['fluid_calculation'].fracture = True
+                                fracturing_flag = True
+                            else:
+                                fracturing_flag = master_rock[item]['fluid_calculation'].fracture
                             # print(f"\nThe calculated extensional fracturing fator is: .... {fracture_value}\n")
                             # print(f"Check factor: {fluid_fac}")
 
