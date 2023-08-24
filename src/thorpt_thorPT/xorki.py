@@ -400,44 +400,38 @@ def progress(percent=0, width=40):
 def clean_frame(dataframe_to_clean, legend_phases, color_set):
             dataframe = dataframe_to_clean.copy()
             # copy information before manipulation
-            new_color_set = color_set.copy()
-            new_legend_phases = legend_phases.copy()
+            colorframe = pd.DataFrame(color_set, index=legend_phases)
+            new_color_set2 = []
+            new_legend_phases = []
+            new_dataframe = pd.DataFrame()
 
             # routine to filter multiple assigned phase columns
             for phase in legend_phases:
+                # Merge dataframe rows of multiple entries with name of phase
                 pcount = legend_phases.count(phase)
                 if pcount > 1:
+                    if phase in new_legend_phases:
+                        pass
+                    else:
+                        # Sum the dataframe rows of multiple entries with name of phase
+                        dat = dataframe.loc[phase].sum()
+                        # Merge dat to new_dataframe
+                        new_dataframe = pd.concat([new_dataframe, dat], axis=1)
+                        new_legend_phases.append(phase)
+                        new_color_set2.append(tuple(colorframe.loc[phase].mean()))
+                else:
+                    dat = dataframe.loc[phase]
+                    # Merge dat to new_dataframe
+                    new_dataframe = pd.concat([new_dataframe, dat], axis=1)
+                    new_legend_phases.append(phase)
+                    new_color_set2.append(tuple(colorframe.loc[phase]))
 
-                    # get position of multiple name
-                    pos_list = []
-                    for i, item in enumerate(legend_phases):
-                        if item == phase:
-                            pos_list.append(i)
+            new_dataframe = new_dataframe.T
+            new_dataframe.index = new_legend_phases
+            print('Cleaning done!')
 
-                    # read lines to array, replace nan, combine, put nan back
-                    arr = np.zeros(len(dataframe.columns))
-                    for j in pos_list:
-                        arr = arr + np.nan_to_num(np.array(dataframe.iloc[j]))
-                    arr[arr == 0] = np.nan
-                    arr = pd.DataFrame(arr)
-                    arr.index = dataframe.columns
-                    arr.columns = [phase]
 
-                    # update dataframe, legend and color from multiple entries - add it at end
-                    # delete
-                    dataframe = dataframe.drop(phase)
-                    it = 0
-                    for num in pos_list:
-                        num = num - it
-                        del legend_phases[num]
-                        del color_set[num]
-                        it+=1
-                    # repair
-                    dataframe = pd.concat([dataframe,arr.T], axis=0)
-                    legend_phases.append(phase)
-                    color_set.append(new_color_set[pos_list[0]])
-
-            return dataframe, legend_phases, color_set
+            return new_dataframe, new_legend_phases, new_color_set2
 
 
 def depth_porosity(data_box, num_rocks=3, rock_colors=["#0592c1", "#f74d53", '#10e6ad'], rock_symbol = ['d', 's']):
@@ -517,6 +511,15 @@ def extraction_stress(data_box, num_rocks=3, rock_colors=["#0592c1", "#f74d53", 
 
     plt.show()
 
+
+def resort_frame(y, legend_phases, color_set):
+            # read the position of "Water" in legen_phases and move "Water" to the end of the legend_phases list
+            # move the color of "Water" to the end of the color_set list
+            color_set.append(color_set.pop(legend_phases.index('Water')))
+            legend_phases.append(legend_phases.pop(legend_phases.index('Water')))
+            # reindex the dataframe and move "Water" to the end of the dataframe
+            y = y.reindex(legend_phases)
+            return y, legend_phases, color_set
 
 class Simple_binary_plot():
 
@@ -996,23 +999,23 @@ class ThorPT_plots():
                 # All the single plots
                 # plot 1
                 y_offset = 0
-                ax1 = fig.add_subplot(gs[:, :2])
+                ax2 = fig.add_subplot(gs[:, :2])
                 for t, val in enumerate(np.array(mole_fractions)):
                     if val == np.float64(0):
-                        ax1.bar(
+                        ax2.bar(
                             1, val, bottom=0, color=color_set[t], edgecolor='black', linewidth=0.1, label=legend_phases[t])
                     else:
-                        ax1.bar(1, val, bottom=y_offset,
+                        ax2.bar(1, val, bottom=y_offset,
                                 color=color_set[t], edgecolor='black', linewidth=0.1, label=legend_phases[t])
                     y_offset = y_offset + val
                 # legend
-                handles, labels = ax1.get_legend_handles_labels()
+                handles, labels = ax2.get_legend_handles_labels()
                 legend_properties = {'weight': 'bold'}
-                ax1.legend(handles[::-1], labels[::-1],
+                ax2.legend(handles[::-1], labels[::-1],
                            title='Phases', bbox_to_anchor=(1.2, 0.8), fontsize=18)
-                ax1.get_xaxis().set_visible(False)
-                ax1.get_yaxis().set_visible(False)
-                ax1.set_aspect(0.02)
+                ax2.get_xaxis().set_visible(False)
+                ax2.get_yaxis().set_visible(False)
+                ax2.set_aspect(0.02)
 
                 # Finishing plot - save
                 plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}/img_{i}.png',
@@ -1071,17 +1074,17 @@ class ThorPT_plots():
                                       right=0.95, hspace=0.6, wspace=0.5)
 
                 # plot 6
-                ax4 = fig.add_subplot(gs[:, :])
-                ax4.plot(ts[:i+1], ps[:i+1]/10_000, 'd--',
+                ax5 = fig.add_subplot(gs[:, :])
+                ax5.plot(ts[:i+1], ps[:i+1]/10_000, 'd--',
                          color='black', markersize=4)
-                ax4.plot(ts[i:i+1], ps[i:i+1]/10_000, 'd--',
+                ax5.plot(ts[i:i+1], ps[i:i+1]/10_000, 'd--',
                          color='#7fffd4', markersize=8, markeredgecolor='black')
-                # Ax4 figure features
-                ax4.set_xlim(200, 750)
-                ax4.set_ylim(0, 3)
-                ax4.set_ylabel("Pressure [GPa]", fontsize=18)
-                ax4.set_xlabel("Temperature [°C]", fontsize=18)
-                ax4.tick_params(axis='both', labelsize=18)
+                # ax5 figure features
+                ax5.set_xlim(200, 750)
+                ax5.set_ylim(0, 3)
+                ax5.set_ylabel("Pressure [GPa]", fontsize=18)
+                ax5.set_xlabel("Temperature [°C]", fontsize=18)
+                ax5.tick_params(axis='both', labelsize=18)
 
             # Finishing plot - save
                 plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}/img_{i}.png',
@@ -1100,18 +1103,18 @@ class ThorPT_plots():
                              facecolor='0.9', figsize=(9, 9))
             gs = fig.add_gridspec(nrows=3, ncols=3, left=0.15,
                                   right=0.95, hspace=0.6, wspace=0.5)
-            ax4 = fig.add_subplot(gs[:, :])
+            ax5 = fig.add_subplot(gs[:, :])
             for i in range(len(phase_data.index)):
-                ax4.plot(ts[:i+1], ps[:i+1]/10_000, 'd--',
+                ax5.plot(ts[:i+1], ps[:i+1]/10_000, 'd--',
                          color='black', markersize=4)
-                ax4.plot(ts[i:i+1], ps[i:i+1]/10_000, 'd--',
+                ax5.plot(ts[i:i+1], ps[i:i+1]/10_000, 'd--',
                          color='#7fffd4', markersize=8, markeredgecolor='black')
-            # Ax4 figure features
-            ax4.set_xlim(200, 750)
-            ax4.set_ylim(0, 3)
-            ax4.set_ylabel("Pressure [GPa]", fontsize=18)
-            ax4.set_xlabel("Temperature [°C]", fontsize=18)
-            ax4.tick_params(axis='both', labelsize=18)
+            # ax5 figure features
+            ax5.set_xlim(200, 750)
+            ax5.set_ylim(0, 3)
+            ax5.set_ylabel("Pressure [GPa]", fontsize=18)
+            ax5.set_xlabel("Temperature [°C]", fontsize=18)
+            ax5.tick_params(axis='both', labelsize=18)
             plt.show()
 
         if gif_save is True:
@@ -1174,34 +1177,34 @@ class ThorPT_plots():
                 gs = fig.add_gridspec(nrows=3, ncols=3, left=0.15,
                                       right=0.95, hspace=0.6, wspace=0.5)
 
-                ax4 = fig.add_subplot(gs[:, :])
+                ax5 = fig.add_subplot(gs[:, :])
                 if False in filtered_permeability.mask[:i+1]:
                     # plot 4
-                    ax4.plot(
+                    ax5.plot(
                         filtered_permeability[:i+1], depth[:i+1]/1000, 'd--', color='black', alpha=0.7)
-                    ax4.plot(filtered_permeability[i:i+1], depth[i:i+1]/1000, 'd',
+                    ax5.plot(filtered_permeability[i:i+1], depth[i:i+1]/1000, 'd',
                              color='#7fffd4', markersize=8, markeredgecolor='black')
                 else:
                     # plot 4
-                    ax4.plot(np.ones(i+1)*1e-30, depth[:i+1]/1000, 'd')
+                    ax5.plot(np.ones(i+1)*1e-30, depth[:i+1]/1000, 'd')
 
                 # add Manning & Ingebritsen to plot 3
                 z = np.arange(1, 110, 1)
                 c_k = 10**(-14 - 3.2 * np.log10(z))
-                ax4.plot(c_k, z, '--', color='#b18e4e', linewidth=3)
+                ax5.plot(c_k, z, '--', color='#b18e4e', linewidth=3)
 
-                # Ax4 figure features
-                ax4.set_title('T:{:.2f} °C P:{:.2f} GPa'.format(
+                # ax5 figure features
+                ax5.set_title('T:{:.2f} °C P:{:.2f} GPa'.format(
                     ts[i], ps[i]/10000), fontsize=18)
-                ax4.set_xlim(1e-26, 1e-14)
-                ax4.set_xscale('log')
-                ax4.set_ylim(100, 0)
-                ax4.set_xlabel("permeability [$m^{2}$]", fontsize=18)
-                ax4.set_ylabel("Depth [km]", fontsize=18)
-                ax4.fill_between([1e-30, 1e-21], [100, 100],
+                ax5.set_xlim(1e-26, 1e-14)
+                ax5.set_xscale('log')
+                ax5.set_ylim(100, 0)
+                ax5.set_xlabel("permeability [$m^{2}$]", fontsize=18)
+                ax5.set_ylabel("Depth [km]", fontsize=18)
+                ax5.fill_between([1e-30, 1e-21], [100, 100],
                                  color="#c5c5c5", edgecolor='black', hatch="/", alpha=0.4)
-                ax4.tick_params(axis='both', labelsize=20)
-                ax4.annotate("Manning &\nIngebritsen\n(1999)",
+                ax5.tick_params(axis='both', labelsize=20)
+                ax5.annotate("Manning &\nIngebritsen\n(1999)",
                              (4e-17, 15), fontsize=16)
 
             # Finishing plot - save
@@ -1221,35 +1224,35 @@ class ThorPT_plots():
                              facecolor='0.9', figsize=(9, 9))
             gs = fig.add_gridspec(nrows=3, ncols=3, left=0.15,
                                   right=0.95, hspace=0.6, wspace=0.5)
-            ax4 = fig.add_subplot(gs[:, :])
+            ax5 = fig.add_subplot(gs[:, :])
             for i in range(len(phase_data.index)):
                 if False in filtered_permeability.mask[:i+1]:
                     # plot 4
-                    ax4.plot(
+                    ax5.plot(
                         filtered_permeability[:i+1], depth[:i+1]/1000, 'd--', color='black', alpha=0.7)
-                    ax4.plot(filtered_permeability[i:i+1], depth[i:i+1]/1000, 'd',
+                    ax5.plot(filtered_permeability[i:i+1], depth[i:i+1]/1000, 'd',
                              color='#7fffd4', markersize=8, markeredgecolor='black')
                 else:
                     # plot 4
-                    ax4.plot(np.ones(i+1)*1e-30, depth[:i+1]/1000, 'd')
+                    ax5.plot(np.ones(i+1)*1e-30, depth[:i+1]/1000, 'd')
 
             # add Manning & Ingebritsen to plot 3
             z = np.arange(1, 110, 1)
             c_k = 10**(-14 - 3.2 * np.log10(z))
-            ax4.plot(c_k, z, '--', color='#b18e4e', linewidth=3)
+            ax5.plot(c_k, z, '--', color='#b18e4e', linewidth=3)
 
-            # Ax4 figure features
-            ax4.set_title('T:{:.2f} °C P:{:.2f} GPa'.format(
+            # ax5 figure features
+            ax5.set_title('T:{:.2f} °C P:{:.2f} GPa'.format(
                 ts[i], ps[i]/10000), fontsize=18)
-            ax4.set_xlim(1e-26, 1e-14)
-            ax4.set_xscale('log')
-            ax4.set_ylim(100, 0)
-            ax4.set_xlabel("permeability [$m^{2}$]", fontsize=18)
-            ax4.set_ylabel("Depth [km]", fontsize=18)
-            ax4.fill_between([1e-30, 1e-21], [100, 100],
+            ax5.set_xlim(1e-26, 1e-14)
+            ax5.set_xscale('log')
+            ax5.set_ylim(100, 0)
+            ax5.set_xlabel("permeability [$m^{2}$]", fontsize=18)
+            ax5.set_ylabel("Depth [km]", fontsize=18)
+            ax5.fill_between([1e-30, 1e-21], [100, 100],
                              color="#c5c5c5", edgecolor='black', hatch="/", alpha=0.4)
-            ax4.tick_params(axis='both', labelsize=20)
-            ax4.annotate("Manning &\nIngebritsen\n(1999)",
+            ax5.tick_params(axis='both', labelsize=20)
+            ax5.annotate("Manning &\nIngebritsen\n(1999)",
                          (4e-17, 15), fontsize=16)
             plt.show()
 
@@ -1320,55 +1323,55 @@ class ThorPT_plots():
                 gs = fig.add_gridspec(nrows=3, ncols=3, left=0.15,
                                       right=0.95, hspace=0.6, wspace=0.5)
 
-                ax4 = fig.add_subplot(gs[:, :])
-                # ax4.plot(unfiltered_int_flux[:i+1],
+                ax5 = fig.add_subplot(gs[:, :])
+                # ax5.plot(unfiltered_int_flux[:i+1],
                 #          depth[:i+1]/1000, 'd--', color='green')
-                # ax4.plot(regional_flux[:i+1],
+                # ax5.plot(regional_flux[:i+1],
                 #          depth[:i+1]/1000, 'd--', color='green', markersize=3, alpha=0.5)
                 if False in filtered_int_flux.mask[:i+1]:
                     # plot 4
-                    # ax4.plot(filtered_int_flux[:i+1], depth[:i+1]/1000, 'd--', color='black', alpha=0.7)
-                    # ax4.plot(filtered_int_flux[i:i+1], depth[i:i+1]/1000, 'd',
+                    # ax5.plot(filtered_int_flux[:i+1], depth[:i+1]/1000, 'd--', color='black', alpha=0.7)
+                    # ax5.plot(filtered_int_flux[i:i+1], depth[i:i+1]/1000, 'd',
                     #          color='#7fffd4', markersize=8, markeredgecolor='black')
-                    ax4.plot(
+                    ax5.plot(
                         regional_filtered_flux[:i+1], depth[:i+1]/1000, 'd--', color='black', alpha=0.7, markersize=10)
-                    ax4.plot(regional_filtered_flux[i:i+1], depth[i:i+1]/1000, 'd',
+                    ax5.plot(regional_filtered_flux[i:i+1], depth[i:i+1]/1000, 'd',
                              color='#7fffd4', markersize=15, markeredgecolor='black')
                 else:
                     # plot 4
-                    ax4.plot(np.ones(i+1)*1e-30, depth[:i+1]/1000, 'd')
+                    ax5.plot(np.ones(i+1)*1e-30, depth[:i+1]/1000, 'd')
 
-                # Ax4 figure features
-                ax4.set_title('T:{:.2f} °C P:{:.2f} GPa'.format(
+                # ax5 figure features
+                ax5.set_title('T:{:.2f} °C P:{:.2f} GPa'.format(
                     ts[i], ps[i]/10000), fontsize=18)
-                ax4.set_xscale('log')
-                ax4.set_xlim(10**0, 10**6)
-                ax4.set_ylim(100, 0)
-                ax4.set_xlabel("Time int.-flux [$m^{3}/m^{2}$]", fontsize=18)
-                ax4.set_ylabel("Depth [km]", fontsize=18)
+                ax5.set_xscale('log')
+                ax5.set_xlim(10**0, 10**6)
+                ax5.set_ylim(100, 0)
+                ax5.set_xlabel("Time int.-flux [$m^{3}/m^{2}$]", fontsize=18)
+                ax5.set_ylabel("Depth [km]", fontsize=18)
 
                 # pervasive range
-                """ax4.fill_between([10**(2), 10**(4)], [100, 100],
+                """ax5.fill_between([10**(2), 10**(4)], [100, 100],
                                 color="#a9d5b2", edgecolor='black', alpha=0.1)"""
-                ax4.fill_between([10**(1), 10**(4)], [100, 100],
+                ax5.fill_between([10**(1), 10**(4)], [100, 100],
                                  cmap="Purples", alpha=0.2, step='mid')
                 # channelized range
-                ax4.fill_between([10**(4), 10**(6)], [100, 100],
+                ax5.fill_between([10**(4), 10**(6)], [100, 100],
                                  color="#ca638f", alpha=0.1)
                 # regional range
-                """ax4.fill_between([10**(2.7-0.5), 10**(2.7+0.5)], [100, 100],
+                """ax5.fill_between([10**(2.7-0.5), 10**(2.7+0.5)], [100, 100],
                                 color="#c5c5c5", edgecolor='black', alpha=0.5)"""
 
-                ax4.tick_params(axis='both', labelsize=20)
-                ax4.vlines(10**4, 0, 100, linestyles='--',
+                ax5.tick_params(axis='both', labelsize=20)
+                ax5.vlines(10**4, 0, 100, linestyles='--',
                            color='black', linewidth=4)
 
                 props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
 
-                # ax4.annotate("Regional range", (10**(2.7+0.5-0.3), 25), fontsize=16, bbox=props, rotation=90)
-                ax4.annotate("Channelized", (10**(4+0.2), 5),
+                # ax5.annotate("Regional range", (10**(2.7+0.5-0.3), 25), fontsize=16, bbox=props, rotation=90)
+                ax5.annotate("Channelized", (10**(4+0.2), 5),
                              fontsize=16, bbox=props)
-                ax4.annotate("Pervasive", (10**(1+0.2), 5),
+                ax5.annotate("Pervasive", (10**(1+0.2), 5),
                              fontsize=16, bbox=props)
             # Finishing plot - save
                 plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}/img_{i}.png',
@@ -1387,55 +1390,55 @@ class ThorPT_plots():
                              facecolor='0.9', figsize=(9, 9))
             gs = fig.add_gridspec(nrows=3, ncols=3, left=0.15,
                                   right=0.95, hspace=0.6, wspace=0.5)
-            ax4 = fig.add_subplot(gs[:, :])
+            ax5 = fig.add_subplot(gs[:, :])
             for i in range(len(phase_data.index)):
-                # ax4.plot(unfiltered_int_flux[:i+1],
+                # ax5.plot(unfiltered_int_flux[:i+1],
                 #          depth[:i+1]/1000, 'd--', color='green')
-                # ax4.plot(regional_flux[:i+1],
+                # ax5.plot(regional_flux[:i+1],
                 #          depth[:i+1]/1000, 'd--', color='green', markersize=3, alpha=0.5)
                 # Test whether it is a masked array
                 if np.ma.isMaskedArray(filtered_int_flux) is True:
                     if False in filtered_int_flux.mask[:i+1]:
                         # plot 4
-                        # ax4.plot(filtered_int_flux[:i+1], depth[:i+1]/1000, 'd--', color='black', alpha=0.7)
-                        # ax4.plot(filtered_int_flux[i:i+1], depth[i:i+1]/1000, 'd',
+                        # ax5.plot(filtered_int_flux[:i+1], depth[:i+1]/1000, 'd--', color='black', alpha=0.7)
+                        # ax5.plot(filtered_int_flux[i:i+1], depth[i:i+1]/1000, 'd',
                         #          color='#7fffd4', markersize=8, markeredgecolor='black')
-                        ax4.plot(
+                        ax5.plot(
                             regional_filtered_flux[:i+1], depth[:i+1]/1000, 'd', color='black', alpha=0.7, markersize=10)
-                        ax4.plot(regional_filtered_flux[i:i+1], depth[i:i+1]/1000, 'd',
+                        ax5.plot(regional_filtered_flux[i:i+1], depth[i:i+1]/1000, 'd',
                                 color='#7fffd4', markersize=15, markeredgecolor='black')
                     else:
                         # plot 4
-                        ax4.plot(np.ones(i+1)*1e-30, depth[:i+1]/1000, 'd')
+                        ax5.plot(np.ones(i+1)*1e-30, depth[:i+1]/1000, 'd')
                 else:
                     # plot 4
-                    ax4.plot(np.ones(i+1)*1e-30, depth[:i+1]/1000, 'd')
+                    ax5.plot(np.ones(i+1)*1e-30, depth[:i+1]/1000, 'd')
 
-            # Ax4 figure features
-            ax4.set_xscale('log')
-            ax4.set_xlim(10**0, 10**6)
-            ax4.set_ylim(100, 0)
-            ax4.set_xlabel("Time int.-flux [$m^{3}/m^{2}$]", fontsize=18)
-            ax4.set_ylabel("Depth [km]", fontsize=18)
+            # ax5 figure features
+            ax5.set_xscale('log')
+            ax5.set_xlim(10**0, 10**6)
+            ax5.set_ylim(100, 0)
+            ax5.set_xlabel("Time int.-flux [$m^{3}/m^{2}$]", fontsize=18)
+            ax5.set_ylabel("Depth [km]", fontsize=18)
             # pervasive range
-            """ax4.fill_between([10**(2), 10**(4)], [100, 100],
+            """ax5.fill_between([10**(2), 10**(4)], [100, 100],
                             color="#a9d5b2", edgecolor='black', alpha=0.1)"""
-            ax4.fill_between([10**(1), 10**(4)], [100, 100],
+            ax5.fill_between([10**(1), 10**(4)], [100, 100],
                              cmap="Purples", alpha=0.2, step='mid')
             # channelized range
-            ax4.fill_between([10**(4), 10**(6)], [100, 100],
+            ax5.fill_between([10**(4), 10**(6)], [100, 100],
                              color="#ca638f", alpha=0.1)
             # regional range
-            """ax4.fill_between([10**(2.7-0.5), 10**(2.7+0.5)], [100, 100],
+            """ax5.fill_between([10**(2.7-0.5), 10**(2.7+0.5)], [100, 100],
                             color="#c5c5c5", edgecolor='black', alpha=0.5)"""
-            ax4.tick_params(axis='both', labelsize=20)
-            ax4.vlines(10**4, 0, 100, linestyles='--',
+            ax5.tick_params(axis='both', labelsize=20)
+            ax5.vlines(10**4, 0, 100, linestyles='--',
                        color='black', linewidth=4)
             props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
-            # ax4.annotate("Regional range", (10**(2.7+0.5-0.3), 25), fontsize=16, bbox=props, rotation=90)
-            ax4.annotate("Channelized", (10**(4+0.2), 5),
+            # ax5.annotate("Regional range", (10**(2.7+0.5-0.3), 25), fontsize=16, bbox=props, rotation=90)
+            ax5.annotate("Channelized", (10**(4+0.2), 5),
                          fontsize=16, bbox=props)
-            ax4.annotate("Pervasive", (10**(1+0.2), 5),
+            ax5.annotate("Pervasive", (10**(1+0.2), 5),
                          fontsize=16, bbox=props)
 
             if img_save is True:
@@ -1463,7 +1466,7 @@ class ThorPT_plots():
                         facecolor='0.9', figsize=(9, 9))
         gs = fig.add_gridspec(nrows=3, ncols=3, left=0.15,
                             right=0.95, hspace=0.6, wspace=0.5)
-        ax4 = fig.add_subplot(gs[:, :])
+        ax5 = fig.add_subplot(gs[:, :])
 
         for i, rock_tag in enumerate(self.rockdic.keys()):
 
@@ -1504,44 +1507,44 @@ class ThorPT_plots():
             if np.ma.isMaskedArray(filtered_int_flux) is True:
                 if False in filtered_int_flux.mask[:]:
                     # plot 4
-                    # ax4.plot(filtered_int_flux[:i+1], depth[:i+1]/1000, 'd--', color='black', alpha=0.7)
-                    # ax4.plot(filtered_int_flux[i:i+1], depth[i:i+1]/1000, 'd',
+                    # ax5.plot(filtered_int_flux[:i+1], depth[:i+1]/1000, 'd--', color='black', alpha=0.7)
+                    # ax5.plot(filtered_int_flux[i:i+1], depth[i:i+1]/1000, 'd',
                     #          color='#7fffd4', markersize=8, markeredgecolor='black')
-                    ax4.plot(regional_filtered_flux, depth/1000, 'd',
+                    ax5.plot(regional_filtered_flux, depth/1000, 'd',
                             color=rock_color, markersize=15, markeredgecolor='black')
                 else:
                     # plot 4
-                    ax4.plot(np.ones(len(filtered_int_flux))*1e-30, depth/1000, 'd')
+                    ax5.plot(np.ones(len(filtered_int_flux))*1e-30, depth/1000, 'd')
             else:
                 # plot 4
-                ax4.plot(np.ones(len(filtered_int_flux))*1e-30, depth/1000, 'd')
+                ax5.plot(np.ones(len(filtered_int_flux))*1e-30, depth/1000, 'd')
 
         # General plot edits
-        # Ax4 figure features
-        ax4.set_xscale('log')
-        ax4.set_xlim(10**0, 10**6)
-        ax4.set_ylim(100, 0)
-        ax4.set_xlabel("Time int.-flux [$m^{3}/m^{2}$]", fontsize=18)
-        ax4.set_ylabel("Depth [km]", fontsize=18)
+        # ax5 figure features
+        ax5.set_xscale('log')
+        ax5.set_xlim(10**0, 10**6)
+        ax5.set_ylim(100, 0)
+        ax5.set_xlabel("Time int.-flux [$m^{3}/m^{2}$]", fontsize=18)
+        ax5.set_ylabel("Depth [km]", fontsize=18)
         # pervasive range
-        """ax4.fill_between([10**(2), 10**(4)], [100, 100],
+        """ax5.fill_between([10**(2), 10**(4)], [100, 100],
                         color="#a9d5b2", edgecolor='black', alpha=0.1)"""
-        ax4.fill_between([10**(1), 10**(4)], [100, 100],
+        ax5.fill_between([10**(1), 10**(4)], [100, 100],
                         cmap="Purples", alpha=0.2, step='mid')
         # channelized range
-        ax4.fill_between([10**(4), 10**(6)], [100, 100],
+        ax5.fill_between([10**(4), 10**(6)], [100, 100],
                         color="#ca638f", alpha=0.1)
         # regional range
-        """ax4.fill_between([10**(2.7-0.5), 10**(2.7+0.5)], [100, 100],
+        """ax5.fill_between([10**(2.7-0.5), 10**(2.7+0.5)], [100, 100],
                         color="#c5c5c5", edgecolor='black', alpha=0.5)"""
-        ax4.tick_params(axis='both', labelsize=20)
-        ax4.vlines(10**4, 0, 100, linestyles='--',
+        ax5.tick_params(axis='both', labelsize=20)
+        ax5.vlines(10**4, 0, 100, linestyles='--',
                 color='black', linewidth=4)
         props = dict(boxstyle='round', facecolor='wheat', alpha=0.5)
-        # ax4.annotate("Regional range", (10**(2.7+0.5-0.3), 25), fontsize=16, bbox=props, rotation=90)
-        ax4.annotate("Channelized", (10**(4+0.2), 5),
+        # ax5.annotate("Regional range", (10**(2.7+0.5-0.3), 25), fontsize=16, bbox=props, rotation=90)
+        ax5.annotate("Channelized", (10**(4+0.2), 5),
                     fontsize=16, bbox=props)
-        ax4.annotate("Pervasive", (10**(1+0.2), 5),
+        ax5.annotate("Pervasive", (10**(1+0.2), 5),
                     fontsize=16, bbox=props)
 
         if img_save is True:
@@ -1607,32 +1610,32 @@ class ThorPT_plots():
                 gs = fig.add_gridspec(nrows=3, ncols=3, left=0.15,
                                       right=0.95, hspace=0.6, wspace=0.5)
 
-                ax4 = fig.add_subplot(gs[:, :])
-                ax4.plot(unfiltered_porosity[:i+1]*100,
+                ax5 = fig.add_subplot(gs[:, :])
+                ax5.plot(unfiltered_porosity[:i+1]*100,
                          depth[:i+1]/1000, 'd--', color='green')
                 if False in filtered_porosity.mask[:i+1]:
                     # plot 4
-                    ax4.plot(
+                    ax5.plot(
                         filtered_porosity[:i+1]*100, depth[:i+1]/1000, 'd--', color='black', alpha=0.7)
-                    ax4.plot(filtered_porosity[i:i+1]*100, depth[i:i+1]/1000, 'd',
+                    ax5.plot(filtered_porosity[i:i+1]*100, depth[i:i+1]/1000, 'd',
                              color='#7fffd4', markersize=8, markeredgecolor='black')
                 else:
                     # plot 4
-                    ax4.plot(np.ones(i+1)*1e-30, depth[:i+1]/1000, 'd')
+                    ax5.plot(np.ones(i+1)*1e-30, depth[:i+1]/1000, 'd')
 
-                # Ax4 figure features
-                ax4.set_title('T:{:.2f} °C P:{:.2f} GPa'.format(
+                # ax5 figure features
+                ax5.set_title('T:{:.2f} °C P:{:.2f} GPa'.format(
                     ts[i], ps[i]/10000), fontsize=18)
-                ax4.set_xlim(0.01, 10)
-                ax4.set_xscale('log')
-                ax4.set_ylim(100, 0)
-                ax4.set_xlabel("Fluid-filled porosity [$vol.%$]", fontsize=18)
-                ax4.set_ylabel("Depth [km]", fontsize=18)
-                # ax4.set_xlim(10**0, 10**6)
-                # ax4.fill_between([10**2.7 - 0.5, 10**2.7 + 0.5], [100, 100],
+                ax5.set_xlim(0.01, 10)
+                ax5.set_xscale('log')
+                ax5.set_ylim(100, 0)
+                ax5.set_xlabel("Fluid-filled porosity [$vol.%$]", fontsize=18)
+                ax5.set_ylabel("Depth [km]", fontsize=18)
+                # ax5.set_xlim(10**0, 10**6)
+                # ax5.fill_between([10**2.7 - 0.5, 10**2.7 + 0.5], [100, 100],
                 #                  color="#c5c5c5", edgecolor='black', hatch="/", alpha=0.4)
-                ax4.tick_params(axis='both', labelsize=20)
-                # ax4.annotate("Ague 2003 Comp", (10**2.7, 15), fontsize=16)
+                ax5.tick_params(axis='both', labelsize=20)
+                # ax5.annotate("Ague 2003 Comp", (10**2.7, 15), fontsize=16)
 
             # Finishing plot - save
                 plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}/img_{i}.png',
@@ -1651,35 +1654,35 @@ class ThorPT_plots():
                              facecolor='0.9', figsize=(9, 9))
             gs = fig.add_gridspec(nrows=3, ncols=3, left=0.15,
                                   right=0.95, hspace=0.6, wspace=0.5)
-            ax4 = fig.add_subplot(gs[:, :])
+            ax5 = fig.add_subplot(gs[:, :])
 
             # looping the array
             for i in range(len(phase_data.index)):
-                ax4.plot(unfiltered_porosity[:i+1]*100,
+                ax5.plot(unfiltered_porosity[:i+1]*100,
                          depth[:i+1]/1000, 'd--', color='green')
                 if False in filtered_porosity.mask[:i+1]:
                     # plot 4
-                    ax4.plot(
+                    ax5.plot(
                         filtered_porosity[:i+1]*100, depth[:i+1]/1000, 'd--', color='black', alpha=0.7)
-                    ax4.plot(filtered_porosity[i:i+1]*100, depth[i:i+1]/1000, 'd',
+                    ax5.plot(filtered_porosity[i:i+1]*100, depth[i:i+1]/1000, 'd',
                              color='#7fffd4', markersize=8, markeredgecolor='black')
                 else:
                     # plot 4
-                    ax4.plot(np.ones(i+1)*1e-30, depth[:i+1]/1000, 'd')
+                    ax5.plot(np.ones(i+1)*1e-30, depth[:i+1]/1000, 'd')
 
-            # Ax4 figure features
-            ax4.set_title('T:{:.2f} °C P:{:.2f} GPa'.format(
+            # ax5 figure features
+            ax5.set_title('T:{:.2f} °C P:{:.2f} GPa'.format(
                 ts[i], ps[i]/10000), fontsize=18)
-            ax4.set_xlim(0.01, 10)
-            ax4.set_xscale('log')
-            ax4.set_ylim(100, 0)
-            ax4.set_xlabel("Fluid-filled porosity [$vol.%$]", fontsize=18)
-            ax4.set_ylabel("Depth [km]", fontsize=18)
-            # ax4.set_xlim(10**0, 10**6)
-            # ax4.fill_between([10**2.7 - 0.5, 10**2.7 + 0.5], [100, 100],
+            ax5.set_xlim(0.01, 10)
+            ax5.set_xscale('log')
+            ax5.set_ylim(100, 0)
+            ax5.set_xlabel("Fluid-filled porosity [$vol.%$]", fontsize=18)
+            ax5.set_ylabel("Depth [km]", fontsize=18)
+            # ax5.set_xlim(10**0, 10**6)
+            # ax5.fill_between([10**2.7 - 0.5, 10**2.7 + 0.5], [100, 100],
             #                  color="#c5c5c5", edgecolor='black', hatch="/", alpha=0.4)
-            ax4.tick_params(axis='both', labelsize=20)
-            # ax4.annotate("Ague 2003 Comp", (10**2.7, 15), fontsize=16)
+            ax5.tick_params(axis='both', labelsize=20)
+            # ax5.annotate("Ague 2003 Comp", (10**2.7, 15), fontsize=16)
             plt.show()
 
         # reading images and put it to GIF
@@ -1747,26 +1750,26 @@ class ThorPT_plots():
                 gs = fig.add_gridspec(nrows=3, ncols=3, left=0.15,
                                       right=0.95, hspace=0.6, wspace=0.5)
 
-                ax4 = fig.add_subplot(gs[:, :])
-                ax4.plot(unfiltered_v_fluid_extr[:i+1],
+                ax5 = fig.add_subplot(gs[:, :])
+                ax5.plot(unfiltered_v_fluid_extr[:i+1],
                          depth[:i+1]/1000, 'd--', color='green')
                 if False in filtered_permeability.mask[:i+1]:
-                    ax4.plot(filtered_v_fluid_extr[:i+1] /
+                    ax5.plot(filtered_v_fluid_extr[:i+1] /
                              1_000_000, depth[:i+1]/1000, 'd--')
-                    ax4.plot(filtered_v_fluid_extr[:i+1]/1_000_000,
+                    ax5.plot(filtered_v_fluid_extr[:i+1]/1_000_000,
                              depth[:i+1]/1000, 'd--', color='black', alpha=0.5)
-                    ax4.plot(filtered_v_fluid_extr[i:i+1]/1_000_000, depth[i:i+1]/1000,
+                    ax5.plot(filtered_v_fluid_extr[i:i+1]/1_000_000, depth[i:i+1]/1000,
                              'd--', color='#7fffd4', markersize=8, markeredgecolor='black')
 
-                # Ax4 figure features
-                ax4.set_title("Extracted fluid volume")
-                ax4.set_xlim(0.001, 100)
-                ax4.set_xscale('log')
-                ax4.set_ylim(100, 0)
+                # ax5 figure features
+                ax5.set_title("Extracted fluid volume")
+                ax5.set_xlim(0.001, 100)
+                ax5.set_xscale('log')
+                ax5.set_ylim(100, 0)
                 # TODO ccm because it is not the geometry scale
-                ax4.set_xlabel("Volume extracted [$m^{3}$]", fontsize=12)
-                ax4.set_ylabel("Depth [km]", fontsize=12)
-                ax4.tick_params(axis='both', labelsize=14)
+                ax5.set_xlabel("Volume extracted [$m^{3}$]", fontsize=12)
+                ax5.set_ylabel("Depth [km]", fontsize=12)
+                ax5.tick_params(axis='both', labelsize=14)
 
             # Finishing plot - save
                 plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}/img_{i}.png',
@@ -1785,27 +1788,27 @@ class ThorPT_plots():
                              facecolor='0.9', figsize=(9, 9))
             gs = fig.add_gridspec(nrows=3, ncols=3, left=0.15,
                                   right=0.95, hspace=0.6, wspace=0.5)
-            ax4 = fig.add_subplot(gs[:, :])
+            ax5 = fig.add_subplot(gs[:, :])
             for i in range(len(phase_data.index)):
-                ax4.plot(unfiltered_v_fluid_extr[:i+1],
+                ax5.plot(unfiltered_v_fluid_extr[:i+1],
                          depth[:i+1]/1000, 'd--', color='green')
                 if False in filtered_permeability.mask[:i+1]:
-                    ax4.plot(filtered_v_fluid_extr[:i+1] /
+                    ax5.plot(filtered_v_fluid_extr[:i+1] /
                              1_000_000, depth[:i+1]/1000, 'd--')
-                    ax4.plot(filtered_v_fluid_extr[:i+1]/1_000_000,
+                    ax5.plot(filtered_v_fluid_extr[:i+1]/1_000_000,
                              depth[:i+1]/1000, 'd--', color='black', alpha=0.5)
-                    ax4.plot(filtered_v_fluid_extr[i:i+1]/1_000_000, depth[i:i+1]/1000,
+                    ax5.plot(filtered_v_fluid_extr[i:i+1]/1_000_000, depth[i:i+1]/1000,
                              'd--', color='#7fffd4', markersize=8, markeredgecolor='black')
 
-            # Ax4 figure features
-            ax4.set_title("Extracted fluid volume")
-            ax4.set_xlim(0.001, 100)
-            ax4.set_xscale('log')
-            ax4.set_ylim(100, 0)
+            # ax5 figure features
+            ax5.set_title("Extracted fluid volume")
+            ax5.set_xlim(0.001, 100)
+            ax5.set_xscale('log')
+            ax5.set_ylim(100, 0)
             # TODO ccm because it is not the geometry scale
-            ax4.set_xlabel("Volume extracted [$m^{3}$]", fontsize=12)
-            ax4.set_ylabel("Depth [km]", fontsize=12)
-            ax4.tick_params(axis='both', labelsize=14)
+            ax5.set_xlabel("Volume extracted [$m^{3}$]", fontsize=12)
+            ax5.set_ylabel("Depth [km]", fontsize=12)
+            ax5.tick_params(axis='both', labelsize=14)
             plt.show()
 
         # reading images and put it to GIF
@@ -1856,24 +1859,32 @@ class ThorPT_plots():
         y.columns = legend_phases
         y = y.T
 
-        # drop rows with all zeros
-        y = y.loc[(y != 0).any(axis=1)]
-        label_list = list(y.index)
-
         # cleaning dataframe from multiple phase names - combine rows into one
-        if len(label_list) == len(np.unique(label_list)):
+        if len(legend_phases) == len(np.unique(legend_phases)):
             pass
         else:
-            y, legend_phases, color_set = clean_frame(y, label_list, color_set)
-        # y.columns = phases
-        # y = Merge_phase_group(y)
-        # label_list = list(y.index)
-        # pal1 = sns.color_palette("tab20", 20)
-        """if len(garnet_bool) < len(y.loc['Garnet']):
-            garnet_bool = np.insert(garnet_bool, 0, 0)
-        if len(garnet.volume) == len(y.loc['Garnet'][garnet_bool==1]):
-            y.loc['Garnet'][garnet_bool==1] = np.cumsum(garnet.volume)"""
+            y, legend_phases, color_set = clean_frame(y, legend_phases, color_set)
 
+        # resort the dataframe, legend_phases and color_set so that "Water" is always last
+        if 'Water' in legend_phases:
+            y, legend_phases, color_set = resort_frame(y, legend_phases, color_set)
+        else:
+            pass
+
+        # drop rows with all zeros and delete the corresponding legend_phases and color_set
+        new_list = y.loc[(y != 0).any(axis=1)].index.tolist()
+        new_color_set = []
+        for phase in y.index:
+            if phase in new_list:
+                indi = y.index.tolist().index(phase)
+                new_color_set.append(color_set[indi])
+        y = y.loc[(y != 0).any(axis=1)]
+        legend_phases = new_list
+        color_set = new_color_set
+
+
+
+        # add metastable garnet to the dataframe
         if 'Garnet' in y.index:
             y.loc['Garnet'][np.isnan(y.loc['Garnet'])] = 0
             kk = 0
@@ -1892,131 +1903,217 @@ class ThorPT_plots():
         # nomrmalize the volume data to starting volume
         y = y/y.sum()[0]
 
-        # plot
-        plt.rc('axes', labelsize=16)
-        plt.rc('xtick', labelsize=12)  # fontsize of the x tick labels
-        plt.rc('ytick', labelsize=12)  # fontsize of the y tick labels
-        plt.figure(111, figsize=(7,5), facecolor=None, )
+        # Test if temperature has a negative slope
+        if np.any(np.diff(temperatures)[np.diff(temperatures)<0]) is True:
 
-        ax1 = host_subplot(111)
-        #fig.suptitle('Phase changes for P-T-t')
-        # main plot
 
-        # ax1.stackplot(line, y, labels=label_list,
-        #               colors=pal1, alpha=.8, edgecolor='black')
-        if transparent is True:
-            ax1.stackplot(line, y, labels=label_list,
-                    colors=color_set, alpha=.35, edgecolor='black')
-        else:
-            ax1.stackplot(line, y, labels=label_list,
-                                colors=color_set, alpha=.7, edgecolor='black')
+            # plot
+            plt.rc('axes', labelsize=16)
+            plt.rc('xtick', labelsize=12)  # fontsize of the x tick labels
+            plt.rc('ytick', labelsize=12)  # fontsize of the y tick labels
+            plt.figure(111, figsize=(10,6), facecolor=None, )
 
-        # legend definition
-        handles, labels = ax1.get_legend_handles_labels()
-        legend = ax1.legend(
-            handles[::-1], labels[::-1], bbox_to_anchor=(1.7, 0.5), loc='right',
-            borderaxespad=0.1, title="Stable phases", fontsize=14
-            )
-        def export_legend(legend, filename="legend.png"):
-            fig  = legend.figure
-            fig.canvas.draw()
-            bbox  = legend.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
-            os.makedirs(f'{self.mainfolder}/img_{self.filename}/{subfolder}', exist_ok=True)
-            fig.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{filename}', dpi="figure", bbox_inches=bbox)
-
-        export_legend(legend)
-        # tick stepping
-        con = round(10/len(line), 2)
-        con = round(len(line)*con)
-        step = round(len(line)/con)
-        if step == 0:
-            step = 1
-        if step == 4:
-            step=5
-
-        # if np.any(np.diff(temperatures)[np.diff(temperatures)<0]) is True:
-        # define x-axis bottom (temperature) tick labels
-        ax1.set_xticks(line[::step])
-        if len(line) < len(temperatures):
-            selected_temp = temperatures[list(line-1)]
-            f_arr = np.around(selected_temp[::step], 0)
-            ax1.set_xticklabels(f_arr.astype(int))
-        else:
-            f_arr = np.around(temperatures[::step], 0)
-            ax1.set_xticklabels(f_arr.astype(int))
-        ax1.xaxis.set_minor_locator(AutoMinorLocator())
-
-        # second y axis
-        # free fluid content
-        fluid_porosity_color = "#4750d4"
-        y2 = (st_fluid_before)/system_vol_pre*100
-        # extraction steps
-        # NOTE extraction marker boolean
-        mark_extr = extraction_boolean = self.rockdic[rock_tag].extraction_boolean
-        mark_extr = np.array(system_vol_pre-system_vol_post, dtype='bool')
-        if fluid_porosity is True:
-            twin1 = ax1.twinx()
-            twin1.plot(line, y2, 'o--', c=fluid_porosity_color, linewidth=2, markeredgecolor='black')
-            twin1.set_ylabel("Vol% of fluid-filled porosity", color=fluid_porosity_color, fontsize=15, weight='bold')
-            twin1.set_ymargin(0)
-
-            if len(frac_bool) > 0:
-                if 1 in frac_bool or 2 in frac_bool or 3 in frac_bool or 10 in frac_bool:
-                    extension_bool = np.isin(frac_bool, 1)
-                    extend_shear_bool = np.isin(frac_bool, 2)
-                    compress_shear_bool = np.isin(frac_bool, 3)
-                    ten_bool = np.isin(frac_bool, 10)
-                    twin1.plot(line[extension_bool], y2[extension_bool], 'Dr')
-                    twin1.plot(line[extend_shear_bool], y2[extend_shear_bool], 'Dg')
-                    twin1.plot(line[compress_shear_bool], y2[compress_shear_bool], 'Db')
-                    twin1.plot(line[ten_bool], y2[ten_bool], 'D', c='violet')
+            ax2 = host_subplot(111)
+            #fig.suptitle('Phase changes for P-T-t')
+            # main plot
+            if transparent is True:
+                ax2.stackplot(line, y, labels=legend_phases,
+                        colors=color_set, alpha=.35, edgecolor='black')
             else:
-                pass
+                ax2.stackplot(line, y, labels=legend_phases,
+                                    colors=color_set, alpha=.7, edgecolor='black')
+
+            # define the legend with its handles, labels and its position
+            handles, labels = ax2.get_legend_handles_labels()
+            legend = ax2.legend(
+                handles[::-1], labels[::-1], loc='right',
+                borderaxespad=0.1, title="Stable phases", fontsize=14
+                )
+
+            # tick stepping
+            con = round(10/len(line), 2)
+            con = round(len(line)*con)
+            step = round(len(line)/con)
+            if step == 0:
+                step = 1
+            if step == 4:
+                step=5
+
+            # if np.any(np.diff(temperatures)[np.diff(temperatures)<0]) is True:
+            # define x-axis bottom (temperature) tick labels
+            ax2.set_xticks(line[::step])
+            if len(line) < len(temperatures):
+                selected_temp = temperatures[list(line-1)]
+                f_arr = np.around(selected_temp[::step], 0)
+                ax2.set_xticklabels(f_arr.astype(int))
+            else:
+                f_arr = np.around(temperatures[::step], 0)
+                ax2.set_xticklabels(f_arr.astype(int))
+            ax2.xaxis.set_minor_locator(AutoMinorLocator())
+
+            # second y axis
+            # free fluid content
+            fluid_porosity_color = "#4750d4"
+            # fluid content as vol% of total system volume
+            y2 = (st_fluid_before)/system_vol_pre*100
+            # extraction steps
+            # NOTE extraction marker boolean
+            mark_extr = extraction_boolean = self.rockdic[rock_tag].extraction_boolean
+            mark_extr = np.array(system_vol_pre-system_vol_post, dtype='bool')
+            if fluid_porosity is True:
+                twin1 = ax2.twinx()
+                twin1.plot(line, y2, 'o--', c=fluid_porosity_color, linewidth=2, markeredgecolor='black')
+                twin1.set_ylabel("Vol% of fluid-filled porosity", color=fluid_porosity_color, fontsize=15, weight='bold')
+                twin1.set_ymargin(0)
+
+                if len(frac_bool) > 0:
+                    if 1 in frac_bool or 2 in frac_bool or 3 in frac_bool or 10 in frac_bool:
+                        extension_bool = np.isin(frac_bool, 1)
+                        extend_shear_bool = np.isin(frac_bool, 2)
+                        compress_shear_bool = np.isin(frac_bool, 3)
+                        ten_bool = np.isin(frac_bool, 10)
+                        twin1.plot(line[extension_bool], y2[extension_bool], 'Dr')
+                        twin1.plot(line[extend_shear_bool], y2[extend_shear_bool], 'Dg')
+                        twin1.plot(line[compress_shear_bool], y2[compress_shear_bool], 'Db')
+                        twin1.plot(line[ten_bool], y2[ten_bool], 'D', c='violet')
+                else:
+                    pass
 
 
-        # define x-axis top (pressure) tick labels
-        ax2 = ax1.twin()
-        ax2.set_xticks(line[::step])
+            # define x-axis top (pressure) tick labels
+            ax3 = ax2.twin()
+            ax3.set_xticks(line[::step])
 
-        if len(line) < len(pressures):
-            selected_pres = pressures[list(line-1)]
-            ax1.set_xticklabels(np.around(selected_pres[::step], 1))
+            if len(line) < len(pressures):
+                selected_pres = pressures[list(line-1)]
+                ax2.set_xticklabels(np.around(selected_pres[::step], 1))
+            else:
+                ax3.set_xticklabels(np.around(np.array(pressures[::step])/10000, 1))
+
+            # labeling and style adjustments
+            plt.subplots_adjust(right=0.75)
+            pressures = list(pressures)
+            temperatures = list(temperatures)
+            peakp = pressures.index(max(pressures))
+            peakt = temperatures.index(max(temperatures))
+            if len(temperatures) > peakp+1:
+                ax2.axvline(x=line[peakp+1], linewidth=1.5,
+                            linestyle='--', color='black')
+                ax2.axvline(x=line[peakp], linewidth=1.5,
+                            linestyle='--', color='black')
+                ax2.axvline(x=line[peakt], linewidth=1.5,
+                            linestyle='--', color='red')
+            if tag[3:] == 'volume[ccm]':
+                ax2.set_ylabel("Relative volume")
+            else:
+                ax2.set_ylabel(tag[3:])
+            ax2.set_xlabel('Temperature [°C]')
+            ax3.set_xlabel('Pressure [GPa]')
+            ax3.axis["right"].major_ticklabels.set_visible(False)
+            ax3.axis["right"].major_ticks.set_visible(False)
+
+            if fluid_porosity is True:
+                twin1.tick_params(colors=fluid_porosity_color)
+                twin1.set_yticklabels(twin1.get_yticks(), weight='heavy', size=14)
+                ymax= np.round(max(y2),2)
+                twin1.set_ylim(0, np.round(ymax+ymax*0.05,2))
+
+            ax2.hlines(1, -2, max(line)+5, 'black', linewidth=1.5, linestyle='--')
+            ax2.set_xlim(0,max(line)+1)
+
+            ax2.set_facecolor("#fcfcfc")
+            ax2.set_alpha(0.5)
+
+            # Fix the first y axis to a range from 0 to 1.1
+            ax2.set_ylim(0, 1.1)
+
+            # fit figure and legend in figsize
+            plt.tight_layout(rect=[0, 0, 1, 1])
+            legend = ax2.legend(bbox_to_anchor=(1.4, 0.9))
+
         else:
-            ax2.set_xticklabels(np.around(np.array(pressures[::step])/10000, 1))
+            # plot
+            plt.rc('axes', labelsize=16)
+            plt.rc('xtick', labelsize=12)  # fontsize of the x tick labels
+            plt.rc('ytick', labelsize=12)  # fontsize of the y tick labels
+            plt.figure(111, figsize=(10,6), facecolor=None, )
 
-        # labeling and style adjustments
-        plt.subplots_adjust(right=0.75)
-        pressures = list(pressures)
-        temperatures = list(temperatures)
-        peakp = pressures.index(max(pressures))
-        peakt = temperatures.index(max(temperatures))
-        if len(temperatures) > peakp+1:
-            ax1.axvline(x=line[peakp+1], linewidth=1.5,
-                        linestyle='--', color='black')
-            ax1.axvline(x=line[peakp], linewidth=1.5,
-                        linestyle='--', color='black')
-            ax1.axvline(x=line[peakt], linewidth=1.5,
-                        linestyle='--', color='red')
-        if tag[3:] == 'volume[ccm]':
-            ax1.set_ylabel("Relative volume")
-        else:
-            ax1.set_ylabel(tag[3:])
-        ax1.set_xlabel('Temperature [°C]')
-        ax2.set_xlabel('Pressure [GPa]')
-        ax2.axis["right"].major_ticklabels.set_visible(False)
-        ax2.axis["right"].major_ticks.set_visible(False)
+            ax2 = host_subplot(111)
+            #fig.suptitle('Phase changes for P-T-t')
+            # main plot
+            if transparent is True:
+                ax2.stackplot(temperatures, y, labels=legend_phases,
+                        colors=color_set, alpha=.35, edgecolor='black')
+            else:
+                ax2.stackplot(temperatures, y, labels=legend_phases,
+                                    colors=color_set, alpha=.7, edgecolor='black')
 
-        if fluid_porosity is True:
-            twin1.tick_params(colors=fluid_porosity_color)
-            twin1.set_yticklabels(twin1.get_yticks(), weight='heavy', size=14)
-            ymax= np.round(max(y2),2)
-            twin1.set_ylim(0, np.round(ymax+ymax*0.05,2))
+            # second y axis
+            # free fluid content
+            fluid_porosity_color = "#4750d4"
+            # fluid content as vol% of total system volume
+            y2 = (st_fluid_before)/system_vol_pre*100
+            y2 = np.round(y2,1)
+            # extraction steps
+            if fluid_porosity is True:
+                twin1 = ax2.twinx()
+                twin1.plot(temperatures, y2, 'o--', c=fluid_porosity_color, linewidth=2, markeredgecolor='black')
+                twin1.set_ylabel("Vol% of fluid-filled porosity", color=fluid_porosity_color, fontsize=15, weight='bold')
+                twin1.set_ymargin(0)
 
-        ax1.hlines(1, -2, max(line)+5, 'black', linewidth=1.5, linestyle='--')
-        ax1.set_xlim(0,max(line)+1)
+                if len(frac_bool) > 0:
+                    if 1 in frac_bool or 2 in frac_bool or 3 in frac_bool or 10 in frac_bool:
+                        extension_bool = np.isin(frac_bool, 1)
+                        extend_shear_bool = np.isin(frac_bool, 2)
+                        compress_shear_bool = np.isin(frac_bool, 3)
+                        ten_bool = np.isin(frac_bool, 10)
+                        twin1.plot(temperatures[extension_bool], y2[extension_bool], 'Dr')
+                        twin1.plot(temperatures[extend_shear_bool], y2[extend_shear_bool], 'Dg')
+                        twin1.plot(temperatures[compress_shear_bool], y2[compress_shear_bool], 'Db')
+                        twin1.plot(temperatures[ten_bool], y2[ten_bool], 'D', c='violet')
+                else:
+                    pass
 
-        ax1.set_facecolor("#fcfcfc")
-        ax1.set_alpha(0.5)
+
+            # define x-axis top (pressure) tick labels
+            ax3 = ax2.twin()
+            # plot zeros of length of pressure array on ax3 which will be invisible
+            ax3.plot(np.zeros(len(pressures)), pressures, alpha=0)
+
+
+            # labeling and style adjustments
+            if tag[3:] == 'volume[ccm]':
+                ax2.set_ylabel("Relative volume")
+            else:
+                ax2.set_ylabel(tag[3:])
+            ax2.set_xlabel('Temperature [°C]')
+            ax3.set_xlabel('Pressure [GPa]')
+            ax3.axis["right"].major_ticklabels.set_visible(False)
+            ax3.axis["right"].major_ticks.set_visible(False)
+
+            if fluid_porosity is True:
+                twin1.tick_params(colors=fluid_porosity_color)
+                tick_list = list(np.round(twin1.get_yticks(),2))
+                twin1.set_yticks(ticks=tick_list, labels=tick_list, fontweight='heavy', fontsize=14)
+                ymax= max(y2)
+                twin1.set_ylim(0, ymax+np.round(ymax*0.01, 1))
+
+            ax2.set_facecolor("#fcfcfc")
+            ax2.set_alpha(0.5)
+            ax2.hlines(1, min(temperatures), max(temperatures), 'black', linewidth=1.5, linestyle='--')
+
+            # Fix the first y axis to a range from 0 to 1.1
+            ax2.set_ylim(0, 1.1)
+
+            # fit figure and legend in figsize
+            plt.tight_layout(rect=[0, 0, 0.79, 1])
+            # define the legend with its handles, labels and its position
+            handles, labels = ax2.get_legend_handles_labels()
+            legend = ax2.legend(
+                handles[::-1], labels[::-1], bbox_to_anchor=(1.12, 1.01),
+                borderaxespad=0.1, title="Stable phases", fontsize=14
+                )
+
         # save image
         if img_save is True:
             os.makedirs(
@@ -2151,24 +2248,24 @@ class ThorPT_plots():
             oxyframe, legend_phases, color_set = clean_frame(oxyframe, legend_phases, color_set)
 
 
-        fig, ax111 = plt.subplots(1, 1, figsize=(8, 5))
+        fig, ax211 = plt.subplots(1, 1, figsize=(8, 5))
         for t, phase in enumerate(list(oxyframe.index)):
-            ax111.plot(oxyframe.columns, oxyframe.loc[phase], '--d',
+            ax211.plot(oxyframe.columns, oxyframe.loc[phase], '--d',
                        color=color_set[t], linewidth=0.7, markeredgecolor='black')
 
-        ax111.plot(self.rockdic[rock_tag].temperature,
+        ax211.plot(self.rockdic[rock_tag].temperature,
                    self.rockdic[rock_tag].bulk_deltao_post, '-', c='black')
-        ax111.plot(self.rockdic[rock_tag].temperature,
+        ax211.plot(self.rockdic[rock_tag].temperature,
                    self.rockdic[rock_tag].bulk_deltao_pre, '-.', c='black')
         legend_list = list(oxyframe.index) + ["pre bulk", "post bulk"]
-        ax111.legend(legend_list, bbox_to_anchor=(1.28, 0.9))
+        ax211.legend(legend_list, bbox_to_anchor=(1.28, 0.9))
         min_min = min(summary.loc['min'])
         max_max = max(summary.loc['max'])
         min_val = min_min - (max_max-min_min)*0.05
         max_val = max_max + (max_max-min_min)*0.05
-        ax111.set_ylim(min_val, max_val)
-        ax111.set_ylabel("$\delta^{18}$O [‰ vs. VSMOW]")
-        ax111.set_xlabel("Temperature [°C]")
+        ax211.set_ylim(min_val, max_val)
+        ax211.set_ylabel("$\delta^{18}$O [‰ vs. VSMOW]")
+        ax211.set_xlabel("Temperature [°C]")
         plt.subplots_adjust(right=0.8)
 
         if img_save is True:
@@ -2188,12 +2285,13 @@ class ThorPT_plots():
         Args:
             img_save (bool, optional): Optional argument to save the plot as an image to the directory. Defaults to False.
         """
-
-
+        # read the temperature data from the first rock in the dictionary
+        ts = self.rockdic['rock000'].temperature
         # set the color palette for the plot based on the number of rocks
         color_palette = sns.color_palette("viridis", len(self.rockdic.keys()))
+
         # plotting routine
-        fig, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1, figsize=(8, 5))
+        fig, (ax1, ax2, ax3, ax4, ax5, ax6) = plt.subplots(6, 1, figsize=(11, 9))
         for i, rock in enumerate(self.rockdic.keys()):
             # skip the first rock when i == 0
             if i == 0:
@@ -2209,78 +2307,143 @@ class ThorPT_plots():
                 y.columns = legend_phases
                 y = y.T
 
-                # drop rows with all zeros
-                y = y.loc[(y != 0).any(axis=1)]
-                legend_phases = list(y.index)
-
                 # clean the dataframe from multiple phase names - combine rows into one
                 if len(legend_phases) == len(np.unique(legend_phases)):
                     pass
                 else:
                     y, legend_phases, color_set = clean_frame(y, legend_phases, color_set)
 
+                # drop rows with all zeros
+                y = y.loc[(y != 0).any(axis=1)]
+                legend_phases = list(y.index)
+
                 # define the fluid content from the dataframe based on 'Water' and plot it
-                fluid_content = y.loc['Water']
-                ax1.plot(fluid_content,
-                        '-', c=color_palette[i], linewidth=1.2, markeredgecolor='black')
+                if 'Water' in legend_phases:
+                    fluid_content = y.loc['Water']
+                    ax2.plot(ts, fluid_content,
+                            '-', c=color_palette[i], linewidth=1.2, markeredgecolor='black')
+                    # y axes for ax2 subplot with 10 ticks
+                    start, end = ax2.get_ylim()
+                    ax2.yaxis.set_ticks(np.round(np.linspace(start, end+end*0.02, 5),1))
+                    # plot horizontal line at y = 0
+                    ax2.axhline(y=0, color='black', linestyle='-', linewidth=1.0, alpha=0.6)
+
                 # if -Glaucophane- is in y plot it as a dashed line
                 if 'Glaucophane' in legend_phases:
                     glaucophane_content = y.loc['Glaucophane']
-                    ax2.plot(glaucophane_content,
+                    ax3.plot(ts, glaucophane_content,
                             '--', c=color_palette[i], linewidth=1.2, markeredgecolor='black')
+                    # y axes for ax3 subplot with 10 ticks
+                    start, end = ax3.get_ylim()
+                    ax3.yaxis.set_ticks(np.round(np.linspace(start, end+end*0.02, 5),1))
+                    # plot horizontal line at y = 0
+                    ax3.axhline(y=0, color='black', linestyle='-', linewidth=1.0, alpha=0.6)
+
+
+                # if -Amphibole- is in y plot it as another dashed line with a different color
+                if 'Amphibole' in legend_phases:
+                    amphibole_content = y.loc['Amphibole']
+                    ax4.plot(ts, amphibole_content,
+                            '-.', c=color_palette[i], linewidth=1.2, markeredgecolor='black')
+                    # y axes for ax4 subplot with 10 ticks
+                    start, end = ax4.get_ylim()
+                    ax4.yaxis.set_ticks(np.round(np.linspace(start, end+end*0.02, 5),1))
+                    # plot horizontal line at y = 0
+                    ax4.axhline(y=0, color='black', linestyle='-', linewidth=1.0, alpha=0.6)
+
+                    # lopp through hydrous phases, test if they are in the legend_phases, get the indices and sum their values from y
+                    hydrous_phases = ['Muscovite', 'Amphibole', 'Glaucophane', 'Lawsonite', 'Talc', 'Phengite']
+                    inid_list = []
+                    for item in hydrous_phases:
+                        if item in legend_phases:
+                            inid_list.append(legend_phases.index(item))
+                    hydrous_content = y.iloc[inid_list].sum(axis=0)
+
+                    # plot the hydrous content as a dashed line with a different color
+                    ax4.plot(ts, hydrous_content,
+                            '--', c=color_palette[i], linewidth=1.2, markeredgecolor='black')
+
                 # if -Omphacite- is in y plot it as a dashed line
                 if 'Omphacite' in legend_phases:
                     omphacite_content = y.loc['Omphacite']
-                    ax3.plot(omphacite_content,
+                    ax5.plot(ts, omphacite_content,
                             '--', c=color_palette[i], linewidth=1.2, markeredgecolor='black')
+                    # y ticks for the omphacite subplot with 10 ticks based on max and min of omphacite content
+                    # y axes for ax5 subplot with 10 ticks
+                    start, end = ax5.get_ylim()
+                    ax5.yaxis.set_ticks(np.round(np.linspace(start, end+end*0.02, 5),1))
+                    # plot horizontal line at y = 0
+                    ax5.axhline(y=0, color='black', linestyle='-', linewidth=1.0, alpha=0.6)
 
-        # plot the water content of rock000 in ax3
-        ax4.plot(self.rockdic['rock000'].phase_data['df_vol%']['water.fluid'],
-                   '-', c='black', linewidth=2, markeredgecolor='black')
 
-        # set the y axis label and the x axis label for ax1
-        ax1.set_ylabel("Fluid content [vol%]")
-        # set the y axis label and the x axis label for ax2
-        ax2.set_ylabel("Glaucophane content [vol%]")
-        plt.subplots_adjust(right=0.8)
-        # set the y axis label and the x axis label for ax3
-        ax3.set_ylabel("Omphacite content [vol%]")
-        # ax3 is a plot for the ultramafic or another base rock
-        ax4.set_ylabel("Fluid content [vol%]")
-        ax4.set_xlabel("Time")
-        ax4.set_title("Baserock")
+        # plot the water content of rock000 in ax4
+        if 'water.fluid' in self.rockdic['rock000'].phase_data['df_vol%'].columns:
+            water_fluid_content = self.rockdic['rock000'].phase_data['df_vol%']['water.fluid']
+            ax6.plot(ts, water_fluid_content,
+                    '-', c='black', linewidth=2, markeredgecolor='black')
+            # y axes for ax6 subplot with 10 ticks
+            start, end = ax6.get_ylim()
+            ax6.yaxis.set_ticks(np.round(np.linspace(start, end+end*0.02, 5),1))
+            # plot horizontal line at y = 0
+            ax6.axhline(y=0, color='black', linestyle='-', linewidth=1.0, alpha=0.6)
 
-        # define the range of the ax1 axis based on the number of time steps
-        x_range = np.arange(0, len(fluid_content), 1)
-        ax1.set_xticks(x_range)
-        # define the range of the ax2 axis based on the number of time steps
-        x_range = np.arange(0, len(fluid_content), 1)
-        ax2.set_xticks(x_range)
-        # define the range of the ax3 axis based on the number of time steps
-        x_range = np.arange(0, len(self.rockdic['rock000'].phase_data['df_vol%']['water.fluid']), 1)
-        ax3.set_xticks(x_range)
+        # plot the water that is release from the least rock in rockdic.keys() in ax1
+        top_rock_name = list(self.rockdic.keys())[-1]
+        if 'water.fluid' in self.rockdic[top_rock_name].phase_data['df_vol%'].columns:
+            water_release = self.rockdic[top_rock_name].extracted_fluid_volume/1000000 # in m3
+            ax1.plot(ts, water_release,
+                    '-', c='black', linewidth=2, markeredgecolor='black')
+            
+
+
+        # Set the x-label at lower most subplot represetning all plots
+        ax6.set_xlabel("Prograde P-T")
+
+        # Title each subplot
+        ax1.set_title("Water release at top [m3]")
+        ax2.set_title("Fluid content [vol%]")
+        ax3.set_title("Glaucophane [vol%]")
+        ax4.set_title("Amphibole content [vol%]")
+        ax5.set_title("Omphacite content [vol%]")
+        ax6.set_title("Baserock water content [vol%]")
+
+        # ax2, ax3, ax4 die not show a x axis label
+        ax1.set_xticklabels([])
+        ax2.set_xticklabels([])
+        ax3.set_xticklabels([])
+        ax4.set_xticklabels([])
+        ax5.set_xticklabels([])
+
+        # define the range of the ax2 to ax5 axis and assign the xticks from 300 to 700 with an increment of 50.
+        ax1.set_xlim([300, 700])
+        ax1.set_xticks(np.arange(300, 700, 50))
+        ax2.set_xlim([300, 700])
+        ax2.set_xticks(np.arange(300, 700, 50))
+        ax3.set_xlim([300, 700])
+        ax3.set_xticks(np.arange(300, 700, 50))
+        ax4.set_xlim([300, 700])
+        ax4.set_xticks(np.arange(300, 700, 50))
+        ax5.set_xlim([300, 700])
+        ax5.set_xticks(np.arange(300, 700, 50))
+        ax6.set_xlim([300, 700])
+        ax6.set_xticks(np.arange(300, 700, 50))
 
         # add a legend to the figure on the right side
-        ax1.legend(self.rockdic.keys(), bbox_to_anchor=(1.28, 0.9))
+        import matplotlib.patches as mpatches
+        # create a list of patches for each rock
+        patches = []
+        for i, rock in enumerate(self.rockdic.keys()):
+            patches.append(mpatches.Patch(color=color_palette[i], label=rock))
+        # add the patches to the legend and set the legend position
+        plt.legend(handles=patches, bbox_to_anchor=(1.0, 1.4), title="Rocks", fontsize=14)
 
         # adjust the subplot spacing
         plt.subplots_adjust(hspace=0.5)
         # and size to fit the legend
         plt.subplots_adjust(right=0.8)
+        plt.tight_layout()
 
-        # for each subplot annotate the lines with the rock name
-        for i, rock in enumerate(self.rockdic.keys()):
-            ax1.annotate(rock, xy=(1, 0), xycoords='axes fraction',
-                           fontsize=10, xytext=(-5, 5), textcoords='offset points',
-                           ha='right', va='bottom', color=color_palette[i])
-            ax2.annotate(rock, xy=(1, 0), xycoords='axes fraction',
-                           fontsize=10, xytext=(-5, 5), textcoords='offset points',
-                           ha='right', va='bottom', color=color_palette[i])
-            ax3.annotate(rock, xy=(1, 0), xycoords='axes fraction',
-                           fontsize=10, xytext=(-5, 5), textcoords='offset points',
-                           ha='right', va='bottom', color='black')
-
-
+        # save the plot to the directory if img_save is True
         if img_save is True:
             os.makedirs(
                     f'{self.mainfolder}/img_{self.filename}/fluid_content', exist_ok=True)
@@ -2429,9 +2592,9 @@ if __name__ == '__main__':
     dist2 = np.concatenate(data_box[1].compiledrock.all_porosity)*100
     fig, ax = plt.subplots(tight_layout=True)
     hist = ax.hist2d(dist1, dist2, bins=128, norm=colors.LogNorm())
-    fig, (ax1,ax2) = plt.subplots((1,2))
-    ax1.hist(dist1, bins=128)
-    ax2.hist(dist2, bins=128)
+    fig, (ax2,ax3) = plt.subplots((1,2))
+    ax2.hist(dist1, bins=128)
+    ax3.hist(dist2, bins=128)
     plt.show()"""
 
     """from matplotlib import colors

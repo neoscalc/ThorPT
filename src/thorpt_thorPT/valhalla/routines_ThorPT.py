@@ -940,6 +940,9 @@ class ThorPT_Routines():
                             bulka['H'] += (master_rock[rock_react_item]['fluid_hydrogen'][-1]*fluid_influx_factor)
                             bulka['O'] += (master_rock[rock_react_item]['fluid_oxygen'][-1]*fluid_influx_factor)
 
+                            # save fluid influx to the rock for later use
+                            master_rock[item]["fluid_influx_data"] = 0
+
                             # calculate the new bulk rock composition
                             master_rock[item]['new_bulk'] = whole_rock_convert_3(ready_mol_bulk=bulka)
 

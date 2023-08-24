@@ -430,6 +430,9 @@ def run_routine():
             master_rock[tag]['Extraction scheme'] = init_data['Extraction scheme']
             master_rock[tag]['failure module'] = []
 
+            # fluid input from external
+            master_rock[tag]["fluid_influx_data"] = pd.DataFrame()
+
             # metastable garnet
             master_rock[tag]['garnet'] = []
             master_rock[tag]['garnet_check'] = []
