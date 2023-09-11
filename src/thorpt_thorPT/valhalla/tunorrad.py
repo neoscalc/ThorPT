@@ -703,6 +703,7 @@ def read_theriak(theriak_path, database, temperature, pressure, whole_rock):
 
     # 3) Elements in stable phases #####
     #####################################
+
     keyword = ' elements in stable phases:'
     try:
         elements_stable_index = int(TIL.index(keyword))
@@ -722,8 +723,47 @@ def read_theriak(theriak_path, database, temperature, pressure, whole_rock):
     data = {}
     current_number = 0
 
+    TIL_elements = TIL[elements_stable_index:int(TIL.index(' elements per formula unit:'))-1]
+    # Read the TIL lines for each phase when more than one element row is present (>10 elements)
     if one_element_row is False:
-        while True:
+        # Read every phase from TIL_elements to a temporaray dictionary
+        # Each phase has two lines of entry
+        num_entry_lines = 2
+        # first 5 rows are not needed
+        start_index = 5
+        TIL_elements = TIL_elements[start_index:]
+        phase_temp = []
+        # put every two lines into one entry of a list
+        i = 0
+        while i < len(TIL_elements):
+            phase_temp.append(TIL_elements[i:i+num_entry_lines])
+            i += num_entry_lines
+        # read each item from phase_temp and put it into the data dictionary
+        for item in phase_temp:
+            tempdata = item[0].split() + item[1].split()
+            data[tempdata[0]] = tempdata[1:]
+
+        # test if entry in tempdata[1:] is longer than 8 digits. If yes, split it into two entries
+        for key in data.keys():
+            tempdata = data[key]
+            tempdata_new = []
+            for entry in tempdata:
+                    # test if length of entry is longer than 8 digits and if two "." are present
+                    if len(entry) > 8 and entry.count(".") == 2 :
+                        tempdata_new.append(entry[:8])
+                        tempdata_new.append(entry[8:])
+                    else:
+                        tempdata_new.append(entry)
+            # convert each entry in tempdata to numeric
+            tempdata_new = [float(num) for num in tempdata_new]
+            data[key] = tempdata_new
+
+        # write the dictionary to a dataframe
+        df_elements_in_phases = pd.DataFrame(data)
+        df_elements_in_phases.index = element_list
+
+        # old way of reading the TIL lines for each phase when more than one element row is present (>10 elements)
+        """while True:
             if TIL[elements_stable_index + 4 + current_number] == ' elements per formula unit:':
                 break
             elements_in_phases = decode_lines(
@@ -731,6 +771,7 @@ def read_theriak(theriak_path, database, temperature, pressure, whole_rock):
                 TIL,
                 number=10, one_element_row=one_element_row
             )
+            print(elements_in_phases)
             for key in elements_in_phases.keys():
                 if key == ' elements per formula unit:':
                     break
@@ -744,7 +785,8 @@ def read_theriak(theriak_path, database, temperature, pressure, whole_rock):
                     # print(data[key])
             current_number += 1
             if one_element_row is False:
-                current_number += 1
+                current_number += 1"""
+    # Read the TIL lines for each phase when only one element row is present (<=10 elements)
     if one_element_row is True:
         count = 0
         while True:
@@ -760,13 +802,9 @@ def read_theriak(theriak_path, database, temperature, pressure, whole_rock):
                 el_phase[i+1] = float(item)
             data[el_phase[0]] = pd.Series(el_phase[1:])
             count += 1
-        # if one_element_row == False:
-        #     print(f"{int(current_number/2-1)} stable phases recognized.")
-        # else:
-        #     print(f"{int(current_number)} stable phases recognized.")
-    # print(len(data.keys())-3)
-    df_elements_in_phases = pd.concat(data, axis=1)
-    df_elements_in_phases.index = element_list
+
+        df_elements_in_phases = pd.concat(data, axis=1)
+        df_elements_in_phases.index = element_list
 
     Data_dic['df_Vol_Dens'] = df_Vol_Dens
     try:

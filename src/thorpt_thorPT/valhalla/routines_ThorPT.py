@@ -67,7 +67,7 @@ def whole_rock_convert_3(ready_mol_bulk=0):
         simple_iron = test.sum()
     else:
         simple_iron = ready_mol_bulk['O']
-
+    simple_iron = np.round(simple_iron, 4)
     # plt.plot(temperature, oxy_diff, '^r')
     # print(f"{ready_mol_bulk['O'] } - {test.sum()} = {oxy_diff}")
 

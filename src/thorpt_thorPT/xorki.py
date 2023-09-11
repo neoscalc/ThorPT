@@ -1882,8 +1882,6 @@ class ThorPT_plots():
         legend_phases = new_list
         color_set = new_color_set
 
-
-
         # add metastable garnet to the dataframe
         if 'Garnet' in y.index:
             y.loc['Garnet'][np.isnan(y.loc['Garnet'])] = 0
@@ -2074,12 +2072,10 @@ class ThorPT_plots():
                 else:
                     pass
 
-
             # define x-axis top (pressure) tick labels
-            ax3 = ax2.twin()
+            ax3 = ax2.twiny()
             # plot zeros of length of pressure array on ax3 which will be invisible
             ax3.plot(np.zeros(len(pressures)), pressures, alpha=0)
-
 
             # labeling and style adjustments
             if tag[3:] == 'volume[ccm]':
@@ -2561,6 +2557,7 @@ if __name__ == '__main__':
             compPlot.time_int_flux_plot(rock_tag=key, img_save=True)
 
             compPlot.oxygen_isotopes(rock_tag=key, img_save=True)
+            compPlot.release_fluid_volume_plot(rock_tag=key, img_save=False)
 
         # compPlot.pt_path_plot(key, img_save=True, gif_save=True)
     """
