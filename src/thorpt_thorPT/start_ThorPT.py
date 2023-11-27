@@ -147,7 +147,6 @@ def run_routine():
         with open(file_to_open, 'w') as file:
             file.write(redo_init)
 
-
         answer = int(path_arguments[-1])
         path_arguments = path_arguments[:-1]
         # answer = 2
@@ -218,7 +217,6 @@ def run_routine():
                     pos = entry.index(":")
                     rock_mechanics = entry[pos+1:].split('\t')[-1]
                     init_data['Extraction scheme'] = rock_mechanics
-
 
         init_data['Database'] = database
         init_data['Path'] = path
@@ -306,6 +304,7 @@ def run_routine():
             depth = nasa.depth
             conv_speed = nasa.metadata['Convergence rate [cm/year]']
             angle = nasa.metadata['Burial angle [Degree]']
+
 
         elif vho is True:
             print("===== Vho P-T active =====")

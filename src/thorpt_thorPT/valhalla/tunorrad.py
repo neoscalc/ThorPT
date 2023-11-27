@@ -1802,9 +1802,9 @@ class Ext_method_master:
         hydro = normal_stress + normal_stress/vol_t0 * (vol_t0-(vol_new-vol_t0))-normal_stress
 
         # Mohr circle arguments
-        r = self.diff_stress/2
-        center = sig1-r
-        pos = center - hydro
+        r = self.diff_stress/2      # radius of the circle
+        center = sig1-r             # centre of the cricel
+        pos = center - hydro        # position shift of centre due to fluid pressure
 
         # Coulomb failure envelope
         a = -1
@@ -2157,6 +2157,23 @@ class Isotope_calc():
         # chooses detected phase present in model and stable at P-T
         stable_phases = enabled_phase
 
+        # disabled phases (like "Si", ...)
+        all_phases = self.eq_data['Name']
+        excluded_phases = []
+        excluded_phases_index = []
+        for phase in all_phases:
+            if phase not in stable_phases:
+                excluded_phases.append(phase)
+                # get index of excluded phases
+                pos_index = self.eq_data['Name'].index(phase)
+                excluded_phases_index.append(pos_index)
+
+        # deep copy of moles for the stable phases to avoid changing the original data (some values might be excluded)
+        moles_phases_copy = copy.deepcopy(self.eq_data['Moles'])
+        moles_phases_copy = np.delete(moles_phases_copy,excluded_phases_index,0)
+        if len(moles_phases_copy) != len(layered_name):
+            layered_name = list(np.delete(layered_name, excluded_phases_index, 0))
+
         phases_X = []
         database_names = []
         ii = 0
@@ -2194,9 +2211,11 @@ class Isotope_calc():
                     phase_translation['SSolution_set'][pos][0][0:j])
 
             if phase_translation['SSolution_Check'][pos] is False:
+                # get the name of the phase from the oxygen database
                 database_names.append(
                     phase_translation['DB_phases'][pos].split())
-                phases_X.append(float(self.eq_data['Moles'][i+ii]))
+                # append the moles of phase X to the list
+                phases_X.append(float(moles_phases_copy[i+ii]))
 
                 # selecting composition for pure phases
                 # mono = phase_translation['Theriak_phases'][pos]
@@ -2240,7 +2259,10 @@ class Isotope_calc():
         ma.append(self.start_bulk)
         # print(f"Bulk oxygen is {self.start_bulk}")
 
-        oxygen_moles = np.array(self.element_oxy)
+        # deep copy moles of oxygen in the phase to not modifiy data
+        oxygen_moles = copy.deepcopy(np.array(self.element_oxy))
+        # delete the excluded values from phases such as ("SI", ...)
+        oxygen_moles = np.delete(oxygen_moles, excluded_phases_index, 0)
 
         # collect the fraction of stable phases depending on a solid solution or a monotopic phase
         phases_fraction = []
@@ -2301,6 +2323,7 @@ class Isotope_calc():
             # print('phase:{} Oxy-Val:{}'.format(phase, result))
         self.oxygen_dic['Phases'] = stable_phases
         self.oxygen_dic['delta_O'] = oxygen_values
+        print("Oxygen fractionation calculation done.")
 
 
 class Garnet_recalc():

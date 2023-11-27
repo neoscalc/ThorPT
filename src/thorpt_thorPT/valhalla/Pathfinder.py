@@ -74,6 +74,35 @@ def getReferenceLength(index):
     base = float(base)
     return factor, coord[0][index], base
 
+def read_temperature_pressure_txt():
+
+    # GUI to select the txt file of P-T information
+    filein = filedialog.askopenfilename(
+            title="Select a digitized path file",
+            filetypes=[("other", ".txt")]
+            )
+
+    # reading information to lines
+    with open(filein) as f:
+        lines = f.readlines()
+
+    # read temperature from first entry and split the string to the separate values
+    temperatures = lines[0]
+    temperatures = temperatures.split()
+    for i, item in enumerate(temperatures):
+        temperatures[i] = np.float32(item)
+
+    # read pressure from first entry and split the string to the separate values
+    pressures = lines[1]
+    pressures = pressures.split()
+    for i, item in enumerate(pressures):
+        pressures[i] = np.float32(item)
+
+    # covert to array
+    temperatures = np.array(temperatures)
+    pressures = np.array(pressures)
+
+    return temperatures, pressures
 
 class Pathfinder_Theoule:
 
@@ -449,7 +478,7 @@ class Pub_pathfinder:
         self.pressures = (frame[2]+frame[1])/100*10000
 
 
-class Digi_Pathfinder:
+class Create_new_or_read_txt_pt_path:
     """
     Modul to digitize a P-T path from plots and extract P and T values
     or use existing txt file saves from previous paths
@@ -602,7 +631,7 @@ class call_Pathfinder:
         self.depth = 0
         self.dt = dt
         # Calling digitizing module
-        self.PathfinderV2 = Digi_Pathfinder()
+        self.new_or_read = Create_new_or_read_txt_pt_path()
 
     def execute_digi_prograde(self):
 
@@ -821,9 +850,9 @@ class call_Pathfinder:
 
             # Selected method from answer - 0 new digitisation - 1 stored txt
             if answer == answers[0]:
-                self.PathfinderV2.run()
+                self.new_or_read.run()
             elif answer == answers[1]:
-                self.PathfinderV2.stored_digitization()
+                self.new_or_read.stored_digitization()
             else:
                 print("Unexpected end - no P-T file input")
                 time.sleep(10)
@@ -833,17 +862,17 @@ class call_Pathfinder:
             answer = path_arguments[1]
             # Selected method from answer - 0 new digitisation - 1 stored txt
             if answer == answers[0]:
-                self.PathfinderV2.run()
+                self.new_or_read.run()
             elif answer == answers[1]:
-                self.PathfinderV2.stored_digitization()
+                self.new_or_read.stored_digitization()
             else:
                 print("Unexpected end - no P-T file input")
                 time.sleep(10)
                 exit()
 
         # Store image P-T path in array
-        temperatures = self.PathfinderV2.temperatures
-        pressures = self.PathfinderV2.pressures
+        temperatures = self.new_or_read.temperatures
+        pressures = self.new_or_read.pressures
 
         # convert units into Bar - THIS IS NOT SI units because of theriak input
         if path_arguments is False:
@@ -1100,6 +1129,46 @@ class call_Pathfinder:
         self.temp = self.PathfinderV2.temperatures
         self.pressure = self.PathfinderV2.pressures
 
+    def gridding(self, path_arguments, path_increment):
+        self.new_or_read.stored_digitization()
+
+        temperatures = self.new_or_read.temperatures
+        pressures = self.new_or_read.pressures
+
+        # transform pressure based on path_arguments to bar
+        if path_arguments[2] == 'GPa':
+            pressures = pressures * 10000
+        if path_arguments[2] == 'kbar':
+            pressures = pressures * 1000
+
+        # round the pressure array based on the increment
+        if np.float32(path_increment[0]) >=10:
+            pressures = np.round(pressures,-1)
+
+        # round the temperature array based on the increment
+        if np.float32(path_increment[1]) >=10:
+            temperatures = np.round(temperatures,-1)
+
+        # Creating arrays for temperature and pressure based on input increments
+        x = np.arange(min(temperatures), max(temperatures), np.int32(path_increment[1]))
+        y = np.arange(min(pressures), max(pressures), np.int32(path_increment[0]))
+
+        # generating mesh array
+        xv, yv = np.meshgrid(x, y)
+
+        # flatten the mesh array for node input
+        temperatures = xv.flatten()
+        pressures = yv.flatten()
+
+        # Write infromation to function variables
+        self.temp = temperatures
+        self.pressure = pressures
+        self.time_var = np.full(len(temperatures),np.nan)
+        self.depth = np.full(len(temperatures),np.nan)
+        self.sub_angle = "Undefined"
+        self.plate_v = "Undefined"
+
+
 
 class Pathfinder:
 
@@ -1113,7 +1182,7 @@ class Pathfinder:
         self.dt = 0
 
         # call classes which are the different mods
-        self.mod2 = Digi_Pathfinder()
+        self.mod2 = Create_new_or_read_txt_pt_path()
         self.mod3 = Pub_pathfinder()
         self.theoule = call_Pathfinder()
 
@@ -1182,7 +1251,7 @@ class Pathfinder:
 
         if answer == 'Mod3':
             # Plain digitizing module
-            digitizer = Digi_Pathfinder()
+            digitizer = Create_new_or_read_txt_pt_path()
             digitizer.run()
 
             # store P and T values
@@ -1232,6 +1301,23 @@ class Pathfinder:
             self.metadata['Pressure unit'] = 'Bar'
             self.metadata['Time step [years]'] = self.dt
 
+        if answer == 'Mod6':
+            self.theoule.gridding(path_arguments, path_increment)
+            # store P and T values
+            self.temperature = self.theoule.temp
+            self.pressure = self.theoule.pressure
+            self.time = self.theoule.time_var
+            self.depth = self.theoule.depth
+            self.dt = self.theoule.dt
+
+            # Store metadata
+            self.metadata['Convergence rate [cm/year]'] = self.theoule.plate_v
+            self.metadata['Burial angle [Degree]'] = self.theoule.sub_angle
+            self.metadata['Temperature unit'] = 'Degree C'
+            self.metadata['Pressure unit'] = 'Bar'
+            self.metadata['Time step [years]'] = self.dt
+            print()
+
         # Path and Metadata
         # Create the data variable and generate output
         df = pd.DataFrame(
@@ -1248,3 +1334,5 @@ if __name__ == '__main__':
 
     nasa = Pathfinder()
     nasa.connect_extern()
+
+

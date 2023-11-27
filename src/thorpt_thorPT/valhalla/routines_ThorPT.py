@@ -99,12 +99,13 @@ def whole_rock_to_weight_normalizer(rock_bulk=[32.36, 0.4, 8.78, 2.91, 0.0, 0.0,
     # Oxides and stochimetry
     #                Si Ti Al Fe2 Fe3 Mn Mg Ca Na K + H C O
     num_cation_ext = [1, 1, 2, 1,  2,  1, 1, 1, 2, 2,  2, 1]
+
     #             SIO2   TIO2 AL2O3 FEO  FE2O3 MNO  MGO   CAO    NA2O  K2O
     num_cation = [1, 1, 2, 1,  2,  1, 1, 1, 2, 2]
     #         SIO2 TIO2 AL2O3 FEO
     #              FE2O3 MNO MGO CAO NA2O K2O H2O CO2
     num_oxy = [2,  2,   3,    1,  3,    1,  1,  1,  1,   1,  1,  2]
-    oxide_mass = [60.09, 77.866, 101.96, 71.85,
+    oxide_mass = [60.09, 79.866, 101.96, 71.85,
                   159.68, 70.94, 40.3, 56.08, 61.98, 94.2]
     # SI        TI       AL       FE2      FE3      MN
     #  MG      CA       NA       K        H        C        O
@@ -177,6 +178,7 @@ def whole_rock_to_weight_normalizer(rock_bulk=[32.36, 0.4, 8.78, 2.91, 0.0, 0.0,
     return new_bulk, rockOxy
 
 
+
 def oxygen_isotope_recalculation(isotope_data, oxygen_data):
     temp_oxygen_data = pd.DataFrame(
         isotope_data[-1]['delta_O'],
@@ -198,32 +200,47 @@ def oxygen_isotope_recalculation(isotope_data, oxygen_data):
 
 
 def fluid_injection_isotope_recalculation(isotope_data, oxygen_data, input_deltaO, input_hydrogen, input_oxygen, interaction_factor=1):
+
+    # last oxygen isotope data saved to temporary variable
     temp_oxygen_data = pd.DataFrame(
         isotope_data[-1]['delta_O'],
         index=isotope_data[-1]['Phases']
             )
+
     # Oxygen signature from last fractionation
     last_oxygen = isotope_data[-1]
+
     # read moles of oxygen
     collect_phases = []
     for phase in last_oxygen['Phases']:
         collect_phases.append(oxygen_data.loc['O'][phase])
     phase_oxygen = np.array(collect_phases)
     phase_doxy = np.array(temp_oxygen_data.iloc[:, 0])
+
     # test for nan in oxygen data - nan is kicked out and phases in phase oxygen are adapted equally
     phase_oxygen = phase_oxygen[np.logical_not(np.isnan(phase_doxy))]
     phase_doxy = phase_doxy[np.logical_not(np.isnan(phase_doxy))]
+
     # read oxygen isotope data from input
     temp_input = pd.DataFrame(
         input_deltaO['delta_O'],
         index=input_deltaO['Phases']
             )
+
     # influx data to reclaculate with
     input_deltaO = np.float64(temp_input.loc['water.fluid', 0])
     input_oxygen = interaction_factor * input_oxygen
+
     # recalculation by factors
     bulk_deltaO = sum(phase_oxygen*phase_doxy / sum(phase_oxygen))
     new_O_bulk = (input_oxygen*input_deltaO + sum(phase_oxygen)*bulk_deltaO ) / (input_oxygen+sum(phase_oxygen))
+    print("New bulk oxygen isotope signature is: ", new_O_bulk)
+
+    # test with append
+    phase_oxygen = np.append(phase_oxygen, input_oxygen)
+    phase_doxy = np.append(phase_doxy, input_deltaO)
+    bulk_deltaO = sum(phase_oxygen*phase_doxy / sum(phase_oxygen))
+    print("New bulk oxygen isotope signature is: ", bulk_deltaO)
 
     return new_O_bulk
 
@@ -900,7 +917,7 @@ class ThorPT_Routines():
 
                         # Bulk rock calculation plus incoming H and O
                         if num < 1:
-                            # FIXME - no fluid influx for second,... rock in first step? Test this
+                            # FIXME - no fluid influx for rock in first step? Test this
                             master_rock[item]['new_bulk'], rockOxy = whole_rock_to_weight_normalizer(
                                 rock_bulk=master_rock[item]['bulk'][:-2],
                                 init_water=float(master_rock[item]['bulk'][-2]),
@@ -923,6 +940,8 @@ class ThorPT_Routines():
 
                             # add the H and O that is transfered
                             # FIXME - Addition of moles dependend on geometry
+                            # - need a factor because thermodynamic modellign uses 1 kg but geometry defines a volume
+                            # - different geometries will have different impact on each other
                             external_rock_volume = (master_rock[rock_react_item]['st_solid'][-1] + master_rock[rock_react_item]['st_fluid_before'][-1])/1_000_000
                             external_rock_geometry = master_rock[rock_react_item]['geometry']
                             external_rock_geometry = np.float64(external_rock_geometry[0])*np.float64(external_rock_geometry[1])*np.float64(external_rock_geometry[2])
@@ -932,6 +951,7 @@ class ThorPT_Routines():
                             internal_geometry = np.float64(internal_geometry[0])*np.float64(internal_geometry[1])*np.float64(internal_geometry[2])
 
                             fluid_influx_factor = external_rock_geometry * internal_volume / external_rock_volume / internal_geometry
+                            print(f"Fluid influx factor is {fluid_influx_factor}")
 
                             # test if 'H' and 'O' are in the bulk rock index
                             if 'H' not in bulka.index:
@@ -939,6 +959,8 @@ class ThorPT_Routines():
                             # Add the H and O to the bulk rock accounting for the geometry
                             bulka['H'] += (master_rock[rock_react_item]['fluid_hydrogen'][-1]*fluid_influx_factor)
                             bulka['O'] += (master_rock[rock_react_item]['fluid_oxygen'][-1]*fluid_influx_factor)
+                            print("Fluid influx added to bulk rock")
+                            print(f"Fluid influx is {master_rock[rock_react_item]['fluid_hydrogen'][-1]*fluid_influx_factor} mol H and {master_rock[rock_react_item]['fluid_oxygen'][-1]*fluid_influx_factor} mol O")
 
                             # save fluid influx to the rock for later use
                             master_rock[item]["fluid_influx_data"] = 0
@@ -951,14 +973,17 @@ class ThorPT_Routines():
                                         master_rock[item]['save_oxygen'],
                                         master_rock[item]['df_element_total'],
                                         master_rock[rock_react_item]['save_oxygen'][-1],
-                                        master_rock[rock_react_item]['fluid_hydrogen'][-1],
-                                        master_rock[rock_react_item]['fluid_oxygen'][-1]
+                                        master_rock[rock_react_item]['fluid_hydrogen'][-1]*fluid_influx_factor,
+                                        master_rock[rock_react_item]['fluid_oxygen'][-1]*fluid_influx_factor
                                         )
 
                             # Overwrite for new bulk rock oxygen signature
                             master_rock[item]['bulk_oxygen_before_influx'].append(np.copy(master_rock[item]['bulk_oxygen']))
                             master_rock[item]['bulk_oxygen'] = new_O_bulk
                             master_rock[item]['bulk_oxygen_after_influx'].append(np.copy(master_rock[item]['bulk_oxygen']))
+
+                            print(f"New bulk oxygen is {master_rock[item]['bulk_oxygen_before_influx'][-1]}")
+                            print(f"New bulk oxygen is {master_rock[item]['bulk_oxygen_after_influx'][-1]}")
 
                     else:
                         # Bulk rock calculation - normal
@@ -974,6 +999,7 @@ class ThorPT_Routines():
                                 )
                         # Storing delta-oxygen bulk rock in any case before fluid influx
                         master_rock[item]['bulk_oxygen_before_influx'].append(np.copy(master_rock[item]['bulk_oxygen']))
+                        master_rock[item]['bulk_oxygen_after_influx'].append(np.copy(master_rock[item]['bulk_oxygen']))
                 else:
                     # Bulk rock calculation - normal
                     if num < 1:
@@ -1015,6 +1041,7 @@ class ThorPT_Routines():
                 else:
                     master_rock[item]['master_norm'].append(np.sqrt(
                         (temperature-temperatures[num-1])**2 + (pressures[num]-pressures[num-1])**2))
+                
                 # //////////////////////////////////////////////////////////////////////////
                 # 1) Minimization
                 # Calculating and passing thermo data by theriak and theriak wrapper
@@ -1032,6 +1059,7 @@ class ThorPT_Routines():
                     master_rock[item]['g_sys'][-1])
                 rock_origin[item]['pot_data'] = copy.deepcopy(
                     master_rock[item]['pot_data'][-1])
+                
                 # //////////////////////////////////////////////////////////////////////////
                 # 2) Creating DataFrame structure for "df_var_dictionary" in first itteration
                 # LINK - 2) Setup dataframes
@@ -1055,6 +1083,7 @@ class ThorPT_Routines():
                 print("\n")
                 print("////// Energy minimization executed //////")
                 print("\n")
+                
                 # //////////////////////////////////////////////////////////////////////////
                 # multi-rock loop for updating data storage, MicaPotassium, SystemFluidTest, init oxygen-isotope module, mineral fractionation
                 # //////////////////////////////////////////////////////////////////////////
@@ -1125,6 +1154,8 @@ class ThorPT_Routines():
                 # LINK - 5) Oxygen fractionation module
                 # isotope fractionation module
                 # print("-> Oxygen isotope module initiated")
+                print("d18O before oxygen isotope module")
+                print(f"Value is {master_rock[item]['bulk_oxygen']}")
                 master_rock[item]['model_oxygen'] = Isotope_calc(
                     master_rock[item]['df_var_dictionary']['df_N'], master_rock[item]['minimization'].sol_sol_base,
                     master_rock[item]['df_element_total'], oxygen_signature=master_rock[item]['bulk_oxygen'])
@@ -1138,6 +1169,8 @@ class ThorPT_Routines():
                     master_rock[item]['bulk_oxygen'])
                 ### Backup dictionary - save oxygen data
                 rock_origin[item]['save_oxygen'].append(copy.deepcopy(master_rock[item]['model_oxygen'].oxygen_dic))
+                print("d18O after oxygen isotope module")
+                print(f"Value is {master_rock[item]['bulk_oxygen']}")
                 # //////////////////////////////////////////////////////////////////////////
                 # 6)
                 # LINK - 6) Mineral Fractionation
@@ -1436,6 +1469,10 @@ class ThorPT_Routines():
                     # //////////////////////////////////////////////////////////////////////////
                     # LINK Recalculate the oxygen isotope signature
                     # Recalculate bulk rock oxygen value after possible extraction
+                    print("Oxygen isotope signature recalculation fluid extraction - before")
+                    print(f"Value is {master_rock[item]['bulk_oxygen']}")
+                    if item == 'rock003':
+                        print("break")
                     new_O_bulk = oxygen_isotope_recalculation(
                         master_rock[item]['save_oxygen'],
                         master_rock[item]['df_element_total'])
@@ -1443,6 +1480,8 @@ class ThorPT_Routines():
                     master_rock[item]['bulk_oxygen'] = new_O_bulk
                     # bulk_oxygen = (rockOxy*bulk_oxygen - oxy_mole_fluid *
                     #                 fluid_oxygen)/(rockOxy - oxy_mole_fluid)
+                    print("Oxygen isotope signature recalculation fluid extraction - after")
+                    print(f"Value is {master_rock[item]['bulk_oxygen']}")
                 else:
                     master_rock[item]['save_factor'].append(0)
                     master_rock[item]['diff. stress'].append(0)

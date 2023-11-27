@@ -940,9 +940,6 @@ class ThorPT_hdf5_reader():
 
 
 
-
-
-
 class ThorPT_plots():
 
     def __init__(self, filename, mainfolder, rockdata, compiledrockdata):
@@ -1882,6 +1879,11 @@ class ThorPT_plots():
         legend_phases = new_list
         color_set = new_color_set
 
+        # "Serp_Atg', 'Br_Br', 'Olivine', 'Chlorite', 'Magnetite', 'Water"
+        # color_set = ["#91D7EA", "#DB7012", "#4E459B", "#B32026", "#FAEA64", "#2E83D0"]
+        # color_set = ["#91D7EA", "#DB7012", "#FAEA64", "#4E459B", "#E724C5",  "#969696", "#2E83D0"]
+        # plt.rcParams['font.family'] = 'sans-serif'
+
         # add metastable garnet to the dataframe
         if 'Garnet' in y.index:
             y.loc['Garnet'][np.isnan(y.loc['Garnet'])] = 0
@@ -2116,10 +2118,10 @@ class ThorPT_plots():
                     f'{self.mainfolder}/img_{self.filename}/{subfolder}', exist_ok=True)
             if transparent is True:
                 plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}_stack_plot_transparent.png',
-                                                transparent=False, facecolor='White')
+                                                transparent=True)
             else:
                 plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}_stack_plot.png',
-                                transparent=False, facecolor='White')
+                                transparent=False)
 
         else:
             plt.show()
@@ -2243,17 +2245,23 @@ class ThorPT_plots():
         else:
             oxyframe, legend_phases, color_set = clean_frame(oxyframe, legend_phases, color_set)
 
-
+        # manual colorset for the plot
+        # "Serp_Atg', 'Br_Br', 'Olivine', 'Chlorite', 'Magnetite', 'Water"
+        # color_set = ["#91D7EA", "#DB7012", "#4E459B", "#B32026", "#FAEA64", "#2E83D0"]
+        # color_set = ["#91D7EA", "#DB7012", "#FAEA64", "#2E83D0", "#4E459B", "#E724C5",  "#969696"]
+        # plt.rcParams['font.family'] = 'arial'
         fig, ax211 = plt.subplots(1, 1, figsize=(8, 5))
         for t, phase in enumerate(list(oxyframe.index)):
+            print(t)
             ax211.plot(oxyframe.columns, oxyframe.loc[phase], '--d',
-                       color=color_set[t], linewidth=0.7, markeredgecolor='black')
+                       color=color_set[t], linewidth=0.7, markeredgecolor='black', markersize=9)
 
         ax211.plot(self.rockdic[rock_tag].temperature,
                    self.rockdic[rock_tag].bulk_deltao_post, '-', c='black')
-        ax211.plot(self.rockdic[rock_tag].temperature,
-                   self.rockdic[rock_tag].bulk_deltao_pre, '-.', c='black')
-        legend_list = list(oxyframe.index) + ["pre bulk", "post bulk"]
+        # ax211.plot(self.rockdic[rock_tag].temperature,
+        #            self.rockdic[rock_tag].bulk_deltao_pre, '-.', c='black')
+        # legend_list = list(oxyframe.index) + ["pre bulk", "post bulk"]
+        legend_list = list(oxyframe.index) + ["bulk"]
         ax211.legend(legend_list, bbox_to_anchor=(1.28, 0.9))
         min_min = min(summary.loc['min'])
         max_max = max(summary.loc['max'])
@@ -2287,7 +2295,7 @@ class ThorPT_plots():
         color_palette = sns.color_palette("viridis", len(self.rockdic.keys()))
 
         # plotting routine
-        fig, (ax1, ax2, ax3, ax4, ax5, ax6) = plt.subplots(6, 1, figsize=(11, 9))
+        fig, (ax1, ax2, ax3, ax4, ax5, ax6) = plt.subplots(6, 1, figsize=(10, 9))
         for i, rock in enumerate(self.rockdic.keys()):
             # skip the first rock when i == 0
             if i == 0:
@@ -2359,9 +2367,21 @@ class ThorPT_plots():
                     ax4.plot(ts, hydrous_content,
                             '--', c=color_palette[i], linewidth=1.2, markeredgecolor='black')
 
-                # if -Omphacite- is in y plot it as a dashed line
+                """# if -Omphacite- is in y plot it as a dashed line
                 if 'Omphacite' in legend_phases:
                     omphacite_content = y.loc['Omphacite']
+                    ax5.plot(ts, omphacite_content,
+                            '--', c=color_palette[i], linewidth=1.2, markeredgecolor='black')
+                    # y ticks for the omphacite subplot with 10 ticks based on max and min of omphacite content
+                    # y axes for ax5 subplot with 10 ticks
+                    start, end = ax5.get_ylim()
+                    ax5.yaxis.set_ticks(np.round(np.linspace(start, end+end*0.02, 5),1))
+                    # plot horizontal line at y = 0
+                    ax5.axhline(y=0, color='black', linestyle='-', linewidth=1.0, alpha=0.6)"""
+
+                # if -Lawsonite- is in y plot it as a dashed line
+                if 'Lawsonite' in legend_phases:
+                    omphacite_content = y.loc['Lawsonite']
                     ax5.plot(ts, omphacite_content,
                             '--', c=color_palette[i], linewidth=1.2, markeredgecolor='black')
                     # y ticks for the omphacite subplot with 10 ticks based on max and min of omphacite content
@@ -2387,21 +2407,22 @@ class ThorPT_plots():
         top_rock_name = list(self.rockdic.keys())[-1]
         if 'water.fluid' in self.rockdic[top_rock_name].phase_data['df_vol%'].columns:
             water_release = self.rockdic[top_rock_name].extracted_fluid_volume/1000000 # in m3
+            # water release as cumulative sum
+            water_release = np.cumsum(water_release)
             ax1.plot(ts, water_release,
                     '-', c='black', linewidth=2, markeredgecolor='black')
-            
 
 
         # Set the x-label at lower most subplot represetning all plots
         ax6.set_xlabel("Prograde P-T")
 
         # Title each subplot
-        ax1.set_title("Water release at top [m3]")
-        ax2.set_title("Fluid content [vol%]")
-        ax3.set_title("Glaucophane [vol%]")
-        ax4.set_title("Amphibole content [vol%]")
-        ax5.set_title("Omphacite content [vol%]")
-        ax6.set_title("Baserock water content [vol%]")
+        ax1.set_title("Water release at top [$m^{3}$]")
+        ax2.set_title("Fluid content [vol.%]")
+        ax3.set_title("Glaucophane [vol.%]")
+        ax4.set_title("Hydrous phases -- and Amphibole .- content [vol.%]")
+        ax5.set_title("lawsonite content [vol.%]")
+        ax6.set_title("Baserock free fluid [vol.%]")
 
         # ax2, ax3, ax4 die not show a x axis label
         ax1.set_xticklabels([])
@@ -2444,11 +2465,512 @@ class ThorPT_plots():
             os.makedirs(
                     f'{self.mainfolder}/img_{self.filename}/fluid_content', exist_ok=True)
             plt.savefig(f'{self.mainfolder}/img_{self.filename}/fluid_content/fluid_content.png',
-                            transparent=False, facecolor='white')
+                            transparent=True)
         else:
             plt.show()
         plt.clf()
         plt.close()
+
+    # function to plot a column consisting of all rocks showing the fluid content
+    def fluid_content_msg2023(self, img_save=False):
+        """Plotting function for the fluid content of all rocks in the model and the glaucophane content in two subplots.
+
+        Args:
+            img_save (bool, optional): Optional argument to save the plot as an image to the directory. Defaults to False.
+        """
+        # read the temperature data from the first rock in the dictionary
+        ts = self.rockdic['rock000'].temperature
+        # set the color palette for the plot based on the number of rocks
+        color_palette = sns.color_palette("viridis", len(self.rockdic.keys()))
+
+        # plotting routine
+        fig, (ax1, ax2, ax3, ax6) = plt.subplots(4, 1, figsize=(10, 7))
+        for i, rock in enumerate(self.rockdic.keys()):
+            # skip the first rock when i == 0
+            if i == 0:
+                pass
+            else:
+                # read the database from the rockdic and store it in a variable
+                database = self.rockdic[rock].database
+                phases2 = list(self.rockdic[rock].phase_data['df_vol%'].columns)
+                legend_phases, color_set = phases_and_colors_XMT(database, phases2)
+
+                # read the vol% data to a variable and replace the NaN values with 0 and transpose the dataframe
+                y = self.rockdic[rock].phase_data['df_vol%'].fillna(value=0)
+                y.columns = legend_phases
+                y = y.T
+
+                # clean the dataframe from multiple phase names - combine rows into one
+                if len(legend_phases) == len(np.unique(legend_phases)):
+                    pass
+                else:
+                    y, legend_phases, color_set = clean_frame(y, legend_phases, color_set)
+
+                # drop rows with all zeros
+                y = y.loc[(y != 0).any(axis=1)]
+                legend_phases = list(y.index)
+
+                # define the fluid content from the dataframe based on 'Water' and plot it
+                if 'Water' in legend_phases:
+                    fluid_content = y.loc['Water']
+                    ax2.plot(ts, fluid_content,
+                            '-', c=color_palette[i], linewidth=2, markeredgecolor='black')
+                    # y axes for ax2 subplot with 10 ticks
+                    start, end = ax2.get_ylim()
+                    ax2.yaxis.set_ticks(np.round(np.linspace(start, end+end*0.02, 5),1))
+                    # plot horizontal line at y = 0
+                    ax2.axhline(y=0, color='black', linestyle='-', linewidth=1.0, alpha=0.6)
+
+        # plot the water content of rock000 in ax4
+        if 'water.fluid' in self.rockdic['rock000'].phase_data['df_vol%'].columns:
+            water_fluid_content = self.rockdic['rock000'].phase_data['df_vol%']['water.fluid']
+            ax6.plot(ts, water_fluid_content,
+                    '-', c='black', linewidth=5, markeredgecolor='black')
+            # y axes for ax6 subplot with 10 ticks
+            start, end = ax6.get_ylim()
+            ax6.yaxis.set_ticks(np.round(np.linspace(start, end+end*0.02, 5),1))
+            # plot horizontal line at y = 0
+            ax6.axhline(y=0, color='black', linestyle='-', linewidth=1.0, alpha=0.6)
+
+        # plot the water that is release from the least rock in rockdic.keys() in ax1
+        top_rock_name = list(self.rockdic.keys())[-1]
+        if 'water.fluid' in self.rockdic[top_rock_name].phase_data['df_vol%'].columns:
+            water_release = self.rockdic[top_rock_name].extracted_fluid_volume/1000000 # in m3
+            # water release as cumulative sum
+            water_release = np.cumsum(water_release)
+            ax1.plot(ts, water_release,
+                    '-', c='black', linewidth=5, markeredgecolor='black')
+
+
+        # Set the x-label at lower most subplot represetning all plots
+        ax1.set_xlabel("Stack top - water release", fontsize=16)
+        ax2.set_xlabel("Aq. fluid distribution", fontsize=16)
+        ax6.set_xlabel("Stack base", fontsize=16)
+        # set y label
+        ax1.set_ylabel("Volume [$m^{3}$]", fontsize=16)
+        ax2.set_ylabel("Content [vol.%]", fontsize=16)
+        ax6.set_ylabel("Content [vol.%]", fontsize=16)
+
+        
+        """
+        # Title each subplot
+        ax1.set_title("Water release at top [$m^{3}$]", fontsize=16)
+        ax2.set_title("Fluid content [vol.%]", fontsize=16)
+        ax6.set_title("Baserock free fluid [vol.%]", fontsize=16)
+        """
+
+        # ax2, ax3, ax4 die not show a x axis label
+        ax1.set_xticklabels([])
+        # ax2.set_xticklabels([])
+
+        # define the range of the ax2 to ax5 axis and assign the xticks from 300 to 700 with an increment of 50.
+        ax1.set_xlim([300, 700])
+        ax1.set_xticks(np.arange(300, 700, 50))
+        ax2.set_xlim([300, 700])
+        ax2.set_xticks(np.arange(300, 700, 50))
+        ax3.set_xlim([300, 700])
+        ax3.set_xticks(np.arange(300, 700, 50))
+        ax6.set_xlim([300, 700])
+        ax6.set_xticks(np.arange(300, 700, 50))
+
+        # define y axis limits
+        ax1.set_ylim([0, np.round(np.max(water_release) + 0.1*np.max(water_release),5)])
+        ax2.set_yticks(np.arange(0, np.round(np.max(water_release)+0.1*np.max(water_release)), 5))
+        ax2.set_ylim([0, 30])
+        ax2.set_yticks(np.arange(0, 30, 5))
+        ax6.set_ylim([0, np.round(np.max(water_fluid_content)+0.1*np.max(water_fluid_content),1)])
+        ax6.set_yticks(np.arange(0, np.round(np.max(water_fluid_content)+0.1*np.max(water_fluid_content),1), 0.5))
+        # tick labels
+        ax1.tick_params(axis='y', labelsize=14)
+        ax2.tick_params(axis='y', labelsize=14)
+        ax6.tick_params(axis='y', labelsize=14)
+        ax6.tick_params(axis='x', labelsize=14)
+        ax2.tick_params(axis='x', labelsize=14)
+        ax3.tick_params(axis='x', labelsize=14)
+
+        # add a legend to the figure on the right side
+        import matplotlib.patches as mpatches
+        # create a list of patches for each rock
+        patches = []
+        for i, rock in enumerate(self.rockdic.keys()):
+            patches.append(mpatches.Patch(color=color_palette[i], label=rock))
+        # add the patches to the legend and set the legend position
+        plt.legend(handles=patches, bbox_to_anchor=(1.0, 1.4), title="Rocks", fontsize=14)
+
+        # adjust the subplot spacing
+        plt.subplots_adjust(hspace=0.5)
+        # and size to fit the legend
+        plt.subplots_adjust(right=0.8)
+        plt.tight_layout()
+
+        # save the plot to the directory if img_save is True
+        if img_save is True:
+            os.makedirs(f'{self.mainfolder}/img_{self.filename}/fluid_content', exist_ok=True)
+            plt.savefig(f'{self.mainfolder}/img_{self.filename}/fluid_content/fluid_content_msg23.png',
+                            transparent=True)
+        else:
+            plt.show()
+        plt.clf()
+        plt.close()
+
+    def lawsonite_surface(self, img_save=False):
+        """Plotting function for the fluid content of all rocks in the model and the glaucophane content in two subplots.
+
+        Args:
+            img_save (bool, optional): Optional argument to save the plot as an image to the directory. Defaults to False.
+        """
+        # read the temperature data from the first rock in the dictionary
+        ts = self.rockdic['rock000'].temperature
+        ps = self.rockdic['rock000'].pressure
+
+        # Create a dataframe with columns for the temperature, pressure and columns for the length of self.rockdic
+        frame = np.zeros((len(ts), len(self.rockdic)+2))
+        data = pd.DataFrame(frame)
+
+        # assigning temperatures and pressures to first two columns
+        data.iloc[:,0] = ts
+        data.iloc[:,1] = ps
+
+        # looping over each rock to create the surface plot for lawsonite abundance
+        for i, rock in enumerate(self.rockdic.keys()):
+            # read the database from the rockdic and store it in a variable
+            database = self.rockdic[rock].database
+            phases2 = list(self.rockdic[rock].phase_data['df_vol%'].columns)
+            legend_phases, color_set = phases_and_colors_XMT(database, phases2)
+
+            # read the vol% data to a variable and replace the NaN values with 0 and transpose the dataframe
+            y = self.rockdic[rock].phase_data['df_vol%'].fillna(value=0)
+            y.columns = legend_phases
+            y = y.T
+
+            # clean the dataframe from multiple phase names - combine rows into one
+            if len(legend_phases) == len(np.unique(legend_phases)):
+                pass
+            else:
+                y, legend_phases, color_set = clean_frame(y, legend_phases, color_set)
+            # drop rows with all zeros
+            y = y.loc[(y != 0).any(axis=1)]
+            legend_phases = list(y.index)
+
+            # if -Lawsonite- is in y plot it as a dashed line
+            if 'Lawsonite' in legend_phases:
+                z = y.loc['Lawsonite']
+                data.iloc[:,i+2] = z
+
+        # write data to a csv file
+        data.to_csv(f'{self.mainfolder}/lawsonite_surface.csv', index=False)
+
+    def fluid_distribution_sgm23(self, img_save=False, gif_save=False, x_axis_log=False):
+        """Plotting function for the fluid content of all rocks in the model and the glaucophane content in two subplots.
+
+        Args:
+            img_save (bool, optional): Optional argument to save the plot as an image to the directory. Defaults to False.
+        """
+        # read the temperature data from the first rock in the dictionary
+        ts = self.rockdic['rock000'].temperature
+        # set the color palette for the plot based on the number of rocks
+        color_palette = sns.color_palette("viridis", len(self.rockdic.keys()))
+
+        # z position dependent on the number of rocks in the model (rockdic)
+        column_size = len(self.rockdic.keys())*0.1
+        z = np.linspace(0, column_size, len(self.rockdic.keys())) + 0.05
+
+        # record the phase assemblage for each rock in the model and store it in a list
+        phase_assemblages = []
+        # store the formatted data for each rock in the model in a list
+        phase_data = []
+        # store the amount of amphibole
+        amphibole_content = []
+        # store the amount of glaucophane
+        glaucophane_content = []
+        # store the amount of omphacite
+        omphacite_content = []
+        # store the amount of hydrous phases
+        hydrous_content = []
+        # store the amount of lawsonite
+        lawsonite_content = []
+        # store the amount of garnet
+        garnet_content = []
+        # store the amount of water
+        water_content = []
+        # store the bulk d18O
+        bulk_d18O = []
+
+        # loop over each rock in the model receiving the data for the rock and mineral phases to reformat into matrices for the plot
+        for i, rock in enumerate(self.rockdic.keys()):
+            # read the database from the rockdic and store it in a variable
+            database = self.rockdic[rock].database
+            phases2 = list(self.rockdic[rock].phase_data['df_vol%'].columns)
+            legend_phases, color_set = phases_and_colors_XMT(database, phases2)
+
+            # read the vol% data to a variable and replace the NaN values with 0 and transpose the dataframe
+            y = self.rockdic[rock].phase_data['df_vol%'].fillna(value=0)
+            y.columns = legend_phases
+            y = y.T
+
+            # clean the dataframe from multiple phase names - combine rows into one
+            if len(legend_phases) == len(np.unique(legend_phases)):
+                pass
+            else:
+                y, legend_phases, color_set = clean_frame(y, legend_phases, color_set)
+
+            # drop rows with all zeros
+            y = y.loc[(y != 0).any(axis=1)]
+            legend_phases = list(y.index)
+
+            # add the legend_phases to the phase_assemblages list
+            phase_assemblages.append(legend_phases)
+            # add the y dataframe to the phase_data list
+            phase_data.append(y)
+
+            # define the fluid content from the dataframe based on 'Water' and plot it
+            if 'Water' in legend_phases:
+                fluid_val = np.array(y.loc['Water'])
+            else:
+                fluid_val = np.zeros(len(ts))
+
+            # if -Glaucophane-
+            if 'Glaucophane' in legend_phases:
+                glaucophane_val = np.array(y.loc['Glaucophane'])
+            else:
+                glaucophane_val = np.zeros(len(ts))
+
+            # if -Omphacite-
+            if 'Omphacite' in legend_phases:
+                omphacite_val = np.array(y.loc['Omphacite'])
+            else:
+                omphacite_val = np.zeros(len(ts))
+
+            # if -Amphibole-
+            if 'Amphibole' in legend_phases:
+                amphibole_val = np.array(y.loc['Amphibole'])
+
+                # lopp through hydrous phases, test if they are in the legend_phases, get the indices and sum their values from y
+                hydrous_phases = ['Muscovite', 'Amphibole', 'Glaucophane', 'Lawsonite', 'Talc', 'Phengite']
+                inid_list = []
+                for item in hydrous_phases:
+                    if item in legend_phases:
+                        inid_list.append(legend_phases.index(item))
+                hydrous_val = np.array(y.iloc[inid_list].sum(axis=0))
+            else:
+                amphibole_val = np.zeros(len(ts))
+
+            # if -Lawsonite- 
+            if 'Lawsonite' in legend_phases:
+                lawsonite_val = np.array(y.loc['Lawsonite'])
+            else:
+                lawsonite_val = np.zeros(len(ts))
+
+            # get the data for garnet
+            if 'Garnet' in legend_phases:
+                garnet_val = np.array(y.loc['Garnet'])
+                # cumulative sum of garnet content
+                garnet_val = np.cumsum(garnet_val)
+            else:
+                garnet_val = np.zeros(len(ts))
+
+            # get oxygen isotope signature of bulk
+            bulk_oxygen_rock = self.rockdic[rock].bulk_deltao_post
+
+            # write the data to the empty list
+            amphibole_content.append(amphibole_val)
+            glaucophane_content.append(glaucophane_val)
+            omphacite_content.append(omphacite_val)
+            hydrous_content.append(hydrous_val)
+            lawsonite_content.append(lawsonite_val)
+            garnet_content.append(garnet_val)
+            water_content.append(fluid_val)
+            bulk_d18O.append(bulk_oxygen_rock)
+
+        # transforming data to matrix and transpose
+        amphibole_content = np.array(amphibole_content).T
+        glaucophane_content = np.array(glaucophane_content).T
+        omphacite_content = np.array(omphacite_content).T
+        hydrous_content = np.array(hydrous_content).T
+        lawsonite_content = np.array(lawsonite_content).T
+        garnet_content = np.array(garnet_content).T
+        water_content = np.array(water_content).T
+        bulk_d18O = np.array(bulk_d18O).T
+
+        # creating a bar plot for the glaucophane, omphacite and garnet content at step 22 of the arrays with the rock slice on x axis
+        m = glaucophane_content + omphacite_content + garnet_content + lawsonite_content
+        m_max = np.max(m)
+        # array from 1 to len(self.rockdic.keys()) for the x axis
+        for i in range(len(ts)):
+            x = np.arange(1, len(self.rockdic.keys())+1)
+            # create the figure and add the bar plots for galucophane, omphacite and garnet
+            legend_phases, color_set = phases_and_colors_XMT(database, phases2)
+            # create data frame of legend phases and color set
+            color_phase_frame = pd.DataFrame(color_set, index=legend_phases)
+            pt_position = i
+            fig2, box_ax = plt.subplots(dpi=300)
+            color_position = legend_phases.index('Glaucophane')
+            box_ax.bar(x,glaucophane_content[pt_position],
+                    bottom=0,
+                    edgecolor='black', linewidth=0.5,
+                    color=color_set[color_position],
+                    label="Glaucophane")
+            if 'Omphacite' in legend_phases:
+                color_position = legend_phases.index('Omphacite')
+            elif 'Clinopyroxene' in legend_phases:
+                color_position = legend_phases.index('Clinopyroxene')
+            else:
+                print("Bar plot issue:\n Error, no color assigned for omphacite")
+            box_ax.bar(x,omphacite_content[pt_position],
+                    bottom=glaucophane_content[pt_position],
+                    edgecolor='black', linewidth=0.5,
+                    color=color_set[color_position],
+                    label="Omphacite")
+            color_position = legend_phases.index('Garnet')
+            box_ax.bar(x,garnet_content[pt_position],
+                    bottom=omphacite_content[pt_position]+glaucophane_content[pt_position],
+                    edgecolor='black', linewidth=0.5,
+                    color=color_set[color_position],
+                    label="Garnet")
+
+            # plot the lawsonite content
+            """color_position = legend_phases.index('Lawsonite')
+            box_ax.bar(x,lawsonite_content[pt_position],
+                    bottom=omphacite_content[pt_position]+glaucophane_content[pt_position]+garnet_content[pt_position],
+                    edgecolor='black', linewidth=0.5,
+                    color=color_set[color_position],
+                    label="Lawsonite")"""
+
+            box_ax.set_aspect(aspect=0.2)
+            # define x label
+            box_ax.set_xlabel("Rock stack (bottom-top in cm)", fontsize=12)
+            # define y label
+            box_ax.set_title(f"Temperature {int(np.round(ts[i],0))} °C\nMineral content [vol.%]", fontsize=12)
+            # set tick params
+            box_ax.tick_params(axis='both', labelsize=12)
+            # set y ticks
+            box_ax.set_yticks(np.arange(0, 110, 10))
+            # set legend
+            handles, labels = box_ax.get_legend_handles_labels()
+            box_ax.legend(handles[::-1], labels[::-1],
+                           title='Phases', fontsize=8, ncols=3, loc="lower center", bbox_to_anchor=(0.5, -0.77), framealpha=0.0)
+            if img_save is True:
+                os.makedirs(f'{self.mainfolder}/img_{self.filename}/msg_redistribution_bar', exist_ok=True)
+                plt.savefig(f'{self.mainfolder}/img_{self.filename}/msg_redistribution_bar/distribution_{i}.png',
+                                transparent=False)
+            plt.clf()
+            plt.close()
+        # condition to save a gif file from the plots
+        if gif_save is True:
+            frames = []
+            for i in range(len(ts)):
+                if i == 0:
+                    pass
+                else:
+                    image = imread(f'{self.mainfolder}/img_{self.filename}/msg_redistribution_bar/distribution_{i}.png')
+                    frames.append(image)
+            imageio.mimsave(f'{self.mainfolder}/img_{self.filename}/msg_redistribution_bar/output.gif', frames, duration=400)
+
+
+        # save the fluid data to a txt file
+        fluid_to_txt_to_julia = True
+        if fluid_to_txt_to_julia is True:
+            # save water content to matrix txt file
+            np.savetxt(f"{self.mainfolder}/fluid_matrix.txt", water_content)
+            # save garnet content to matrix txt file
+            np.savetxt(f"{self.mainfolder}/garnet_matrix.txt", garnet_content)
+            # save glaucophane content to matrix txt file
+            np.savetxt(f"{self.mainfolder}/glaucophane_matrix.txt", glaucophane_content)
+            # save omphacity content to matrix txt file
+            np.savetxt(f"{self.mainfolder}/omphacite_matrix.txt", omphacite_content)
+            # save d18O content to matrix txt file
+            np.savetxt(f"{self.mainfolder}/d18O_matrix.txt", bulk_d18O)
+            # run julia script to plot the fluid distribution - not working yet
+            """
+            import julia
+            j = julia.Julia()
+            xxx = j.include(f"julia {self.mainfolder}/fluid_surface.jl")
+            """
+            # os.system(f"julia {self.mainfolder}/fluid_surface.jl")
+
+
+        # plotting routine for evolving system
+        # looping over length of temperature array to plot each model increment
+        for i in range(len(ts)):
+            # root figure
+            fig, (ax1, ax2, ax3, ax4, ax5, ax6, ax7) = plt.subplots(1, 7, figsize=(11, 9), sharey=True)
+            # Title each subplot
+            ax1.set_title("Omphacite")
+            ax2.set_title("Glaucophane")
+            ax3.set_title("Hydrouse ph.")
+            ax4.set_title("Lawsonite")
+            ax5.set_title("garnet")
+            ax6.set_title("Water")
+            ax7.set_title("Bulk $\delta^{18}$O \n[‰ vs. VSMOW]")
+
+            # set y axis label for the first subplot
+            ax1.set_ylabel("Thickness [m] (rock increment = 0.1 m)")
+
+            # define x lims for each subplot
+            ax1.set_xlim([0, omphacite_content.max()+0.1*omphacite_content.max()])
+            ax2.set_xlim([0, glaucophane_content.max()+0.1*glaucophane_content.max()])
+            ax3.set_xlim([0, hydrous_content.max()+0.1*hydrous_content.max()])
+            ax4.set_xlim([0, lawsonite_content.max()+0.1*lawsonite_content.max()])
+            ax5.set_xlim([0, garnet_content.max()+0.1*garnet_content.max()])
+            ax6.set_xlim([0, water_content.max()+0.1*water_content.max()])
+            ax7.set_xlim([0, 25])
+
+            # activate log scaled x axis if argument x_axis_log is True
+            if x_axis_log is True:
+                ax1.set_xscale('log')
+                ax3.set_xscale('log')
+                ax5.set_xscale('log')
+
+            # define y lims for each subplot
+            ax1.set_ylim([0, column_size])
+            ax2.set_ylim([0, column_size])
+            ax3.set_ylim([0, column_size])
+            ax4.set_ylim([0, column_size])
+            ax5.set_ylim([0, column_size])
+            ax6.set_ylim([0, column_size])
+            ax7.set_ylim([0, column_size])
+
+            # plotting
+            ax1.plot(omphacite_content[i], z, '-', c='black', linewidth=1.2, markeredgecolor='black')
+            ax2.plot(glaucophane_content[i], z, '-', c='black', linewidth=1.2, markeredgecolor='black')
+            ax3.plot(hydrous_content[i], z, '-', c='black', linewidth=1.2, markeredgecolor='black')
+            ax4.plot(lawsonite_content[i], z, '-', c='black', linewidth=1.2, markeredgecolor='black')
+            ax5.plot(garnet_content[i], z, '-', c='black', linewidth=1.2, markeredgecolor='black')
+            ax6.plot(water_content[i], z, '-', c='black', linewidth=1.2, markeredgecolor='black')
+            ax7.plot(bulk_d18O[i], z, '-', c='black', linewidth=1.2, markeredgecolor='black')
+
+            # Figure title writing the temperature step
+            fig.suptitle(f"Model phases [vol.%] at {np.round(ts[i], 1)}°C", fontsize=16)
+
+            """# adjust the subplot spacing
+            plt.subplots_adjust(hspace=0.5)
+            # and size to fit the legend
+            plt.subplots_adjust(right=0.8)
+            plt.tight_layout()"""
+
+            # save the plot to the directory if img_save is True
+            if img_save is True:
+                os.makedirs(
+                        f'{self.mainfolder}/img_{self.filename}/msg_redistribution', exist_ok=True)
+                plt.savefig(f'{self.mainfolder}/img_{self.filename}/msg_redistribution/redistribution_{i}.png',
+                                transparent=False, facecolor='white')
+            else:
+                plt.show()
+            plt.clf()
+            plt.close()
+            print(f"plot {i} done")
+
+        # condition to save a gif file from the plots
+        if gif_save is True:
+            frames = []
+            for i in range(len(ts)):
+                if i == 0:
+                    pass
+                else:
+                    image = imread(f'{self.mainfolder}/img_{self.filename}/msg_redistribution/redistribution_{i}.png')
+                    frames.append(image)
+            imageio.mimsave(f'{self.mainfolder}/img_{self.filename}/msg_redistribution/output.gif', frames, duration=400)
+
 
 
 
@@ -2514,97 +3036,146 @@ if __name__ == '__main__':
     plt.ylabel("# of extractions")
     plt.xlabel("Differential stress [$\it{MPa}$]")
     """
-    compPlot.time_int_flux_summary(img_save=True, rock_colors=['#10e6ad', "#0592c1", "#f74d53"])
+
+    # Protocol for lawsonite surface plot
+    lawsonite_surface = False
+    if lawsonite_surface is True:
+        # Plotting tool to investigate the lawsonite occurence of a grid
+        compPlot.lawsonite_surface(True)
+
+    # Protocol for standard plotting (Stack, oxygen isotopes, release fluid volume)
+    standard_plots = False
+    if standard_plots is True:
+            for key in data.rock.keys():
+                print(key)
+                compPlot.phases_stack_plot(rock_tag=key, img_save=True,
+                            val_tag='volume[ccm]', transparent=True, fluid_porosity=True)
+                compPlot.oxygen_isotopes(rock_tag=key, img_save=True)
+                # compPlot.release_fluid_volume_plot(rock_tag=key, img_save=False)
+
+            # compPlot.pt_path_plot(key, img_save=True, gif_save=True)
+
+    # modelling for msg23 - internal redistribution of fluids in an outcrop
+    fluid_distribution_sgm23 = True
+    if fluid_distribution_sgm23 is True:
+        compPlot.fluid_distribution_sgm23(img_save=True, gif_save=True, x_axis_log=False)
+
+    fluid_recycling_single = False
+    if fluid_recycling_single is True:
+        # Routine for Fluid recycling plotting
+        print("The 'data.rock[key]' keys are:")
+        compPlot.fluid_content(img_save=False)
+
+    plotting_routine_for_sgm23 = True
+    if plotting_routine_for_sgm23 is True:
+        # Routine for Fluid recycling plotting
+        compPlot.fluid_content_msg2023(img_save=True)
+        # compPlot.fluid_distribution_sgm23(img_save=True, gif_save=True, x_axis_log=False)
 
 
-    file_combination = False
-    num_files = 1
-    if file_combination is True:
-        data2 = ThorPT_hdf5_reader()
-        data_box = []
-        for i in range(num_files):
-            data2.open_ThorPT_hdf5()
-            data_box.append(copy.deepcopy(data2))
 
-        depth_porosity(
-            data_box, num_rocks=3,
-            rock_colors=["#0592c1", "#f74d53", '#10e6ad'],
-            rock_symbol = ['d', 'd', 'd', 's'])
+    # routine to plot the fluid content of all rocks and internal recycling
+    fluid_recycling = False
+    if fluid_recycling is True:
+        # Routine for Fluid recycling plotting
+        compPlot.time_int_flux_summary(img_save=True, rock_colors=['#10e6ad', "#0592c1", "#f74d53"])
 
-        density_porosity(
-            data_box, num_rocks=3,
-            rock_colors=["#0592c1", "#f74d53", '#10e6ad'],
-            rock_symbol = ['d', 'd', 'd','s'])
+        file_combination = False
+        num_files = 1
+        if file_combination is True:
+            data2 = ThorPT_hdf5_reader()
+            data_box = []
+            for i in range(num_files):
+                data2.open_ThorPT_hdf5()
+                data_box.append(copy.deepcopy(data2))
 
-        extraction_stress(
-            data_box, num_rocks=3,
-            rock_colors=["#0592c1", "#f74d53", '#10e6ad'],
-            rock_symbol = ['d--', 'd--', 'd--', 's--'], rock_names=True)
+            depth_porosity(
+                data_box, num_rocks=3,
+                rock_colors=["#0592c1", "#f74d53", '#10e6ad'],
+                rock_symbol = ['d', 'd', 'd', 's'])
+
+            density_porosity(
+                data_box, num_rocks=3,
+                rock_colors=["#0592c1", "#f74d53", '#10e6ad'],
+                rock_symbol = ['d', 'd', 'd','s'])
+
+            extraction_stress(
+                data_box, num_rocks=3,
+                rock_colors=["#0592c1", "#f74d53", '#10e6ad'],
+                rock_symbol = ['d--', 'd--', 'd--', 's--'], rock_names=True)
 
 
 
-    ##########################################
-    print("The 'data.rock[key]' keys are:")
-    compPlot.fluid_content(img_save=True)
-    evaluate_loop = True
-    if evaluate_loop is True:
-        for key in data.rock.keys():
-            print(key)
-            compPlot.phases_stack_plot(rock_tag=key, img_save=True,
-                        val_tag='volume[ccm]', transparent=True, fluid_porosity=True)
+        ##########################################
+        print("The 'data.rock[key]' keys are:")
+        compPlot.fluid_content(img_save=True)
+        evaluate_loop = False
+        if evaluate_loop is True:
+            for key in data.rock.keys():
+                print(key)
+                compPlot.phases_stack_plot(rock_tag=key, img_save=True,
+                            val_tag='volume[ccm]', transparent=True, fluid_porosity=True)
 
-            #compPlot.boxplot_to_GIF(rock_tag='rock004', img_save=True, gif_save=True)
-            compPlot.time_int_flux_plot(rock_tag=key, img_save=True)
+                #compPlot.boxplot_to_GIF(rock_tag='rock004', img_save=True, gif_save=True)
+                compPlot.time_int_flux_plot(rock_tag=key, img_save=True)
 
-            compPlot.oxygen_isotopes(rock_tag=key, img_save=True)
-            compPlot.release_fluid_volume_plot(rock_tag=key, img_save=False)
+                compPlot.oxygen_isotopes(rock_tag=key, img_save=True)
+                # compPlot.release_fluid_volume_plot(rock_tag=key, img_save=False)
 
-        # compPlot.pt_path_plot(key, img_save=True, gif_save=True)
-    """
-    compPlot.time_int_flux_plot(
-            rock_tag='rock1', img_save=False, gif_save=False)
-    compPlot.boxplot_to_GIF(rock_tag='rock1', img_save=True, gif_save=True)
+            # compPlot.pt_path_plot(key, img_save=True, gif_save=True)
 
-    compPlot.binary_plot(rock_tag='rock0')
-    compPlot.pt_path_plot(rock_tag='rock0', img_save=False, gif_save=False)
-    compPlot.permeability_plot(
-        rock_tag='rock0', img_save=False, gif_save=False)
-    compPlot.time_int_flux_plot(
-        rock_tag='rock0', img_save=False, gif_save=False)
-    compPlot.porosity_plot(rock_tag='rock0', img_save=False, gif_save=False)
-    compPlot.release_fluid_volume_plot(
-        rock_tag='rock0', img_save=False, gif_save=False)"""
 
-    """dist1 = np.concatenate(data_box[0].compiledrock.all_porosity)*100
-    dist2 = np.concatenate(data_box[1].compiledrock.all_porosity)*100
-    plt.figure(102)
-    plt.hist(dist2, bins=128)
-    plt.yscale('log')
-    plt.figure(103)
-    plt.hist(dist1, bins=128)
-    plt.yscale('log')
-    """
-    """from matplotlib import colors
-    dist1 = np.concatenate(data_box[0].compiledrock.all_porosity)*100
-    dist2 = np.concatenate(data_box[1].compiledrock.all_porosity)*100
-    fig, ax = plt.subplots(tight_layout=True)
-    hist = ax.hist2d(dist1, dist2, bins=128, norm=colors.LogNorm())
-    fig, (ax2,ax3) = plt.subplots((1,2))
-    ax2.hist(dist1, bins=128)
-    ax3.hist(dist2, bins=128)
-    plt.show()"""
 
-    """from matplotlib import colors
-    dist1 = np.concatenate(data_box.compiledrock.all_porosity)*100
-    dist2 = np.concatenate(data_box.compiledrock.all_system_density_post)-np.concatenate(data.compiledrock.all_system_density_pre)
-    fig, ax = plt.subplots(tight_layout=True)
-    hist = ax.hist2d(dist1, dist2, bins=128, norm=colors.LogNorm())
 
-    frac = np.concatenate(data.compiledrock.all_frac_bool)
-    x = np.concatenate(data.compiledrock.all_porosity)*100
-    y1 = np.concatenate(data.compiledrock.all_system_density_post)
-    y2 = np.concatenate(data.compiledrock.all_system_density_pre)
-    y = y1-y2
-    y = y[frac>0]
-    x = x[frac>0]
-    plt.plot(x,y, 'd')"""
+
+
+
+        """
+        compPlot.time_int_flux_plot(
+                rock_tag='rock1', img_save=False, gif_save=False)
+        compPlot.boxplot_to_GIF(rock_tag='rock1', img_save=True, gif_save=True)
+
+        compPlot.binary_plot(rock_tag='rock0')
+        compPlot.pt_path_plot(rock_tag='rock0', img_save=False, gif_save=False)
+        compPlot.permeability_plot(
+            rock_tag='rock0', img_save=False, gif_save=False)
+        compPlot.time_int_flux_plot(
+            rock_tag='rock0', img_save=False, gif_save=False)
+        compPlot.porosity_plot(rock_tag='rock0', img_save=False, gif_save=False)
+        compPlot.release_fluid_volume_plot(
+            rock_tag='rock0', img_save=False, gif_save=False)"""
+
+        """dist1 = np.concatenate(data_box[0].compiledrock.all_porosity)*100
+        dist2 = np.concatenate(data_box[1].compiledrock.all_porosity)*100
+        plt.figure(102)
+        plt.hist(dist2, bins=128)
+        plt.yscale('log')
+        plt.figure(103)
+        plt.hist(dist1, bins=128)
+        plt.yscale('log')
+        """
+        """from matplotlib import colors
+        dist1 = np.concatenate(data_box[0].compiledrock.all_porosity)*100
+        dist2 = np.concatenate(data_box[1].compiledrock.all_porosity)*100
+        fig, ax = plt.subplots(tight_layout=True)
+        hist = ax.hist2d(dist1, dist2, bins=128, norm=colors.LogNorm())
+        fig, (ax2,ax3) = plt.subplots((1,2))
+        ax2.hist(dist1, bins=128)
+        ax3.hist(dist2, bins=128)
+        plt.show()"""
+
+        """from matplotlib import colors
+        dist1 = np.concatenate(data_box.compiledrock.all_porosity)*100
+        dist2 = np.concatenate(data_box.compiledrock.all_system_density_post)-np.concatenate(data.compiledrock.all_system_density_pre)
+        fig, ax = plt.subplots(tight_layout=True)
+        hist = ax.hist2d(dist1, dist2, bins=128, norm=colors.LogNorm())
+
+        frac = np.concatenate(data.compiledrock.all_frac_bool)
+        x = np.concatenate(data.compiledrock.all_porosity)*100
+        y1 = np.concatenate(data.compiledrock.all_system_density_post)
+        y2 = np.concatenate(data.compiledrock.all_system_density_pre)
+        y = y1-y2
+        y = y[frac>0]
+        x = x[frac>0]
+        plt.plot(x,y, 'd')"""
+
