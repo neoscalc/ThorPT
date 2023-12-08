@@ -1679,7 +1679,13 @@ class ThorPT_Routines():
                 'fluid_calculation', 'fluid_extraction', 'reactivity']
         meta_h5 = ['bulk', 'new_bulk', 'database',
                 'phase_order', 'el_index', 'el_col', 'pot_tag', 'oxy_data_phases']
-
+        h5_parameters = ['time_frame', 'cohesion', 'temperatures', 'pressures', 'convergence_speed', 'subuction_angle', 'geometry', 
+                         'shear', 'friction', 'tensile strength', 'Extraction scheme', 'depth', 'diff. stress', 'line']
+        h5_oxygenisotope = ['all_oxy', 'save_oxygen', 'save_bulk_oxygen_pre', 'save_bulk_oxygen_post', 'bulk_oxygen',
+                            'bulk_oxygen_after_influx', 'bulk_oxygen_before_influx']
+        h5_fluiddata = ['extr_svol', 'extracted_fluid_data', 'fluid_hydrogen', 'fluid_influx_data', 'fluid_oxygen', 'extr_time']
+        h5_mechanicaldata = ['fluid_volume_before', 'fluid_volume_new', 'solid_volume_before', 'solid_volume_new', 'save_factor',
+                             'st_fluid_before', 'st_fluid_after', 'st_solid', 'fracture bool', 'fracture_value', 'track_refolidv']
         # ANCHOR - static path
         if defined_path is False:
             # static
@@ -1710,10 +1716,10 @@ class ThorPT_Routines():
 
             for rock in master_rock:
                 entries = list(master_rock[rock].keys())
-                hf.create_dataset(f"{rock}/temperatures", data=temperatures)
-                hf.create_dataset(f"{rock}/pressures", data=pressures)
-                hf.create_dataset(f"{rock}/convergence_speed", data=conv_speed)
-                hf.create_dataset(f"{rock}/subuction_angle", data=angle)
+                hf.create_dataset(f"{rock}/Parameters/temperatures", data=temperatures)
+                hf.create_dataset(f"{rock}/Parameters/pressures", data=pressures)
+                hf.create_dataset(f"{rock}/Parameters/convergence_speed", data=conv_speed)
+                hf.create_dataset(f"{rock}/Parameters/subuction_angle", data=angle)
 
                 for i, item in enumerate(master_rock[rock]):
                     if item in no_go:
@@ -1812,6 +1818,21 @@ class ThorPT_Routines():
                             for entry in master_rock[rock][item]:
                                 dataset = hf.create_dataset(f"{rock}/{item}/{entry}",
                                                             data=master_rock[rock][item][entry])
+
+                    # Structuring the single variables in groups for the hdf5 file (paramters, isotope data, fluid data, mechanical data, other recordings)
+                    elif item in h5_parameters:
+                        dataset = hf.create_dataset(
+                            f"{rock}/Parameters/{entries[i]}", data=master_rock[rock][item])
+                    elif item in h5_oxygenisotope:
+                        dataset = hf.create_dataset(
+                            f"{rock}/IsotopeData/{entries[i]}", data=master_rock[rock][item])
+                    elif item in h5_fluiddata:
+                        dataset = hf.create_dataset(
+                            f"{rock}/FluidData/{entries[i]}", data=master_rock[rock][item])
+                    elif item in h5_mechanicaldata:
+                        dataset = hf.create_dataset(
+                            f"{rock}/MechanicsData/{entries[i]}", data=master_rock[rock][item])
+
                     else:
 
                         dataset = hf.create_dataset(

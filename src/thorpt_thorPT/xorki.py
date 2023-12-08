@@ -682,19 +682,19 @@ class ThorPT_hdf5_reader():
             for group_key in rocks:
 
                 # physical input data from modelling
-                ts = np.array(f[group_key]['temperatures'])
-                ps = np.array(f[group_key]['pressures'])
-                vtime = np.array(f[group_key]['time_frame'])
+                ts = np.array(f[group_key]['Parameters']['temperatures'])
+                ps = np.array(f[group_key]['Parameters']['pressures'])
+                vtime = np.array(f[group_key]['Parameters']['time_frame'])
                 vtime = vtime.T
-                extr_time = np.array(f[group_key]['extr_time'])
-                frac_bool = np.array(f[group_key]['fracture bool'])
-                depth = np.array(f[group_key]['depth'])
-                geometry = list(f[group_key]['geometry'].asstr())
+                extr_time = np.array(f[group_key]['FluidData']['extr_time'])
+                frac_bool = np.array(f[group_key]['MechanicsData']['fracture bool'])
+                depth = np.array(f[group_key]['Parameters']['depth'])
+                geometry = list(f[group_key]['Parameters']['geometry'].asstr())
 
-                tensile = np.float64(f[group_key]['tensile strength'])
+                tensile = np.float64(f[group_key]['Parameters']['tensile strength'])
 
                 if 'line' in f[group_key].keys():
-                    line = np.array(f[group_key]['line'])
+                    line = np.array(f[group_key]['Parameters']['line'])
                 else:
                     line = False
 
@@ -705,8 +705,8 @@ class ThorPT_hdf5_reader():
                 virtual_flux = np.array(f[group_key]['virtual time-int flux'])
 
                 # Fluid extraction
-                extr_d = pd.DataFrame(f[group_key]['extracted_fluid_data'])
-                fluid_before = np.array(f[group_key]['st_fluid_before'])
+                extr_d = pd.DataFrame(f[group_key]['FluidData']['extracted_fluid_data'])
+                fluid_before = np.array(f[group_key]['MechanicsData']['st_fluid_before'])
 
                 # get some physics arrays
                 sys_physc = {}
@@ -749,13 +749,13 @@ class ThorPT_hdf5_reader():
 
                 # Oxygen fractionation data
                 # oxygen isotope data
-                d_oxy = pd.DataFrame(f[group_key]['save_oxygen'])
+                d_oxy = pd.DataFrame(f[group_key]['IsotopeData']['save_oxygen'])
                 d_oxy_phases = list(f[group_key].attrs['oxy_data_phases'])
                 d_oxy.columns = d_oxy_phases
                 save_bulk_oxygen_pre = np.array(
-                    f[group_key]['save_bulk_oxygen_pre'])
+                    f[group_key]['IsotopeData']['save_bulk_oxygen_pre'])
                 save_bulk_oxygen_post = np.array(
-                    f[group_key]['save_bulk_oxygen_post'])
+                    f[group_key]['IsotopeData']['save_bulk_oxygen_post'])
 
                 # geometry factor
                 bloc_a = np.float64(geometry[0])
@@ -894,7 +894,7 @@ class ThorPT_hdf5_reader():
                 # Compiling section
                 all_ps.append(ps)
                 all_tensile.append(tensile)
-                all_diffs.append(np.array(f[group_key]['diff. stress']))
+                all_diffs.append(np.array(f[group_key]['Parameters']['diff. stress']))
                 all_frac_bool.append(frac_bool)
                 arr_line.append(line)
                 all_permea.append(permea)
