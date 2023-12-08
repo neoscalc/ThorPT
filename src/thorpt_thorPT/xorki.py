@@ -436,7 +436,6 @@ def clean_frame(dataframe_to_clean, legend_phases, color_set):
 
 def depth_porosity(data_box, num_rocks=3, rock_colors=["#0592c1", "#f74d53", '#10e6ad'], rock_symbol = ['d', 's']):
 
-
     for j, subdata in enumerate(data_box):
         step = int(len(subdata.compiledrock.all_porosity)/num_rocks)
 
@@ -938,8 +937,7 @@ class ThorPT_hdf5_reader():
                     all_porosity)
 
 
-
-
+# Module of plotting functions for reducing the data from modelling with ThorPT
 class ThorPT_plots():
 
     def __init__(self, filename, mainfolder, rockdata, compiledrockdata):
@@ -2973,7 +2971,6 @@ class ThorPT_plots():
 
 
 
-
 if __name__ == '__main__':
 
     # Read variables from a hdf5 output file from ThorPT
@@ -3056,7 +3053,7 @@ if __name__ == '__main__':
             # compPlot.pt_path_plot(key, img_save=True, gif_save=True)
 
     # modelling for msg23 - internal redistribution of fluids in an outcrop
-    fluid_distribution_sgm23 = True
+    fluid_distribution_sgm23 = False
     if fluid_distribution_sgm23 is True:
         compPlot.fluid_distribution_sgm23(img_save=True, gif_save=True, x_axis_log=False)
 
@@ -3066,7 +3063,7 @@ if __name__ == '__main__':
         print("The 'data.rock[key]' keys are:")
         compPlot.fluid_content(img_save=False)
 
-    plotting_routine_for_sgm23 = True
+    plotting_routine_for_sgm23 = False
     if plotting_routine_for_sgm23 is True:
         # Routine for Fluid recycling plotting
         compPlot.fluid_content_msg2023(img_save=True)
@@ -3125,11 +3122,6 @@ if __name__ == '__main__':
             # compPlot.pt_path_plot(key, img_save=True, gif_save=True)
 
 
-
-
-
-
-
         """
         compPlot.time_int_flux_plot(
                 rock_tag='rock1', img_save=False, gif_save=False)
@@ -3178,4 +3170,113 @@ if __name__ == '__main__':
         y = y[frac>0]
         x = x[frac>0]
         plt.plot(x,y, 'd')"""
+
+    # Multiple file option for comparing
+    # Read variables from a hdf5 output file from ThorPT
+    multi_file_routine = True
+    # Starting loop over multiple files
+    if multi_file_routine is True:
+        num_files = 1
+        # reading each file and storing it in a list
+        data_box = []
+        for i in range(num_files):
+            # Function call, open hdf5 and append to data_box
+            data2 = ThorPT_hdf5_reader()
+            data2.open_ThorPT_hdf5()
+            data_box.append(copy.deepcopy(data2))
+
+        print("The 'data.rock[key]' keys are:")
+
+        # read all porosity values for each rock in the model
+        all_porosity = np.array(data_box[0].compiledrock.all_porosity)
+
+        color_palette = sns.color_palette("viridis", len(all_porosity.T))
+
+        plt.figure(101, figsize=(6,6))
+        # figure with aspect ratio of 1:1
+        plt.gca().set_aspect('equal', adjustable='box')
+        plt.rc('axes', labelsize=16)
+        plt.rc('ytick', labelsize=12)  # fontsize of the y tick labels
+        plt.rc('xtick', labelsize=12)  # fontsize of the x tick labels
+        # plot the porosity of each rock in the model vs the first rock in the model
+        for i, item in enumerate(data_box[0].rock.keys()):
+            plt.scatter(all_porosity[i], all_porosity[0], color=color_palette[i])
+        plt.plot(all_porosity[0], all_porosity[0], color="black", linestyle='--', linewidth=1.0, alpha=0.6)
+        plt.xlabel("Fluid-filled porosity [Vol.%]")
+        plt.ylabel("Fluid filled porosity\n continous release")
+        plt.show()
+
+        plt.figure(102)
+        plt.rc('axes', labelsize=16)
+        plt.rc('ytick', labelsize=12)  # fontsize of the y tick labels
+        plt.rc('xtick', labelsize=12)  # fontsize of the x tick labels
+        # normalized fluid-filled porosity prograde plot (extraction steps/always extraction = 1:1 if same)
+        porosity = all_porosity/all_porosity[0]
+        for i, item in enumerate(porosity):
+            plt.plot(porosity[i], c=color_palette[i], marker='o', linestyle='--', linewidth=1.0, alpha=0.6)
+        plt.xlabel("Prograde met. aka. time")
+        plt.ylabel("Fluid filled porosity norm.")
+        plt.show()
+
+        applied_diff_stress = np.array(data_box[0].compiledrock.all_diffs).T[-1]
+        applied_diff_stress = np.around(applied_diff_stress,1)
+        used_tensile_strengths = data_box[0].compiledrock.all_tensile
+
+        # do the colorbar in a seperate plot
+        plt.figure(103)
+        plt.gca().set_aspect(aspect=0.2, adjustable='box')
+        # plotting a bar for each rock along the x axis in the model using color_palette
+        plt.barh(np.arange(len(data_box[0].rock.keys())), 1, color=color_palette)
+        # annotate the bar plot with the applied differential stress and tensile strength
+        for i, item in enumerate(data_box[0].rock.keys()):
+            plt.annotate(f"{applied_diff_stress[i]} MPa, {used_tensile_strengths[i]} MPa",
+                         (1, i), color='black', fontsize=5)
+        plt.xlim([0, 2])
+        plt.title("Colorbar for rocks")
+        # remove axes visibility
+        plt.gca().axes.get_yaxis().set_visible(False)
+        plt.gca().axes.get_xaxis().set_visible(False)
+        # remove the frame
+        plt.gca().set_frame_on(False)
+        plt.show()
+
+        # number of extraction vs differential stress
+        track_diff = []
+        track_shear = []
+        track_num_ext = []
+        for i, item in enumerate(data.compiledrock.all_diffs):
+            diff = np.unique(item)[-1]
+            fracture_bool = data.compiledrock.all_frac_bool[i]
+            num_ext = len(fracture_bool[fracture_bool>0])
+            track_diff.append(diff)
+            # track_shear.append()
+            track_num_ext.append(num_ext)
+        plt.plot(track_diff, track_num_ext, 'd-')
+        plt.ylabel("# of extractions")
+        plt.xlabel("Differential stress [$\it{MPa}$]")
+
+        # get colour for each value in track_diff depending on the float value
+        color_palette = sns.color_palette("viridis", int(max(track_diff)))
+        # create a list of colours for each value in track_diff
+        color_list = []
+        for i, item in enumerate(track_diff):
+            color_list.append(color_palette[int(item)-1])
+
+        # import mpatches
+        import matplotlib.patches as mpatches
+        #plot the number of extractions vs the used tensile strength with the color from color_list
+        plt.figure(105)
+        for i, item in enumerate(track_num_ext):
+            plt.plot(used_tensile_strengths[i], track_num_ext[i], 'd', color=color_list[i])
+        plt.xlabel("Tensile strength [MPa]")
+        plt.ylabel("# of extractions")
+        # get the legend of unique values in track_diff with the color from color_palette
+        patches = []
+        for i, item in enumerate(np.unique(track_diff)):
+            patches.append(mpatches.Patch(color=color_palette[int(item)-1], label=item))
+        plt.legend(handles=patches, bbox_to_anchor=(1.0, 1.0), title="Differential stress [MPa]", fontsize=12)
+
+        plt.show()
+
+
 

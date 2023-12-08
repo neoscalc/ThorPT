@@ -362,11 +362,18 @@ class ThorPT_Routines():
             # LINK 1) Initialisation of the rock system
             # Initialize thermodynamic conditions called from P-T-t path - for each rock in the dictionary
             for item in master_rock:
+                # Start of modelling scheme for rock
                 print("\n")
                 print("¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦")
                 print("v v v v v v v v v v v v v v v v v v v v v v v v")
                 print(f"-> Forward modeling step initiated - {item}")
+                # display modelling progress
+                ic = int(np.ceil(k/kk*100))
+                progress(ic)
+                print("\n")
                 print(master_rock[item]['new_bulk'])
+
+                # Send information to the theriak wrapper
                 master_rock[item]['minimization'] = Therm_dyn_ther_looper(self.theriak,
                     master_rock[item]['database'], master_rock[item]['new_bulk'],
                     temperature, pressures[num], master_rock[item]['df_var_dictionary'],
@@ -1023,6 +1030,10 @@ class ThorPT_Routines():
                 rock_origin[item]['bulk'].append(master_rock[item]['new_bulk'])
                 # print(f"{item} Bulk rock composition checked.")
                 print(f"Bulk rock composition checked. No error found")
+                print("\n")
+                # display modelling progress
+                ic = int(np.ceil(k/kk*100))
+                progress(ic)
                 print("\n")
                 # _____________________________________________________________________________
                 # 1) Initialize rock
@@ -1788,6 +1799,16 @@ class ThorPT_Routines():
                         hf[rock].attrs.create(item, list(elements.index))
 
                     elif isinstance(master_rock[rock][item], dict) is True:
+
+                        # NOTE - New naming convention for the dictionary keys
+                        # New naming convention prepared 2023.12.07
+                        # if str(master_rock[rock][item].keys()) == "dict_keys(['df_N', 'df_volume/mol', 'df_volume[ccm]', 'df_vol%', 'df_wt/mol', 'df_wt[g]', 'df_wt%', 'df_density[g/ccm]'])":
+                        #     new_dic_names = ['df_N', 'df_vol_mol', 'df_volume', 'df_vol%', 'df_wt_mol', 'df_wt', 'df_wt%', 'df_density']
+                        #     old_dic_names = list(master_rock[rock][item].keys())
+                        #     for jj, entry in enumerate(new_dic_names):
+                        #         dataset = hf.create_dataset(f"{rock}/{item}/{entry}",
+                        #                                 data=master_rock[rock][item][old_dic_names[jj]])
+                        # else:
                         for entry in master_rock[rock][item]:
                             dataset = hf.create_dataset(f"{rock}/{item}/{entry}",
                                                         data=master_rock[rock][item][entry])

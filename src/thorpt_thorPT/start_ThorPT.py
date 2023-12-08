@@ -171,6 +171,7 @@ def run_routine():
         init_data['cohesion'] = []
         init_data['geometry'] = []
         init_data['Tensile strength'] = []
+        init_data['Extraction scheme'] = []
         # TODO add name from init file?
         for rock in rock_dic.keys():
             rock_init = rock_dic[rock]
@@ -216,7 +217,7 @@ def run_routine():
                 if 'Extraction scheme' in entry:
                     pos = entry.index(":")
                     rock_mechanics = entry[pos+1:].split('\t')[-1]
-                    init_data['Extraction scheme'] = rock_mechanics
+                    init_data['Extraction scheme'].append(rock_mechanics)
 
         init_data['Database'] = database
         init_data['Path'] = path
@@ -426,7 +427,7 @@ def run_routine():
             master_rock[tag]['friction'] = init_data['friction'][i]
             master_rock[tag]['cohesion'] = init_data['cohesion'][i]
             master_rock[tag]['shear'] = init_data['shear'][i]
-            master_rock[tag]['Extraction scheme'] = init_data['Extraction scheme']
+            master_rock[tag]['Extraction scheme'] = init_data['Extraction scheme'][i]
             master_rock[tag]['failure module'] = []
 
             # fluid input from external
