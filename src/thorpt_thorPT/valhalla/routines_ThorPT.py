@@ -1802,16 +1802,16 @@ class ThorPT_Routines():
 
                         # NOTE - New naming convention for the dictionary keys
                         # New naming convention prepared 2023.12.07
-                        # if str(master_rock[rock][item].keys()) == "dict_keys(['df_N', 'df_volume/mol', 'df_volume[ccm]', 'df_vol%', 'df_wt/mol', 'df_wt[g]', 'df_wt%', 'df_density[g/ccm]'])":
-                        #     new_dic_names = ['df_N', 'df_vol_mol', 'df_volume', 'df_vol%', 'df_wt_mol', 'df_wt', 'df_wt%', 'df_density']
-                        #     old_dic_names = list(master_rock[rock][item].keys())
-                        #     for jj, entry in enumerate(new_dic_names):
-                        #         dataset = hf.create_dataset(f"{rock}/{item}/{entry}",
-                        #                                 data=master_rock[rock][item][old_dic_names[jj]])
-                        # else:
-                        for entry in master_rock[rock][item]:
-                            dataset = hf.create_dataset(f"{rock}/{item}/{entry}",
-                                                        data=master_rock[rock][item][entry])
+                        if str(master_rock[rock][item].keys()) == "dict_keys(['df_N', 'df_volume/mol', 'df_volume[ccm]', 'df_vol%', 'df_wt/mol', 'df_wt[g]', 'df_wt%', 'df_density[g/ccm]'])":
+                            new_dic_names = ['df_N', 'df_vol_mol', 'df_volume', 'df_vol%', 'df_wt_mol', 'df_wt', 'df_wt%', 'df_density']
+                            old_dic_names = list(master_rock[rock][item].keys())
+                            for jj, entry in enumerate(new_dic_names):
+                                dataset = hf.create_dataset(f"{rock}/{item}/{entry}",
+                                                        data=master_rock[rock][item][old_dic_names[jj]])
+                        else:
+                            for entry in master_rock[rock][item]:
+                                dataset = hf.create_dataset(f"{rock}/{item}/{entry}",
+                                                            data=master_rock[rock][item][entry])
                     else:
 
                         dataset = hf.create_dataset(

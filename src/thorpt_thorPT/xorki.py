@@ -779,11 +779,11 @@ class ThorPT_hdf5_reader():
                 mass_data.columns = phases
                 mass_data[np.isnan(mass_data) == True] = 0
 
-                volume_data = copy.deepcopy(df_var_d['df_volume[ccm]'])
+                volume_data = copy.deepcopy(df_var_d['df_volume'])
                 volume_data.columns = phases
                 volume_data[np.isnan(volume_data) == True] = 0
 
-                mass_abs_data = copy.deepcopy(df_var_d['df_wt[g]'])
+                mass_abs_data = copy.deepcopy(df_var_d['df_wt'])
                 mass_abs_data.columns = phases
                 mass_abs_data[np.isnan(mass_abs_data) == True] = 0
 
