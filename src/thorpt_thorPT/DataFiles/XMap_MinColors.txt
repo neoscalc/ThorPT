@@ -61,4 +61,4 @@ Talc	55	184	203
 Titanite	190	138	67
 Turmaline	56	72	78
 Zircon	221	60	39
-
+Zoisite	187	180	55

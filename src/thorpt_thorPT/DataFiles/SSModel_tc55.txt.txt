@@ -143,19 +143,3 @@ PARAGONITE  		paragonite  		12
 SIDERITE		siderite		3
 RHODOCHROSITE		rhodochrosite		3
 RIEBECKITE		riebeckite		24
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

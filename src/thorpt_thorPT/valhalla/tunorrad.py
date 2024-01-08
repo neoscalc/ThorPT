@@ -229,16 +229,29 @@ def mineral_translation():
     phase_counts = []
     # Extract mineral names from mineral data
     mineral_data_line = read_translation.index('*** MINERAL DATA ***\n')
-    end_line = len(read_translation) - 16
-    comp_list = read_translation[mineral_data_line+1:end_line]
+    # FIXME - quick fix for spaces at the end of translation file
+    # end_line = len(read_translation) - 16
+    comp_list = read_translation[mineral_data_line+1:]
     for num, item in enumerate(comp_list):
         line = item.split('\t')
         # function to remove all occurences of '' in list
         line = remove_items(line, '')
+        # test for the length of the line - if it is 3, it is ok, if not, we need an additional symbol filter
+        if len(line) == 3:
+            pass
+        else:
+            line = remove_items(line, ' ')
+            line = remove_items(line, '   ')
+            line = remove_items(line, '\n')
+            line = remove_items(line, '\t')
         # Store in comprehensive list
+        # read first entry and erase whitespaces in the first entry
+        line[0] = line[0].replace(' ', '')
         phases_DB.append(line[0])
+        # read second entry and erase whitespaces in the second entry
         line[1] = line[1].replace(' ', '')
         phases_Ther.append(line[1])
+        # read third entry
         phase_counts.append(line[2].rstrip())
         phases_if_ssolution.append(False)
         phases_of_solution.append(False)
@@ -1026,7 +1039,7 @@ class Therm_dyn_ther_looper:
     def __init__(
             self, theriak_path, database, bulk_rock,
             temperature, pressure, df_var_dictionary,
-            df_hydrous_data_dic, df_all_elements, num):
+            df_hydrous_data_dic, df_all_elements, num, fluid_name_tag):
         """
         Initializes variables for thermodynamic minimization and data formation.
         -Bulk rock in normalized in mol to 1 kg of rock.
@@ -1084,6 +1097,9 @@ class Therm_dyn_ther_looper:
 
         self.num = num  # looping step
 
+        # passing the fluid name tag based on the database used
+        self.fluid_name_tag = fluid_name_tag
+
     def thermodynamic_looping_station(self, marco=False):
         """
         Calls theriak and passes T, P and bulk rock. Resulting data is read and formatted.
@@ -1104,10 +1120,10 @@ class Therm_dyn_ther_looper:
         # recalculation to delete for oversaturation of water
         if marco is False:
             if self.num < 1:
-                if 'water.fluid' in theriak_data['df_elements_in_phases'].columns:
+                if self.fluid_name_tag in theriak_data['df_elements_in_phases'].columns:
                     # print("333333 - First step free fluid detected - recalc initialized")
                     new_bulk = {}
-                    water_H = theriak_data['df_elements_in_phases']['water.fluid']['H']
+                    water_H = theriak_data['df_elements_in_phases'][self.fluid_name_tag]['H']
                     total = theriak_data['df_elements_in_phases']['total:']
                     total['H'] = total['H'] - water_H
                     for el in total.index:
@@ -1133,7 +1149,7 @@ class Therm_dyn_ther_looper:
         # print("=3=== Test water presence in system...")
         if 'df_h2o_content' in theriak_data.keys():
             self.df_hydrous_data = theriak_data['df_h2o_content']
-            if 'water.fluid' in self.df_hydrous_data.columns:
+            if self.fluid_name_tag in self.df_hydrous_data.columns:
                 content_h2o = True
                 # print("=3=== free water is present.")
             else:
@@ -1174,11 +1190,11 @@ class Therm_dyn_ther_looper:
 
         if content_h2o is True:
             # Created free water volume in system at P-T condition:
-            self.new_fluid_Vol = self.df_phase_data.loc['volume[ccm]', 'water.fluid']
-            self.new_fluid_dens = self.df_phase_data.loc['density[g/ccm]', 'water.fluid']
-            self.new_fluid_N = self.df_phase_data.loc['N', 'water.fluid']
+            self.new_fluid_Vol = self.df_phase_data.loc['volume[ccm]', self.fluid_name_tag]
+            self.new_fluid_dens = self.df_phase_data.loc['density[g/ccm]', self.fluid_name_tag]
+            self.new_fluid_N = self.df_phase_data.loc['N', self.fluid_name_tag]
             self.new_fluid_weight = self.df_phase_data.loc['wt[g]',
-                                                           'water.fluid']
+                                                           self.fluid_name_tag]
 
         # print("\t Information on the fluid:")
         # print('\t Vol:{} Dens:{} N:{} Weight:{}'.format(self.new_fluid_Vol,
@@ -1235,9 +1251,9 @@ class Therm_dyn_ther_looper:
 
         # comparing water data (momentary step and previous step)
         # important for extraction steps (factor, volume changes, porosity)
-        if 'water.fluid' in list(self.df_all_elements.columns):
+        if self.fluid_name_tag in list(self.df_all_elements.columns):
             fluid_volumes = np.array(
-                self.df_var_dictionary['df_volume[ccm]'].loc['water.fluid'])
+                self.df_var_dictionary['df_volume[ccm]'].loc[self.fluid_name_tag])
             try:
                 # it is essential to state the "== False" otherwise the value is not read
                 if np.isnan(fluid_volumes[-2]) == False:
@@ -1285,10 +1301,10 @@ class Therm_dyn_ther_looper:
             tot_volume = self.sys_vol_data.loc[temperature, :].sum()
             self.sys_vol_pre.append(tot_volume)
 
-            if 'water.fluid' in list(self.sys_vol_data.columns):
+            if self.fluid_name_tag in list(self.sys_vol_data.columns):
                 # Sums up solid phase volume for each temperature (and pressure) step
                 solid_volume = self.sys_vol_data.loc[temperature, :].sum(
-                ) - self.sys_vol_data.loc[temperature, 'water.fluid']
+                ) - self.sys_vol_data.loc[temperature, self.fluid_name_tag]
                 self.solid_vol_recalc.append(solid_volume)
             else:
                 solid_volume = self.sys_vol_data.loc[temperature, :].sum()
@@ -1369,7 +1385,7 @@ class Ext_method_master:
             fluid_volume_before, fluid_volume_new,
             solid_volume_before, solid_volume_new,
             save_factor, master_norm, phase_data,
-            tensile_s, subduction_angle, rock_item_tag=0):
+            tensile_s, subduction_angle, fluid_name_tag, rock_item_tag=0):
         """
         Initialize all the values and data necessary for calculations
 
@@ -1400,6 +1416,7 @@ class Ext_method_master:
         self.angle = subduction_angle
         self.diff_stress = 0
         self.failure_dictionary = {}
+        self.fluid_name_tag = fluid_name_tag
 
     def couloumb_method(self, t_ref_solid, tensile=20):
         """
@@ -1516,7 +1533,7 @@ class Ext_method_master:
               self.solid_t1, self.fluid_t0, self.fluid_t1))
 
         # test before executing module - phase data fluid volume should be equal the self.fluid_t1
-        if self.phase_data['water.fluid']['volume[ccm]'] != self.fluid_t1:
+        if self.phase_data[self.fluid_name_tag]['volume[ccm]'] != self.fluid_t1:
             print("Inconsistency in new fluid volume")
             # keyboard.wait('esc')
 
@@ -1756,7 +1773,7 @@ class Ext_method_master:
               self.solid_t1, self.fluid_t0, self.fluid_t1))
 
         # test before executing module - phase data fluid volume should be equal the self.fluid_t1
-        if self.phase_data['water.fluid']['volume[ccm]'] != self.fluid_t1:
+        if self.phase_data[self.fluid_name_tag]['volume[ccm]'] != self.fluid_t1:
             print("Inconsistency in new fluid volume")
             # keyboard.wait('esc')
 
@@ -1957,7 +1974,7 @@ class Fluid_master():
         - different ways are possible
     """
 
-    def __init__(self, phase_data, ext_data, temperature, new_fluid_V, sys_H, element_frame, st_fluid_post):
+    def __init__(self, phase_data, ext_data, temperature, new_fluid_V, sys_H, element_frame, st_fluid_post, fluid_name_tag):
         self.phase_data_fluid = phase_data
         self.ext_data = ext_data
         self.temp = temperature
@@ -1965,6 +1982,7 @@ class Fluid_master():
         self.sys_H = sys_H # self.element_frame.loc['H', 'total:']
         self.element_frame = element_frame.copy()
         self.st_fluid_post = st_fluid_post
+        self.fluid_name_tag = fluid_name_tag
 
     def hydrogen_ext_all(self):
         """
@@ -1973,7 +1991,7 @@ class Fluid_master():
         new_extraction = self.phase_data_fluid
         self.ext_data = pd.concat([self.ext_data, new_extraction], axis=1)
         self.ext_data = self.ext_data.rename(
-            columns={"water.fluid": self.temp})
+            columns={self.fluid_name_tag: self.temp})
 
         # diminish double total: in dataframe
         if self.element_frame.columns[-1] == self.element_frame.columns[-2]:
@@ -1981,9 +1999,9 @@ class Fluid_master():
 
         # settings some important values from element data frame
         extracted_fluid_vol = self.phase_data_fluid['volume[ccm]']
-        fluid_H = self.element_frame.loc['H', 'water.fluid']
+        fluid_H = self.element_frame.loc['H', self.fluid_name_tag]
         sys_H = self.element_frame.loc['H', 'total:']
-        fluid_O = self.element_frame.loc['O', 'water.fluid']
+        fluid_O = self.element_frame.loc['O', self.fluid_name_tag]
         sys_O = self.element_frame.loc['O','total:']
 
         # remaining H and O in bulk
@@ -1995,8 +2013,8 @@ class Fluid_master():
         self.element_frame.loc['O', 'total:'] = total_oxygen
 
         # set fluid O and H to zero after this step
-        self.element_frame.loc['O', 'water.fluid'] = 0.0
-        self.element_frame.loc['H', 'water.fluid'] = 0.0
+        self.element_frame.loc['O', self.fluid_name_tag] = 0.0
+        self.element_frame.loc['H', self.fluid_name_tag] = 0.0
         self.st_fluid_post[-1] = self.st_fluid_post[-1] - extracted_fluid_vol
         # print("=====================================")
         print("=======yummy yummy yummy, I drunk all your water========")

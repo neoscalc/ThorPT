@@ -59,6 +59,7 @@ def remove_items(test_list, item):
 
 
 def phases_and_colors_XMT(database, phases):
+
     # XMapTools mineral names and colors
     script_folder = Path(__file__).parent.absolute()
     file_to_open = script_folder / "DataFiles" / "XMap_MinColors.txt"
@@ -68,7 +69,7 @@ def phases_and_colors_XMT(database, phases):
     # Translation file - database to XMT names
     dot_indi = database.index('.')
     file_to_open = script_folder / "DataFiles" / \
-        f"MINERAL_NAMES_{database[:-dot_indi]}_to_XMT.txt"
+        f"MINERAL_NAMES_{database[:dot_indi]}_to_XMT.txt"
     min_translation = pd.read_csv(file_to_open, delimiter='\t')
 
     # Iterating through phases and select colors
@@ -77,7 +78,7 @@ def phases_and_colors_XMT(database, phases):
     phase_set = []
     z = 0
     for mini in phases:
-        if mini == 'water.fluid' or mini == 'H2O.liq':
+        if mini == 'fluid' or mini == 'H2O.liq':
             color_set.append((84/255, 247/255, 242/255))
             phase_set.append("Water")
         elif mini in list(min_translation['Database-name']):
@@ -276,11 +277,11 @@ def Merge_phase_group(data):
 
     frame = frame.T
 
-    if 'LIQtc_h2oL' in frame.index and 'water.fluid' in frame.index:
+    if 'LIQtc_h2oL' in frame.index and 'fluid' in frame.index:
         water_1 = frame.loc['LIQtc_h2oL']
-        water_2 = frame.loc['water.fluid']
+        water_2 = frame.loc['fluid']
         water_2[water_2.isna()] = water_1[water_2.isna()]
-        frame.loc['water.fluid'] = water_2
+        frame.loc['fluid'] = water_2
         frame = frame.drop('LIQtc_h2oL', axis=0)
 
     return frame
@@ -367,11 +368,11 @@ def Merge_phase_group_oxy(data):
 
     frame = frame.T
 
-    if 'LIQtc_h2oL' in frame.index and 'water.fluid' in frame.index:
+    if 'LIQtc_h2oL' in frame.index and 'fluid' in frame.index:
         water_1 = frame.loc['LIQtc_h2oL']
-        water_2 = frame.loc['water.fluid']
+        water_2 = frame.loc['fluid']
         water_2[water_2.isna()] = water_1[water_2.isna()]
-        frame.loc['water.fluid'] = water_2
+        frame.loc['fluid'] = water_2
         frame = frame.drop('LIQtc_h2oL', axis=0)
 
     return frame
@@ -787,10 +788,10 @@ class ThorPT_hdf5_reader():
                 mass_abs_data.columns = phases
                 mass_abs_data[np.isnan(mass_abs_data) == True] = 0
 
-                if 'water.fluid' in volume_data.columns:
-                    solid_volumes = volume_data.T.sum()-volume_data['water.fluid']
+                if 'fluid' in volume_data.columns:
+                    solid_volumes = volume_data.T.sum()-volume_data['fluid']
                     solid_weight = mass_abs_data.T.sum(
-                    )-mass_abs_data['water.fluid']
+                    )-mass_abs_data['fluid']
                 else:
                     solid_volumes = volume_data.T.sum()
                     solid_weight = mass_abs_data.T.sum()
@@ -798,10 +799,10 @@ class ThorPT_hdf5_reader():
                 solid_density = np.array(
                     solid_weight)/np.array(solid_volumes)*1000
 
-                # massperc_fluid = mass_data['water.fluid']
-                if 'water.fluid' in mass_abs_data.columns:
-                    massperc_fluid = mass_abs_data['water.fluid'] / \
-                        (mass_abs_data.T.sum()-mass_abs_data['water.fluid'])
+                # massperc_fluid = mass_data['fluid']
+                if 'fluid' in mass_abs_data.columns:
+                    massperc_fluid = mass_abs_data['fluid'] / \
+                        (mass_abs_data.T.sum()-mass_abs_data['fluid'])
                 else:
                     massperc_fluid = 0
 
@@ -811,9 +812,9 @@ class ThorPT_hdf5_reader():
                 # the new permeability
                 # ANCHOR
                 mü_water = 0.0001
-                if 'water.fluid' in mass_abs_data.columns:
+                if 'fluid' in mass_abs_data.columns:
                     density_cont = solid_density - \
-                        mass_abs_data['water.fluid']/volume_data['water.fluid']
+                        mass_abs_data['fluid']/volume_data['fluid']
                 else:
                     density_cont = 0
                 permeability2 = q_ti/(151000*365*24*60*60) * \
@@ -1829,11 +1830,11 @@ class ThorPT_plots():
         # Input for the variable of interest
         if val_tag is False:
             tag_in = input(
-                "Please provide what you want to convert to a stack. ['vol%', 'volume[ccm]', 'wt%', 'wt[g]']")
+                "Please provide what you want to convert to a stack. ['vol%', 'volume', 'wt%', 'wt']")
             tag = 'df_'+tag_in
         else:
             tag_in = val_tag
-            if val_tag in ['vol%', 'volume[ccm]', 'wt%', 'wt[g]']:
+            if val_tag in ['vol%', 'volume', 'wt%', 'wt']:
                 tag = 'df_'+tag_in
                 pass
             else:
@@ -2391,8 +2392,8 @@ class ThorPT_plots():
 
 
         # plot the water content of rock000 in ax4
-        if 'water.fluid' in self.rockdic['rock000'].phase_data['df_vol%'].columns:
-            water_fluid_content = self.rockdic['rock000'].phase_data['df_vol%']['water.fluid']
+        if 'fluid' in self.rockdic['rock000'].phase_data['df_vol%'].columns:
+            water_fluid_content = self.rockdic['rock000'].phase_data['df_vol%']['fluid']
             ax6.plot(ts, water_fluid_content,
                     '-', c='black', linewidth=2, markeredgecolor='black')
             # y axes for ax6 subplot with 10 ticks
@@ -2403,7 +2404,7 @@ class ThorPT_plots():
 
         # plot the water that is release from the least rock in rockdic.keys() in ax1
         top_rock_name = list(self.rockdic.keys())[-1]
-        if 'water.fluid' in self.rockdic[top_rock_name].phase_data['df_vol%'].columns:
+        if 'fluid' in self.rockdic[top_rock_name].phase_data['df_vol%'].columns:
             water_release = self.rockdic[top_rock_name].extracted_fluid_volume/1000000 # in m3
             # water release as cumulative sum
             water_release = np.cumsum(water_release)
@@ -2520,8 +2521,8 @@ class ThorPT_plots():
                     ax2.axhline(y=0, color='black', linestyle='-', linewidth=1.0, alpha=0.6)
 
         # plot the water content of rock000 in ax4
-        if 'water.fluid' in self.rockdic['rock000'].phase_data['df_vol%'].columns:
-            water_fluid_content = self.rockdic['rock000'].phase_data['df_vol%']['water.fluid']
+        if 'fluid' in self.rockdic['rock000'].phase_data['df_vol%'].columns:
+            water_fluid_content = self.rockdic['rock000'].phase_data['df_vol%']['fluid']
             ax6.plot(ts, water_fluid_content,
                     '-', c='black', linewidth=5, markeredgecolor='black')
             # y axes for ax6 subplot with 10 ticks
@@ -2532,7 +2533,7 @@ class ThorPT_plots():
 
         # plot the water that is release from the least rock in rockdic.keys() in ax1
         top_rock_name = list(self.rockdic.keys())[-1]
-        if 'water.fluid' in self.rockdic[top_rock_name].phase_data['df_vol%'].columns:
+        if 'fluid' in self.rockdic[top_rock_name].phase_data['df_vol%'].columns:
             water_release = self.rockdic[top_rock_name].extracted_fluid_volume/1000000 # in m3
             # water release as cumulative sum
             water_release = np.cumsum(water_release)
@@ -2549,7 +2550,7 @@ class ThorPT_plots():
         ax2.set_ylabel("Content [vol.%]", fontsize=16)
         ax6.set_ylabel("Content [vol.%]", fontsize=16)
 
-        
+
         """
         # Title each subplot
         ax1.set_title("Water release at top [$m^{3}$]", fontsize=16)
@@ -2801,13 +2802,20 @@ class ThorPT_plots():
             # create data frame of legend phases and color set
             color_phase_frame = pd.DataFrame(color_set, index=legend_phases)
             pt_position = i
+
+            # figure
             fig2, box_ax = plt.subplots(dpi=300)
-            color_position = legend_phases.index('Glaucophane')
-            box_ax.bar(x,glaucophane_content[pt_position],
-                    bottom=0,
-                    edgecolor='black', linewidth=0.5,
-                    color=color_set[color_position],
-                    label="Glaucophane")
+
+            # glaucophane section
+            if 'Glaucophane' in legend_phases:
+                color_position = legend_phases.index('Glaucophane')
+                box_ax.bar(x,glaucophane_content[pt_position],
+                        bottom=0,
+                        edgecolor='black', linewidth=0.5,
+                        color=color_set[color_position],
+                        label="Glaucophane")
+
+            # omphacite section
             if 'Omphacite' in legend_phases:
                 color_position = legend_phases.index('Omphacite')
             elif 'Clinopyroxene' in legend_phases:
@@ -2819,6 +2827,8 @@ class ThorPT_plots():
                     edgecolor='black', linewidth=0.5,
                     color=color_set[color_position],
                     label="Omphacite")
+
+            # garnet section
             color_position = legend_phases.index('Garnet')
             box_ax.bar(x,garnet_content[pt_position],
                     bottom=omphacite_content[pt_position]+glaucophane_content[pt_position],
@@ -3041,19 +3051,19 @@ if __name__ == '__main__':
         compPlot.lawsonite_surface(True)
 
     # Protocol for standard plotting (Stack, oxygen isotopes, release fluid volume)
-    standard_plots = False
+    standard_plots = True
     if standard_plots is True:
             for key in data.rock.keys():
                 print(key)
                 compPlot.phases_stack_plot(rock_tag=key, img_save=True,
-                            val_tag='volume[ccm]', transparent=True, fluid_porosity=True)
+                            val_tag='volume', transparent=True, fluid_porosity=True)
                 compPlot.oxygen_isotopes(rock_tag=key, img_save=True)
                 # compPlot.release_fluid_volume_plot(rock_tag=key, img_save=False)
 
             # compPlot.pt_path_plot(key, img_save=True, gif_save=True)
 
     # modelling for msg23 - internal redistribution of fluids in an outcrop
-    fluid_distribution_sgm23 = False
+    fluid_distribution_sgm23 = True
     if fluid_distribution_sgm23 is True:
         compPlot.fluid_distribution_sgm23(img_save=True, gif_save=True, x_axis_log=False)
 
@@ -3111,7 +3121,7 @@ if __name__ == '__main__':
             for key in data.rock.keys():
                 print(key)
                 compPlot.phases_stack_plot(rock_tag=key, img_save=True,
-                            val_tag='volume[ccm]', transparent=True, fluid_porosity=True)
+                            val_tag='volume', transparent=True, fluid_porosity=True)
 
                 #compPlot.boxplot_to_GIF(rock_tag='rock004', img_save=True, gif_save=True)
                 compPlot.time_int_flux_plot(rock_tag=key, img_save=True)

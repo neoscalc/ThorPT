@@ -248,9 +248,9 @@ def fluid_injection_isotope_recalculation(isotope_data, oxygen_data, input_delta
 def progress(percent=0, width=40):
     left = width * percent // 100
     right = width - left
-    tags = "#" * left
-    spaces = " " * right
-    percents = f"{percent:.0f}%"
+    tags = "#" * int(left)
+    spaces = " " * int(right)
+    percents = f"{percent:.1f}%"
     print("\r[", tags, spaces, "]", percents, sep="", end="", flush=True)
 
 @dataclass
@@ -368,7 +368,7 @@ class ThorPT_Routines():
                 print("v v v v v v v v v v v v v v v v v v v v v v v v")
                 print(f"-> Forward modeling step initiated - {item}")
                 # display modelling progress
-                ic = int(np.ceil(k/kk*100))
+                ic = k/kk*100
                 progress(ic)
                 print("\n")
                 print(master_rock[item]['new_bulk'])
@@ -378,7 +378,7 @@ class ThorPT_Routines():
                     master_rock[item]['database'], master_rock[item]['new_bulk'],
                     temperature, pressures[num], master_rock[item]['df_var_dictionary'],
                     master_rock[item]['df_h2o_content_dic'], master_rock[item]['df_element_total'],
-                    num)
+                    num, fluid_name_tag=master_rock[item]['database_fluid_name'])
 
             # //////////////////////////////////////////////////////////////////////////
 
@@ -618,9 +618,10 @@ class ThorPT_Routines():
             # lowest_permeability = 1e-20
             print(f"Testing systems with the failure model")
             for item in master_rock:
-                if 'water.fluid' in list(master_rock[item]['df_element_total'].columns):
+                fluid_name_tag = master_rock[item]['database_fluid_name']
+                if fluid_name_tag in list(master_rock[item]['df_element_total'].columns):
                     print("-> Fluid extraction test")
-                    master_rock[item]['fluid_hydrogen'] = master_rock[item]['df_element_total']['water.fluid']['H']
+                    master_rock[item]['fluid_hydrogen'] = master_rock[item]['df_element_total'][fluid_name_tag]['H']
 
                     # Prepare fluid extraction
                     # - last entry of st_fluid_after has last fluid volume (number when not extracted or zero when extracted)
@@ -636,7 +637,7 @@ class ThorPT_Routines():
                                         master_rock[item]['solid_volume_before'], master_rock[item]['solid_volume_new'],
                                         master_rock[item]['save_factor'], master_rock[item]['master_norm'][-1],
                                         master_rock[item]['minimization'].df_phase_data,
-                                        master_rock[item]['tensile strength'], subduction_angle=self.angle,
+                                        master_rock[item]['tensile strength'], fluid_name_tag=fluid_name_tag ,subduction_angle=self.angle,
                                         )
 
                     # //////////////////////////////////////////////////////////////////////////
@@ -645,6 +646,7 @@ class ThorPT_Routines():
                     # if condition = open system, free water gets extracted
                     fracturing_flag = False # Trigger by default False - active when coulomb module becomes positive
                     failure_mech = master_rock[item]['Extraction scheme']
+                    # SECTION selection for fluid release
                     if failure_mech in ['Factor', 'Dynamic', 'Steady', 'Mohr-Coulomb-Permea2', 'Mohr-Coulomb-Griffith']:
                     # if factor_method is True or dynamic_method is True or steady_method is True or coulomb is True or coulomb_permea is True or coulomb_permea2 is True:
 
@@ -652,9 +654,9 @@ class ThorPT_Routines():
                         mü_water = 1e-4
 
                         # water data
-                        v_water = float(master_rock[item]['df_var_dictionary']['df_volume[ccm]'].loc['water.fluid'][-1])
-                        d_water = float(master_rock[item]['df_var_dictionary']['df_density[g/ccm]'].loc['water.fluid'][-1])
-                        weigth_water = master_rock[item]['df_var_dictionary']['df_wt[g]'].iloc[:, -1]['water.fluid']
+                        v_water = float(master_rock[item]['df_var_dictionary']['df_volume[ccm]'].loc[fluid_name_tag][-1])
+                        d_water = float(master_rock[item]['df_var_dictionary']['df_density[g/ccm]'].loc[fluid_name_tag][-1])
+                        weigth_water = master_rock[item]['df_var_dictionary']['df_wt[g]'].iloc[:, -1][fluid_name_tag]
                         # system data
                         master_rock[item]['meta_grt_weight']
                         v_system = master_rock[item]['solid_volume_new'] + master_rock[item]['fluid_volume_new'] # modelling solid phases + metastable garnet + fluid
@@ -803,13 +805,14 @@ class ThorPT_Routines():
                             if fracturing_flag is True:
                                 print("Enter fluid extraction")
                                 master_rock[item]['fluid_extraction'] = Fluid_master(
-                                    phase_data=master_rock[item]['minimization'].df_phase_data.loc[:, 'water.fluid'],
+                                    phase_data=master_rock[item]['minimization'].df_phase_data.loc[:, fluid_name_tag],
                                     ext_data=master_rock[item]['extracted_fluid_data'],
                                     temperature=num+1,
                                     new_fluid_V=master_rock[item]['fluid_volume_new'],
                                     sys_H=master_rock[item]['total_hydrogen'],
                                     element_frame=master_rock[item]['df_element_total'],
-                                    st_fluid_post=master_rock[item]['st_fluid_after']
+                                    st_fluid_post=master_rock[item]['st_fluid_after'],
+                                    fluid_name_tag=fluid_name_tag
                                     )
                                 # print("Call extraction function")
                                 print(f"*** Extracting fluid from {item}")
@@ -857,7 +860,7 @@ class ThorPT_Routines():
 
             count += 1
             k += 1
-            ic = int(np.ceil(k/kk*100))
+            ic = k/kk*100
             print("=====Progress=====")
             progress(ic)
             print("\n")
@@ -1032,7 +1035,7 @@ class ThorPT_Routines():
                 print(f"Bulk rock composition checked. No error found")
                 print("\n")
                 # display modelling progress
-                ic = int(np.ceil(k/kk*100))
+                ic = k/kk*100
                 progress(ic)
                 print("\n")
                 # _____________________________________________________________________________
@@ -1052,7 +1055,7 @@ class ThorPT_Routines():
                 else:
                     master_rock[item]['master_norm'].append(np.sqrt(
                         (temperature-temperatures[num-1])**2 + (pressures[num]-pressures[num-1])**2))
-                
+
                 # //////////////////////////////////////////////////////////////////////////
                 # 1) Minimization
                 # Calculating and passing thermo data by theriak and theriak wrapper
@@ -1070,7 +1073,7 @@ class ThorPT_Routines():
                     master_rock[item]['g_sys'][-1])
                 rock_origin[item]['pot_data'] = copy.deepcopy(
                     master_rock[item]['pot_data'][-1])
-                
+
                 # //////////////////////////////////////////////////////////////////////////
                 # 2) Creating DataFrame structure for "df_var_dictionary" in first itteration
                 # LINK - 2) Setup dataframes
@@ -1094,7 +1097,7 @@ class ThorPT_Routines():
                 print("\n")
                 print("////// Energy minimization executed //////")
                 print("\n")
-                
+
                 # //////////////////////////////////////////////////////////////////////////
                 # multi-rock loop for updating data storage, MicaPotassium, SystemFluidTest, init oxygen-isotope module, mineral fractionation
                 # //////////////////////////////////////////////////////////////////////////
@@ -1509,7 +1512,7 @@ class ThorPT_Routines():
 
             count += 1
             k += 1
-            ic = int(np.ceil(k/kk*100))
+            ic = k/kk*100
             print("=====Progress=====")
             progress(ic)
             print("\n")
@@ -1546,6 +1549,9 @@ class ThorPT_Routines():
         # ------------------- Data reduction ----------------------
         # ---> Summarize time information
         for tt, item in enumerate(master_rock):
+            # read the fluid name from the database
+            fluid_name_tag = master_rock['rock000']['database_fluid_name']
+
             if pathfinder is True:
                 cum_time = np.array(track_time)
                 time_frame = pd.DataFrame({"Time steps": np.ones(
@@ -1598,11 +1604,11 @@ class ThorPT_Routines():
             master_rock[item]['all_oxy'].columns = line
 
             # ---> Test for multiple water assignments - origin in Database
-            if 'H2O.liq' in master_rock[item]['all_oxy'].index and 'water.fluid' in master_rock[item]['all_oxy'].index:
+            if 'H2O.liq' in master_rock[item]['all_oxy'].index and fluid_name_tag in master_rock[item]['all_oxy'].index:
                 water_1 = master_rock[item]['all_oxy'].loc['H2O.liq']
-                water_2 = master_rock[item]['all_oxy'].loc['water.fluid']
+                water_2 = master_rock[item]['all_oxy'].loc[fluid_name_tag]
                 water_2[water_2.isna()] = water_1[water_2.isna()]
-                master_rock[item]['all_oxy'].loc['water.fluid'] = water_2
+                master_rock[item]['all_oxy'].loc[fluid_name_tag] = water_2
                 master_rock[item]['all_oxy'] = master_rock[item]['all_oxy'].drop(
                     'H2O.liq', axis=0)
 
@@ -1673,13 +1679,22 @@ class ThorPT_Routines():
             ===============================\nCalculations fully passed\n====================\
                 ================================')
 
+        # universal name for the fluid phase in the databases
+        for rock in master_rock:
+            # replace "STEAM" in master_rock[rock]["phase_order"] with "fluid"
+            master_rock[rock]["phase_order"] = ["fluid" if x==master_rock[rock]["database_fluid_name"] else x for x in master_rock[rock]["phase_order"]]
+            master_rock[rock]["el_col"] = ["fluid" if x==master_rock[rock]["database_fluid_name"] else x for x in master_rock[rock]["el_col"]]
+            master_rock[rock]["oxy_data_phases"] = ["fluid" if x==master_rock[rock]["database_fluid_name"] else x for x in master_rock[rock]["oxy_data_phases"]]
+
+
+
         # //////////////////////////////////////////////////////////////////////////
         # ------------------- Data storing in hdf5----------------------
         no_go = ['minimization', 'model_oxygen',
                 'fluid_calculation', 'fluid_extraction', 'reactivity']
         meta_h5 = ['bulk', 'new_bulk', 'database',
-                'phase_order', 'el_index', 'el_col', 'pot_tag', 'oxy_data_phases']
-        h5_parameters = ['time_frame', 'cohesion', 'temperatures', 'pressures', 'convergence_speed', 'subuction_angle', 'geometry', 
+                'phase_order', 'el_index', 'el_col', 'pot_tag', 'oxy_data_phases', 'database_fluid_name']
+        h5_parameters = ['time_frame', 'cohesion', 'temperatures', 'pressures', 'convergence_speed', 'subuction_angle', 'geometry',
                          'shear', 'friction', 'tensile strength', 'Extraction scheme', 'depth', 'diff. stress', 'line']
         h5_oxygenisotope = ['all_oxy', 'save_oxygen', 'save_bulk_oxygen_pre', 'save_bulk_oxygen_post', 'bulk_oxygen',
                             'bulk_oxygen_after_influx', 'bulk_oxygen_before_influx']

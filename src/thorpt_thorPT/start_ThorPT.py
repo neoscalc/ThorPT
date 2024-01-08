@@ -13,6 +13,7 @@ import os
 # from thorpt_thorPT.valhalla.routines_ThorPT import *
 from valhalla.Pathfinder import *
 from valhalla.routines_ThorPT import *
+from valhalla.tunorrad import run_theriak as test_theriak
 from pathlib import Path
 import copy
 from dataclasses import dataclass
@@ -226,6 +227,24 @@ def run_routine():
         init_data['Oxygen'] = oxygen
         init_data['Extraction'] = extraction
 
+        if database[0] == "tc55.txt":
+            init_data['fluid_name_tag'] = "water.fluid"
+        elif database[0] == "JUN92hp.txt":
+            init_data['fluid_name_tag'] = "STEAM"
+        else:
+            print("\nFailure in assigning a fluid name tag to the init file. Please check the database name in the init file.")
+            time.sleep(5)
+            quit()
+
+        # test run for theriak
+        test_output = test_theriak(theriak, database[0], 500.0, 20000.0, whole_rock="SI(7.9)AL(2.9)FE(0.8)MN(0.0)MG(1.7)CA(1.8)NA(0.7)TI(0.1)K(0.03)H(100.0)C(0.0)O(?)O(0.0)    * CalculatedBulk")
+        if len(test_output) > 200:
+            print("Theriak test run passed. Theriak is ready to use.")
+        else:
+            print("Theriak test run failed. Please check the theriak path in the init file.")
+            time.sleep(5)
+            quit()
+
         if 'Min Permeability' in init_data.keys():
             pass
         else:
@@ -408,6 +427,7 @@ def run_routine():
             master_rock[tag]['fluid_hydrogen'] = []
             master_rock[tag]['fluid_oxygen'] = []
             master_rock[tag]['track_refolidv'] = []
+            master_rock[tag]['database_fluid_name'] = init_data['fluid_name_tag']
 
             # Isotope data
             master_rock[tag]['save_oxygen'] = []

@@ -48,5 +48,3 @@ Talc	TALC
 Titanite	sphene
 Turmaline	turmaline
 Zircon	zircon
-Zoisite	zoisite
-Zoisite	clinozoisite
