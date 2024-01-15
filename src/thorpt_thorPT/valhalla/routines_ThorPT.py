@@ -63,11 +63,11 @@ def whole_rock_convert_3(ready_mol_bulk=0):
     test = ready_mol_bulk * \
         pd.DataFrame(oxy_frame, oxy_frame.keys()).iloc[0, :]
     oxy_diff = ready_mol_bulk['O'] - test.sum()
-    if oxy_diff < 0.001:
+    if oxy_diff < 0.01 and oxy_diff > 0.0:
         simple_iron = test.sum()
     else:
         simple_iron = ready_mol_bulk['O']
-    simple_iron = np.round(simple_iron, 4)
+    # simple_iron = np.round(simple_iron, 7)
     # plt.plot(temperature, oxy_diff, '^r')
     # print(f"{ready_mol_bulk['O'] } - {test.sum()} = {oxy_diff}")
 
@@ -85,7 +85,7 @@ def whole_rock_convert_3(ready_mol_bulk=0):
         else:
             scan_element.append(el)
             val = bulk.loc[el]
-            scan_val.append(np.round(val, 4))
+            scan_val.append(np.round(val, 6))
             new_bulk1.append(scan_element[-1]+'('+str(scan_val[-1])+')')
     new_bulk = ''.join(new_bulk1) + "    " + "*theriak-out preprocessed bulk"
 

@@ -623,6 +623,7 @@ class CompiledData:
     all_phases2: any
     all_database: any
     all_porosity: any
+    all_extraction_boolean: any
 
 
 # HDF5 reader
@@ -659,6 +660,7 @@ class ThorPT_hdf5_reader():
         all_database = []
         all_td_data = []
         all_porosity = []
+        all_extraction_boolean = []
         garnets = {}
         sysv = {}
         sysv_post = {}
@@ -914,6 +916,7 @@ class ThorPT_hdf5_reader():
                 all_database.append(database)
                 all_td_data.append(td_data)
                 all_porosity.append(unfiltered_porosity)
+                all_extraction_boolean.append(extraction_boolean)
 
                 self.compiledrock = CompiledData(
                     all_ps,
@@ -935,7 +938,8 @@ class ThorPT_hdf5_reader():
                     all_phases,
                     all_phases2,
                     all_database,
-                    all_porosity)
+                    all_porosity,
+                    all_extraction_boolean)
 
 
 # Module of plotting functions for reducing the data from modelling with ThorPT
@@ -1880,7 +1884,8 @@ class ThorPT_plots():
 
         # "Serp_Atg', 'Br_Br', 'Olivine', 'Chlorite', 'Magnetite', 'Water"
         # color_set = ["#91D7EA", "#DB7012", "#4E459B", "#B32026", "#FAEA64", "#2E83D0"]
-        # color_set = ["#91D7EA", "#DB7012", "#FAEA64", "#4E459B", "#E724C5",  "#969696", "#2E83D0"]
+        # color_set = ["#91D7EA", "#DB7012", "#4E459B", "#2E83D0",  "#FAEA64", "#2E83D0"]
+        # color_set = ["#91D7EA", "#DB7012", "#4E459B", "#B32026", "#2E83D0", "#B32026", "#FAEA64", "#2E83D0"]
         # plt.rcParams['font.family'] = 'sans-serif'
 
         # add metastable garnet to the dataframe
@@ -2246,7 +2251,8 @@ class ThorPT_plots():
 
         # manual colorset for the plot
         # "Serp_Atg', 'Br_Br', 'Olivine', 'Chlorite', 'Magnetite', 'Water"
-        # color_set = ["#91D7EA", "#DB7012", "#4E459B", "#B32026", "#FAEA64", "#2E83D0"]
+        # color_set = ["#91D7EA", "#DB7012", "#4E459B", "#2E83D0",  "#FAEA64", "#2E83D0"]
+        # color_set = ["#91D7EA", "#DB7012", "#4E459B", "#B32026", "#2E83D0", "#B32026", "#FAEA64", "#2E83D0"]
         # color_set = ["#91D7EA", "#DB7012", "#FAEA64", "#2E83D0", "#4E459B", "#E724C5",  "#969696"]
         # plt.rcParams['font.family'] = 'arial'
         fig, ax211 = plt.subplots(1, 1, figsize=(8, 5))
@@ -3051,19 +3057,19 @@ if __name__ == '__main__':
         compPlot.lawsonite_surface(True)
 
     # Protocol for standard plotting (Stack, oxygen isotopes, release fluid volume)
-    standard_plots = True
+    standard_plots = False
     if standard_plots is True:
             for key in data.rock.keys():
                 print(key)
                 compPlot.phases_stack_plot(rock_tag=key, img_save=True,
                             val_tag='volume', transparent=True, fluid_porosity=True)
-                compPlot.oxygen_isotopes(rock_tag=key, img_save=True)
+                # compPlot.oxygen_isotopes(rock_tag=key, img_save=True)
                 # compPlot.release_fluid_volume_plot(rock_tag=key, img_save=False)
 
             # compPlot.pt_path_plot(key, img_save=True, gif_save=True)
 
     # modelling for msg23 - internal redistribution of fluids in an outcrop
-    fluid_distribution_sgm23 = True
+    fluid_distribution_sgm23 = False
     if fluid_distribution_sgm23 is True:
         compPlot.fluid_distribution_sgm23(img_save=True, gif_save=True, x_axis_log=False)
 
@@ -3181,6 +3187,42 @@ if __name__ == '__main__':
         x = x[frac>0]
         plt.plot(x,y, 'd')"""
 
+    def sensitivity_compared_porosity_plot(porosity_data, all_boolean, ts, ps, num_list_of_keys):
+        all_porosity = np.array(porosity_data)
+        all_porosity = all_porosity*100
+        color_palette = sns.color_palette("Reds")
+
+        # plot the porosity of each rock in the model vs the first rock in the model
+        for item in num_list_of_keys:
+
+            plt.figure(101, dpi=100)
+            # figure with aspect ratio of 1:1
+            # plt.gca().set_aspect('equal', adjustable='box')
+            plt.rc('axes', labelsize=16)
+            plt.rc('ytick', labelsize=12)  # fontsize of the y tick labels
+            plt.rc('xtick', labelsize=12)  # fontsize of the x tick labels
+
+            x = np.ma.masked_array(all_porosity[item], mask=all_boolean[item])
+            y = np.ma.masked_array(all_porosity[0], mask=all_boolean[item])
+
+            # scatter plot with color palette ranging from blue to red depending on the temperature value
+            connect = plt.plot(all_porosity[item], all_porosity[0], '--', c='black')
+            result = plt.scatter(all_porosity[item], all_porosity[0], s= 100, edgecolor='black', c=ts, cmap='Reds')
+            plt.scatter(x, y, marker='x', color='black', s=40)
+            plt.plot(all_porosity[0], all_porosity[0], color="black", linestyle='--', linewidth=1.0, alpha=0.6)
+            plt.xlim([0, np.round(np.max(all_porosity))])
+            plt.ylim([0, np.round(np.max(all_porosity[0]))+1])
+            plt.xlabel("Fluid-filled porosity [Vol.%]")
+            plt.ylabel("Fluid-filled porosity\n continous release")
+            plt.tight_layout()
+            plt.colorbar(result)
+
+            subfolder = 'sensitivity'
+            os.makedirs(f'{data.mainfolder}/img_{data.filename}/{subfolder}', exist_ok=True)
+            plt.savefig(f'{data.mainfolder}/img_{data.filename}/{subfolder}/rock_{item}_prosity_sensitivity.png',
+                                transparent=True)
+            plt.close()
+
     # Multiple file option for comparing
     # Read variables from a hdf5 output file from ThorPT
     multi_file_routine = True
@@ -3197,9 +3239,16 @@ if __name__ == '__main__':
 
         print("The 'data.rock[key]' keys are:")
 
+        # read temperature and pressure
+        ts = data_box[0].rock['rock000'].temperature
+        ps = data_box[0].rock['rock000'].pressure
+
         # read all porosity values for each rock in the model
         all_porosity = np.array(data_box[0].compiledrock.all_porosity)
+        all_porosity = all_porosity*100
 
+        # extraction boolean list
+        all_boolean = np.array(data_box[0].compiledrock.all_extraction_boolean)
         color_palette = sns.color_palette("viridis", len(all_porosity.T))
 
         plt.figure(101, figsize=(6,6))
@@ -3215,6 +3264,13 @@ if __name__ == '__main__':
         plt.xlabel("Fluid-filled porosity [Vol.%]")
         plt.ylabel("Fluid filled porosity\n continous release")
         plt.show()
+
+        # sensitivity plot function call
+        sensitivity_compared_porosity_plot(
+            porosity_data=data_box[0].compiledrock.all_porosity, all_boolean=all_boolean, ts=ts, ps=ps,
+            num_list_of_keys=[6, 7, 8, 9, 10]
+            )
+
 
         plt.figure(102)
         plt.rc('axes', labelsize=16)
@@ -3261,7 +3317,8 @@ if __name__ == '__main__':
             track_diff.append(diff)
             # track_shear.append()
             track_num_ext.append(num_ext)
-        plt.plot(track_diff, track_num_ext, 'd-')
+        plt.plot(track_diff[1:], track_num_ext[1:], 'd--', color = 'black')
+        plt.xlim([0, 220])
         plt.ylabel("# of extractions")
         plt.xlabel("Differential stress [$\it{MPa}$]")
 

@@ -227,7 +227,7 @@ def run_routine():
         init_data['Oxygen'] = oxygen
         init_data['Extraction'] = extraction
 
-        if database[0] == "tc55.txt":
+        if database[0] == "tc55.txt" or database[0] == "tc55_Serp.txt":
             init_data['fluid_name_tag'] = "water.fluid"
         elif database[0] == "JUN92hp.txt":
             init_data['fluid_name_tag'] = "STEAM"

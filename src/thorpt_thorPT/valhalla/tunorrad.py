@@ -1783,20 +1783,25 @@ class Ext_method_master:
         # 50 for y axis intercept: large depth with 200MPa < normal stress < 2000 MPa
         # slope of 0.6
         # LINK Mohr-Coulomb slope for failure
-        cohesion = cohesion
+        cohesion = 2* self.tensile_strength
         internal_friction = friction
 
-        # REVIEW - static fix to 45°
+        # REVIEW - static fix to 27° for the optimal angle of failure after Cox 2010 and Sibson 2000
         # 45 degree gives that diff stress is two time shear stress (and not more)
-        self.angle = 27
-
+        self.angle = 26.6
+        theta = self.angle*np.pi/180
         # #########################################
         # New method 16.02.2023 - brittle shear failure - Cox et al. 2010
         # define: lithostatic pressure, differential stress, sigma1, sigma3, normal stress
         litho = self.pressure/10 # convert Bar to MPa
 
+        # NOTE - input of shear stress is deactivated, direct input of differential stress (15.01.2024)
+        # differential stress is taken as 2*shear stress - fix before proper diff stress input from input file
+        self.diff_stress = 2*shear_stress
+        """
         # differential stress from shear stress input, recasted after Cox et al. 2010
-        self.diff_stress = 2*shear_stress/np.sin(2*self.angle*np.pi/180)
+        # 45 degree gives that diff stress is two time shear stress (and not more)
+        self.diff_stress = 2*shear_stress/np.sin(2*theta)"""
 
         # NOTE - setting lithostatic pressure for sig1
         # sigma 1 or sigma 3, it defines the stress regime
@@ -1807,7 +1812,7 @@ class Ext_method_master:
         # Normal stress of the system defined after Cox et al 2010
         # normal stress after Cox et al. 2010
         # normal stress = lithostatic when theta is 90°
-        normal_stress = ((sig1+sig3)/2) - ((sig1-sig3)/2) * np.cos(2*self.angle*np.pi/180)
+        normal_stress = ((sig1+sig3)/2) - ((sig1-sig3)/2) * np.cos(2*theta)
 
         # #########################################
         # Fluid pressure
@@ -1816,7 +1821,7 @@ class Ext_method_master:
         vol_new = self.solid_t1 + self.fluid_t1
         # Fluid pressure calculation
         # Duesterhoft 2019 method
-        hydro = normal_stress + normal_stress/vol_t0 * (vol_t0-(vol_new-vol_t0))-normal_stress
+        hydro = normal_stress + normal_stress/vol_t0 * (vol_t0+(vol_new-vol_t0))-normal_stress
 
         # Mohr circle arguments
         r = self.diff_stress/2      # radius of the circle
@@ -1830,7 +1835,7 @@ class Ext_method_master:
 
         # Critical fluid pressures
         crit_fluid_pressure = cohesion/internal_friction + ((sig1+sig3)/2) - (
-                (sig1-sig3)/2)*np.cos(2*self.angle*np.pi/180) - ((sig1-sig3)/2/internal_friction)*np.sin(2*self.angle*np.pi/180)
+                (sig1-sig3)/2)*np.cos(2*theta) - ((sig1-sig3)/2/internal_friction)*np.sin(2*theta)
         pf_crit_griffith = (8*self.tensile_strength*(sig1+sig3)-((sig1-sig3)**2))/(16*self.tensile_strength)
 
         # ##########################################
@@ -1857,7 +1862,7 @@ class Ext_method_master:
         elif self.diff_stress < self.tensile_strength*5.66 and self.diff_stress > 4*self.tensile_strength:
             print("Extensional shear failure test")
             print(f"Diff.-stress is {self.diff_stress} and < than T*5.66 and > T*4")
-            output, minimum = checkCollision_curve(pos=pos, diff=self.diff_stress, tensile=cohesion/2)
+            output, minimum = checkCollision_curve(pos=pos, diff=self.diff_stress, tensile=self.tensile_strength)
             print(f"Maximum differential stress calculated as {minimum*2} MPa, but is {self.diff_stress}.")
             print(f"Difference of fluid pressure and critical fluid pressure is:\n{pf_crit_griffith-hydro} (Pf_crit - Pf)")
 
@@ -1907,7 +1912,8 @@ class Ext_method_master:
             "sigma 1":copy.deepcopy(sig1),
             "sigma 3":copy.deepcopy(sig3),
             "angle": copy.deepcopy(self.angle),
-            "fracture key": copy.deepcopy(self.frac_respo)
+            "fracture key": copy.deepcopy(self.frac_respo),
+            "tensile strength": copy.deepcopy(self.tensile_strength)
             }
 
         if self.frac_respo > 0:
