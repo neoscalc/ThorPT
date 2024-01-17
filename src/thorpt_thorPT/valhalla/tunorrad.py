@@ -1788,7 +1788,9 @@ class Ext_method_master:
 
         # REVIEW - static fix to 27° for the optimal angle of failure after Cox 2010 and Sibson 2000
         # 45 degree gives that diff stress is two time shear stress (and not more)
-        self.angle = 26.6
+        # friction of 0.75 gives ~26.6°
+        self.angle = np.round(0.5 * np.arctan(1/internal_friction) *180/np.pi,1)
+
         theta = self.angle*np.pi/180
         # #########################################
         # New method 16.02.2023 - brittle shear failure - Cox et al. 2010
@@ -1841,6 +1843,42 @@ class Ext_method_master:
         # ##########################################
         # Failure envelope test
         if self.diff_stress >= self.tensile_strength*5.66:
+
+            # NOTE - reevaluate sig1 and sig3 for compressive regime case
+            # sigma 1 or sigma 3, it defines the stress regime
+            sig3 = litho
+            sig1 = litho + self.diff_stress
+
+            # #########################################
+            # Normal stress of the system defined after Cox et al 2010
+            # normal stress after Cox et al. 2010
+            # normal stress = lithostatic when theta is 90°
+            normal_stress = ((sig1+sig3)/2) - ((sig1-sig3)/2) * np.cos(2*theta)
+
+            # #########################################
+            # Fluid pressure
+            # get system conditions at present step and previous step
+            vol_t0 = self.solid_t0 + self.fluid_t0
+            vol_new = self.solid_t1 + self.fluid_t1
+            # Fluid pressure calculation
+            # Duesterhoft 2019 method
+            hydro = normal_stress + normal_stress/vol_t0 * (vol_t0+(vol_new-vol_t0))-normal_stress
+
+            # Mohr circle arguments
+            r = self.diff_stress/2      # radius of the circle
+            center = sig1-r             # centre of the cricel
+            pos = center - hydro        # position shift of centre due to fluid pressure
+
+            # Coulomb failure envelope
+            a = -1
+            b = 1/internal_friction
+            c = -cohesion/internal_friction
+
+            # Critical fluid pressures
+            crit_fluid_pressure = cohesion/internal_friction + ((sig1+sig3)/2) - (
+                    (sig1-sig3)/2)*np.cos(2*theta) - ((sig1-sig3)/2/internal_friction)*np.sin(2*theta)
+            pf_crit_griffith = (8*self.tensile_strength*(sig1+sig3)-((sig1-sig3)**2))/(16*self.tensile_strength)
+
             print("Compressive shear failure test")
             print(f"Diff.-stress is {self.diff_stress} and > than T*5.66")
 

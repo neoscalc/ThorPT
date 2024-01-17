@@ -624,6 +624,7 @@ class CompiledData:
     all_database: any
     all_porosity: any
     all_extraction_boolean: any
+    all_fluid_pressure: any
 
 
 # HDF5 reader
@@ -661,6 +662,7 @@ class ThorPT_hdf5_reader():
         all_td_data = []
         all_porosity = []
         all_extraction_boolean = []
+        all_fluid_pressure = []
         garnets = {}
         sysv = {}
         sysv_post = {}
@@ -691,6 +693,9 @@ class ThorPT_hdf5_reader():
                 vtime = vtime.T
                 extr_time = np.array(f[group_key]['FluidData']['extr_time'])
                 frac_bool = np.array(f[group_key]['MechanicsData']['fracture bool'])
+                failure_module_data = pd.DataFrame(f[group_key]['failure module'])
+                failure_module_data_col = list(f[group_key]['failure module'].attrs['header'])
+                failure_module_data.columns = failure_module_data_col
                 depth = np.array(f[group_key]['Parameters']['depth'])
                 geometry = list(f[group_key]['Parameters']['geometry'].asstr())
 
@@ -710,6 +715,7 @@ class ThorPT_hdf5_reader():
                 # Fluid extraction
                 extr_d = pd.DataFrame(f[group_key]['FluidData']['extracted_fluid_data'])
                 fluid_before = np.array(f[group_key]['MechanicsData']['st_fluid_before'])
+                fluid_pressure = failure_module_data['fluid pressure']
 
                 # get some physics arrays
                 sys_physc = {}
@@ -917,6 +923,7 @@ class ThorPT_hdf5_reader():
                 all_td_data.append(td_data)
                 all_porosity.append(unfiltered_porosity)
                 all_extraction_boolean.append(extraction_boolean)
+                all_fluid_pressure.append(fluid_pressure)
 
                 self.compiledrock = CompiledData(
                     all_ps,
@@ -939,7 +946,8 @@ class ThorPT_hdf5_reader():
                     all_phases2,
                     all_database,
                     all_porosity,
-                    all_extraction_boolean)
+                    all_extraction_boolean,
+                    all_fluid_pressure)
 
 
 # Module of plotting functions for reducing the data from modelling with ThorPT
@@ -2997,58 +3005,6 @@ if __name__ == '__main__':
     compPlot = ThorPT_plots(
         data.filename, data.mainfolder, data.rock, data.compiledrock)
 
-    """
-    track_diff = []
-    track_shear = []
-    track_num_ext = []
-    for i, item in enumerate(data.compiledrock.all_diffs):
-        diff = np.unique(item)[-1]
-        fracture_bool = data.compiledrock.all_frac_bool[i]
-        num_ext = len(fracture_bool[fracture_bool>0])
-        track_diff.append(diff)
-        # track_shear.append()
-        track_num_ext.append(num_ext)
-
-
-    for i, item in enumerate(data.rock.keys()):
-        # y = data.compiledrock.all_depth[i]/1000
-        y = data.compiledrock.all_ps[i]
-        x = data.compiledrock.all_porosity[i]*100
-        x[x==0] = np.nan
-
-        plt.plot(x,y,'d')
-        plt.ylabel("Depth [km]")
-        plt.xlabel("Fluid-filled porosity [Vol.%]")
-        plt.ylim(100, 0)
-
-        num_rocks = 3
-        step = int(len(data.compiledrock.all_porosity)/num_rocks)
-        for i in range(num_rocks):
-            x = np.concatenate(data.compiledrock.all_porosity[step*i:step*(i+1)])*100
-            y = np.concatenate(data.compiledrock.all_ps[step*i:step*(i+1)])
-            plt.plot(x,y, 'd')
-        plt.xscale('log')
-        plt.legend(['Basalt', 'Sediment', 'Serpentinite'])
-
-        from matplotlib import colors
-        i = 0
-        dist1 = np.concatenate(data.compiledrock.all_porosity[step*i:step*(i+1)])*100
-        dist2 = np.concatenate(data.compiledrock.all_ps[step*i:step*(i+1)])
-        fig, ax = plt.subplots(tight_layout=True)
-        hist = ax.hist2d(dist1, dist2, bins=128, norm=colors.LogNorm())
-
-    for i, item in enumerate(data.rock.keys()):
-        y = data.compiledrock.all_depth[i]/1000
-        fracture_bool = data.compiledrock.all_frac_bool[i]
-        num_ext = len(fracture_bool[fracture_bool>0])
-        # plt.plot(num_ext,y,'d')"""
-
-
-    """
-    plt.plot(track_diff, track_num_ext, 'd-')
-    plt.ylabel("# of extractions")
-    plt.xlabel("Differential stress [$\it{MPa}$]")
-    """
 
     # Protocol for lawsonite surface plot
     lawsonite_surface = False
@@ -3249,7 +3205,20 @@ if __name__ == '__main__':
 
         # extraction boolean list
         all_boolean = np.array(data_box[0].compiledrock.all_extraction_boolean)
-        color_palette = sns.color_palette("viridis", len(all_porosity.T))
+        color_palette = sns.color_palette("viridis", len(all_porosity))
+
+        """# fluid pressure test
+        all_pf = np.array(data.compiledrock.all_fluid_pressure)
+        for i in range(len(all_pf)):
+            plt.plot(all_pf[i]/ps, ps, 'd')"""
+
+        """
+        fluid filled porosity test all rocks
+        for i in range(len(all_porosity)):
+            arry = np.ma.masked(all_porosity[i], np.invert(all_boolean[i]))
+
+        for i in range(len(all_porosity[:9])):
+            plt.plot(ts, all_porosity[i], 'd--')"""
 
         plt.figure(101, figsize=(6,6))
         # figure with aspect ratio of 1:1
@@ -3266,10 +3235,10 @@ if __name__ == '__main__':
         plt.show()
 
         # sensitivity plot function call
-        sensitivity_compared_porosity_plot(
-            porosity_data=data_box[0].compiledrock.all_porosity, all_boolean=all_boolean, ts=ts, ps=ps,
-            num_list_of_keys=[6, 7, 8, 9, 10]
-            )
+        # sensitivity_compared_porosity_plot(
+        #     porosity_data=data_box[0].compiledrock.all_porosity, all_boolean=all_boolean, ts=ts, ps=ps,
+        #     num_list_of_keys=[6, 7, 8, 9, 10]
+        #     )
 
 
         plt.figure(102)
@@ -3307,6 +3276,7 @@ if __name__ == '__main__':
         plt.show()
 
         # number of extraction vs differential stress
+        # plotting for one rock with changing diff.stress
         track_diff = []
         track_shear = []
         track_num_ext = []
@@ -3318,9 +3288,82 @@ if __name__ == '__main__':
             # track_shear.append()
             track_num_ext.append(num_ext)
         plt.plot(track_diff[1:], track_num_ext[1:], 'd--', color = 'black')
-        plt.xlim([0, 220])
+        plt.xlim([0, 270])
         plt.ylabel("# of extractions")
         plt.xlabel("Differential stress [$\it{MPa}$]")
+
+        # ################################################################################################
+        # number of extraction vs differential stress
+        # plotting for multiple rock of different tensile strength with changing diff.stress
+        track_diff = []
+        track_shear = []
+        track_num_ext = []
+        track_tensile = []
+        color_palette = ['black', '#bb4430', '#7ebdc2', '#f3dfa2', '#c7d66d', '#ffabc8', '#003049', '#ee6c4d']
+        track_legend = []
+        # prepare plot
+        plt.figure(104, dpi=150)
+
+        # collecting differential stress, extraction number and tensile strength for all rocks
+        for i, item in enumerate(data.compiledrock.all_diffs):
+            diff = np.unique(item)[-1]
+            fracture_bool = data.compiledrock.all_frac_bool[i]
+            num_ext = len(fracture_bool[fracture_bool>0])
+            track_diff.append(diff)
+            # track_shear.append()
+            track_num_ext.append(num_ext)
+            # tracking used tensile strength
+            track_tensile.append(data.compiledrock.all_tensile[i])
+
+        # loop to mask array for plotting
+        tensile_rock_loop = False
+        bulk_rock_loop = True
+
+        if tensile_rock_loop is True:
+            for i, item in enumerate(np.unique(track_tensile)):
+                if i == 0:
+                    pass
+                else:
+                    # select boolean array for tensile value and invert
+                    bool_mask = np.array(track_tensile) == item
+                    bool_mask = np.invert(bool_mask)
+                    x = np.ma.masked_array(track_diff[1:], mask=bool_mask[1:])
+                    y = np.ma.masked_array(track_num_ext[1:], mask=bool_mask[1:])
+                    plt.plot(x, y, 'd--', color = color_palette[i], markeredgecolor='black', markersize=10)
+                    track_legend.append(item)
+
+        if bulk_rock_loop is True:
+            # boolean array with length of data.compiledrock.all_diffs and True values at 1:10
+            boolean_bulk1 = np.array([True if i < 9 else False for i in range(len(data.compiledrock.all_diffs))])
+            boolean_bulk1 = np.invert(boolean_bulk1)
+            # boolean array with length of data.compiledrock.all_diffs and True values at 11:20
+            boolean_bulk2 = np.array([True if i >= 9 and i < 18 else False for i in range(len(data.compiledrock.all_diffs))])
+            boolean_bulk2 = np.invert(boolean_bulk2)
+            # boolean array with length of data.compiledrock.all_diffs and True values at 21:30
+            boolean_bulk3 = np.array([True if i >= 18 and i < 27 else False for i in range(len(data.compiledrock.all_diffs))])
+            boolean_bulk3 = np.invert(boolean_bulk3)
+
+            boolean_bulk4 = np.array([True if i >= 27 and i < 36 else False for i in range(len(data.compiledrock.all_diffs))])
+            boolean_bulk4 = np.invert(boolean_bulk4)
+
+            boolean_bulk5 = np.array([True if i >= 36 and i < 45 else False for i in range(len(data.compiledrock.all_diffs))])
+            boolean_bulk5 = np.invert(boolean_bulk5)
+
+            boolean_bulk6 = np.array([True if i >= 45 and i < 54 else False for i in range(len(data.compiledrock.all_diffs))])
+            boolean_bulk6 = np.invert(boolean_bulk6)
+
+            for i, item in enumerate([boolean_bulk1, boolean_bulk2, boolean_bulk3, boolean_bulk4, boolean_bulk5, boolean_bulk6]):
+                print(item)
+                x = np.ma.masked_array(track_diff[1:], mask=item[1:])
+                y = np.ma.masked_array(track_num_ext[1:], mask=item[1:])
+                plt.plot(x, y, 'd--', color = color_palette[i+1], markeredgecolor='black', markersize=10)
+                track_legend.append("rock0"+str(i+1))
+
+        plt.ylabel("# of extractions")
+        plt.xlabel("Differential stress [$\it{MPa}$]")
+        plt.legend(track_legend, title="Rock bulk")
+
+        # ################################################################################################
 
         # get colour for each value in track_diff depending on the float value
         color_palette = sns.color_palette("viridis", int(max(track_diff)))
