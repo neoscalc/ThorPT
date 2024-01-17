@@ -1807,8 +1807,8 @@ class Ext_method_master:
 
         # NOTE - setting lithostatic pressure for sig1
         # sigma 1 or sigma 3, it defines the stress regime
-        sig1 = litho
-        sig3 = litho - self.diff_stress
+        sig3 = litho
+        sig1 = litho + self.diff_stress
 
         # #########################################
         # Normal stress of the system defined after Cox et al 2010
