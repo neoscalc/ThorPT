@@ -1789,6 +1789,7 @@ class ThorPT_Routines():
                                 hf.create_dataset(f"{rock}/{item}", data=dataframe_fracture_module)
                                 hf[f"{rock}/{item}"].attrs.create('header', item_list)
 
+                                break 
 
                     elif item == 'garnet':
                         tts = []
