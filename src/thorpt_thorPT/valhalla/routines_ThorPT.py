@@ -619,7 +619,7 @@ class ThorPT_Routines():
             # Checking if free fluid is present. Stores this value, initializes
             # lowest_permeability = 1e-20
             print(f"Testing systems with the failure model")
-            for item in master_rock:
+            for jjj, item in enumerate(master_rock):
                 fluid_name_tag = master_rock[item]['database_fluid_name']
                 if fluid_name_tag in list(master_rock[item]['df_element_total'].columns):
                     print("-> Fluid extraction test")
@@ -639,7 +639,10 @@ class ThorPT_Routines():
                                         master_rock[item]['solid_volume_before'], master_rock[item]['solid_volume_new'],
                                         master_rock[item]['save_factor'], master_rock[item]['master_norm'][-1],
                                         master_rock[item]['minimization'].df_phase_data,
-                                        master_rock[item]['tensile strength'], fluid_name_tag=fluid_name_tag ,subduction_angle=self.angle,
+                                        master_rock[item]['tensile strength'],
+                                        differential_stress= master_rock[item]['diff. stress'],
+                                        friction= master_rock[item]['friction'],
+                                        fluid_name_tag=fluid_name_tag ,subduction_angle=self.angle,
                                         )
 
                     # //////////////////////////////////////////////////////////////////////////
@@ -751,11 +754,13 @@ class ThorPT_Routines():
                                 )
                         elif failure_mech == 'Mohr-Coulomb-Griffith':
                             print("\t===== Mohr-Coulomb-Griffith method active =====")
-                            master_rock[item]['fluid_calculation'].mohr_cloulomb_griffith(
-                                shear_stress=master_rock[item]['shear'],
-                                friction=master_rock[item]['friction'],
-                                cohesion=master_rock[item]['cohesion']
-                            )
+                            #test if differntial stress is in master_rock[item] keys
+                            if 'diff. stress' in master_rock[item].keys():
+                                master_rock[item]['fluid_calculation'].mohr_cloulomb_griffith()
+                            else:
+                                master_rock[item]['fluid_calculation'].mohr_cloulomb_griffith(
+                                    shear_stress=master_rock[item]['shear']
+                                )
 
                             master_rock[item]['failure module'].append(
                                 master_rock[item]['fluid_calculation'].failure_dictionary)
@@ -780,9 +785,9 @@ class ThorPT_Routines():
 
                         if failure_mech in ['Factor', 'Dynamic', 'Steady', 'Mohr-Coulomb-Permea2', 'Mohr-Coulomb-Griffith']:
 
-                            # store the differential stresses
+                            """# store the differential stresses
                             master_rock[item]['diff. stress'].append(
-                                master_rock[item]['fluid_calculation'].diff_stress)
+                                master_rock[item]['fluid_calculation'].diff_stress)"""
 
                             # store a bool index for the type of fracturing
                             master_rock[item]['fracture bool'].append(
@@ -801,7 +806,7 @@ class ThorPT_Routines():
                             # Fluid Extraction when the modules before give true fracturing
                             # checking with the mohr-coloumb model and decision for fracturing or not
 
-                            if fracturing_flag is True and v_permea > lowest_permeability:
+                            if fracturing_flag is True and v_permea > lowest_permeability[jjj]:
                                 print("!!! Below minimum permeability!")
                             # # FIXME modified extraction criteria - minimum permeability is never reached 06.03.2023
                             if fracturing_flag is True:
@@ -847,7 +852,7 @@ class ThorPT_Routines():
 
                 else:
                     master_rock[item]['save_factor'].append(0)
-                    master_rock[item]['diff. stress'].append(0)
+                    # master_rock[item]['diff. stress'].append(0)
                     master_rock[item]['fracture bool'].append(0)
                     master_rock[item]['live_fluid-flux'].append(np.nan)
                     master_rock[item]['live_permeability'].append(np.nan)
@@ -1567,7 +1572,7 @@ class ThorPT_Routines():
                 time_frame = pd.DataFrame(
                     {"Time steps": track_time, "Cum Time": cum_time})
 
-            shear_stress = master_rock[item]['shear']
+            # shear_stress = master_rock[item]['shear']
             # ---> Initializing module to format data
             # Chronological dataframe (IMPORTANT for prograde + retrograde)
 
@@ -1732,9 +1737,6 @@ class ThorPT_Routines():
             else:
                 hf.attrs.create("bulk_grid", False)
 
-            hf.attrs.create("Fixed diff. stress", shear_stress)
-            hf.attrs.create("Minimum permeability", lowest_permeability)
-
             for rock in master_rock:
                 entries = list(master_rock[rock].keys())
                 hf.create_dataset(f"{rock}/Parameters/temperatures", data=temperatures)
@@ -1782,10 +1784,11 @@ class ThorPT_Routines():
                                             stored.append(element[kkey])
                                     dataframe_fracture_module[kkey] = stored
 
-                                dataset = hf.create_dataset(f"{rock}/{item}", data=dataframe_fracture_module)
+                                # save dataframe_fracture_module to hdf5 in rock/item
+                                # dataframe_fracture_module.to_hdf(f_path, f"{rock}/{item}/failure module", mode='a', append=True)
+                                hf.create_dataset(f"{rock}/failure module", data=dataframe_fracture_module)
                                 hf[f"{rock}/{item}"].attrs.create('header', item_list)
 
-                                break
 
                     elif item == 'garnet':
                         tts = []

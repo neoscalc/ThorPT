@@ -1385,7 +1385,7 @@ class Ext_method_master:
             fluid_volume_before, fluid_volume_new,
             solid_volume_before, solid_volume_new,
             save_factor, master_norm, phase_data,
-            tensile_s, subduction_angle, fluid_name_tag, rock_item_tag=0):
+            tensile_s, differential_stress, friction, subduction_angle, fluid_name_tag, rock_item_tag=0):
         """
         Initialize all the values and data necessary for calculations
 
@@ -1414,7 +1414,8 @@ class Ext_method_master:
         self.shear_stress = 0
         self.frac_respo = 0
         self.angle = subduction_angle
-        self.diff_stress = 0
+        self.diff_stress = differential_stress
+        self.friction = friction
         self.failure_dictionary = {}
         self.fluid_name_tag = fluid_name_tag
 
@@ -1720,7 +1721,7 @@ class Ext_method_master:
         self.fracture = fracturing
         print("End fracture modul")
 
-    def mohr_cloulomb_griffith(self, shear_stress, friction, cohesion):
+    def mohr_cloulomb_griffith(self, shear_stress=False):
         """
         026.06.2023
         Estimates on
@@ -1733,7 +1734,7 @@ class Ext_method_master:
         - idea similar to Etheridge (2020) - no fluid factor approach
         """
 
-        # NOTE testing with plot
+        # NOTE testing with plot - Not working after Cassis update (23.01.2024)
         # arrays for plotting the Mohr-Coloumb diagramm
         def mcg_plot(cohesion, internal_friction, diff_stress, shear_stress, sig1, hydro):
 
@@ -1784,12 +1785,11 @@ class Ext_method_master:
         # slope of 0.6
         # LINK Mohr-Coulomb slope for failure
         cohesion = 2* self.tensile_strength
-        internal_friction = friction
 
         # REVIEW - static fix to 27° for the optimal angle of failure after Cox 2010 and Sibson 2000
         # 45 degree gives that diff stress is two time shear stress (and not more)
         # friction of 0.75 gives ~26.6°
-        self.angle = np.round(0.5 * np.arctan(1/internal_friction) *180/np.pi,1)
+        self.angle = np.round(0.5 * np.arctan(1/self.friction) *180/np.pi,1)
 
         theta = self.angle*np.pi/180
         # #########################################
@@ -1797,9 +1797,10 @@ class Ext_method_master:
         # define: lithostatic pressure, differential stress, sigma1, sigma3, normal stress
         litho = self.pressure/10 # convert Bar to MPa
 
-        # NOTE - input of shear stress is deactivated, direct input of differential stress (15.01.2024)
+        # NOTE - differential stress direct input from init file (23.01.2024)
+        # input of shear stress is deactivated, direct input of differential stress (15.01.2024)
         # differential stress is taken as 2*shear stress - fix before proper diff stress input from input file
-        self.diff_stress = 2*shear_stress
+        # self.diff_stress = 2*shear_stress
         """
         # differential stress from shear stress input, recasted after Cox et al. 2010
         # 45 degree gives that diff stress is two time shear stress (and not more)
@@ -1833,53 +1834,17 @@ class Ext_method_master:
 
         # Coulomb failure envelope
         a = -1
-        b = 1/internal_friction
-        c = -cohesion/internal_friction
+        b = 1/self.friction
+        c = -cohesion/self.friction
 
         # Critical fluid pressures
-        crit_fluid_pressure = cohesion/internal_friction + ((sig1+sig3)/2) - (
-                (sig1-sig3)/2)*np.cos(2*theta) - ((sig1-sig3)/2/internal_friction)*np.sin(2*theta)
+        crit_fluid_pressure = cohesion/self.friction + ((sig1+sig3)/2) - (
+                (sig1-sig3)/2)*np.cos(2*theta) - ((sig1-sig3)/2/self.friction)*np.sin(2*theta)
         pf_crit_griffith = (8*self.tensile_strength*(sig1+sig3)-((sig1-sig3)**2))/(16*self.tensile_strength)
 
         # ##########################################
         # Failure envelope test
         if self.diff_stress >= self.tensile_strength*5.66:
-
-            # NOTE - reevaluate sig1 and sig3 for compressive regime case
-            # sigma 1 or sigma 3, it defines the stress regime
-            sig3 = litho
-            sig1 = litho + self.diff_stress
-
-            # #########################################
-            # Normal stress of the system defined after Cox et al 2010
-            # normal stress after Cox et al. 2010
-            # normal stress = lithostatic when theta is 90°
-            normal_stress = ((sig1+sig3)/2) - ((sig1-sig3)/2) * np.cos(2*theta)
-            mean_stress = litho + (sig1-sig3)/2
-            # #########################################
-            # Fluid pressure
-            # get system conditions at present step and previous step
-            vol_t0 = self.solid_t0 + self.fluid_t0
-            vol_new = self.solid_t1 + self.fluid_t1
-            # Fluid pressure calculation
-            # Duesterhoft 2019 method
-            # hydro = normal_stress + normal_stress/vol_t0 * (vol_t0+(vol_new-vol_t0))-normal_stress
-            hydro = mean_stress/vol_t0 * (vol_t0+(vol_new-vol_t0))
-
-            # Mohr circle arguments
-            r = self.diff_stress/2      # radius of the circle
-            center = sig1-r             # centre of the cricel
-            pos = center - hydro        # position shift of centre due to fluid pressure
-
-            # Coulomb failure envelope
-            a = -1
-            b = 1/internal_friction
-            c = -cohesion/internal_friction
-
-            # Critical fluid pressures
-            crit_fluid_pressure = cohesion/internal_friction + ((sig1+sig3)/2) - (
-                    (sig1-sig3)/2)*np.cos(2*theta) - ((sig1-sig3)/2/internal_friction)*np.sin(2*theta)
-            pf_crit_griffith = (8*self.tensile_strength*(sig1+sig3)-((sig1-sig3)**2))/(16*self.tensile_strength)
 
             print("Compressive shear failure test")
             print(f"Diff.-stress is {self.diff_stress} and > than T*5.66")
@@ -1932,7 +1897,7 @@ class Ext_method_master:
             self.frac_respo = 0
 
         self.failure_dictionary = {
-            "friction coeff": copy.deepcopy(internal_friction),
+            "friction coeff": copy.deepcopy(self.friction),
             "cohesion": (cohesion),
             "shear stress": shear_stress,
             "diff stress":(self.diff_stress),

@@ -162,6 +162,7 @@ def run_routine():
         init_data['Tensile strength'] = []
         init_data['Extraction scheme'] = []
         init_data['Min Permeability'] = []
+        init_data['fluid_name_tag'] = []
         # TODO add name from init file?
         for rock in rock_dic.keys():
             rock_init = rock_dic[rock]
@@ -222,21 +223,25 @@ def run_routine():
                     pos = entry.index(":")
                     min_permeability = entry[pos+1:].split('\t')[-1]
                     init_data['Min Permeability'].append(float(min_permeability))
+                if 'Fluid phase name' in entry:
+                    pos = entry.index(":")
+                    fluid_name = entry[pos+1:].split('\t')[-1]
+                    init_data['fluid_name_tag'].append(fluid_name)
 
         init_data['Database'] = database
         init_data['Path'] = init_data['path']
-        init_data['Path arguments'] = path_arguments
         init_data['Bulk'] = bulk
         init_data['Oxygen'] = oxygen
 
-        if database[0] == "tc55.txt" or database[0] == "tc55_Serp.txt":
+        # test for fluid name from database - now assigned by init file (23.01.2024)
+        """if database[0] == "tc55.txt" or database[0] == "tc55_Serp.txt":
             init_data['fluid_name_tag'] = "water.fluid"
         elif database[0] == "JUN92hp.txt":
             init_data['fluid_name_tag'] = "STEAM"
         else:
             print("\nFailure in assigning a fluid name tag to the init file. Please check the database name in the init file.")
             time.sleep(5)
-            quit()
+            quit()"""
 
         # test run for theriak
         test_output = test_theriak(init_data['theriak'], database[0], 500.0, 20000.0, whole_rock="SI(7.9)AL(2.9)FE(0.8)MN(0.0)MG(1.7)CA(1.8)NA(0.7)TI(0.1)K(0.03)H(100.0)C(0.0)O(?)O(0.0)    * CalculatedBulk")
@@ -246,15 +251,6 @@ def run_routine():
             print("Theriak test run failed. Please check the theriak path in the init file.")
             time.sleep(5)
             quit()
-
-        if 'Min Permeability' in init_data.keys():
-            pass
-        else:
-            init_data['Min Permeability'] = 1e-21
-        if 'shearstress' in init_data.keys():
-            pass
-        else:
-            init_data['shearstress'] = 200
 
         # /////////////////////////////////////////////////////
         # Preparing input data for modelling routine
@@ -294,6 +290,9 @@ def run_routine():
             pathfinder = True
         if path == 'OlivineMod':
             olivine = True
+
+        path_arguments = init_data['path_arguments']
+        path_incerement = init_data['path_increment']
 
         # P-T- pathway calculation / preparation
         # Calling subduction module
@@ -430,7 +429,7 @@ def run_routine():
             master_rock[tag]['fluid_hydrogen'] = []
             master_rock[tag]['fluid_oxygen'] = []
             master_rock[tag]['track_refolidv'] = []
-            master_rock[tag]['database_fluid_name'] = init_data['fluid_name_tag']
+            master_rock[tag]['database_fluid_name'] = init_data['fluid_name_tag'][i]
 
             # Isotope data
             master_rock[tag]['save_oxygen'] = []
@@ -444,12 +443,16 @@ def run_routine():
             master_rock[tag]['extr_time'] = []
             master_rock[tag]['extr_svol'] = []
             master_rock[tag]['tensile strength'] = init_data['Tensile strength'][i]
-            master_rock[tag]['diff. stress'] = init_data['diffstress'][i]
+            if len(init_data['diffstress']) > 0:
+                master_rock[tag]['diff. stress'] = init_data['diffstress'][i]
+
             master_rock[tag]['fracture bool'] = []
             master_rock[tag]['save_factor'] = []
             master_rock[tag]['friction'] = init_data['friction'][i]
-            master_rock[tag]['cohesion'] = init_data['cohesion'][i]
-            master_rock[tag]['shear'] = init_data['shear'][i]
+            # master_rock[tag]['cohesion'] = init_data['cohesion'][i]
+            if len(init_data['shear']) > 0:
+                master_rock[tag]['shear'] = init_data['shear'][i]
+
             master_rock[tag]['Extraction scheme'] = init_data['Extraction scheme'][i]
             master_rock[tag]['failure module'] = []
 
