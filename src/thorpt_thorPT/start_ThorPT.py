@@ -99,8 +99,6 @@ def run_routine():
             'Path:': 'path',
             'Path-increments:': 'path_increment',
             'Extraction scheme:': 'extraction',
-            'Min Permea:': 'min_permeability',
-            'ShearStress:': 'shearstress',
             'Marco:': 'Marco',
             'grt_frac_off:': 'grt_frac_off',
             'Input-arguments:': 'path_arguments'
@@ -108,25 +106,24 @@ def run_routine():
 
         for entry in init:
             if '*' in entry:
-                pass
-            else:
-                for condition, key in conditions.items():
-                    if condition in entry:
-                        print(f"{condition}:\n{entry}")
-                        pos = entry.index(":")
-                        value = entry[pos+1:].split('\t')[-1]
-                        if key == 'path_arguments':
-                            value = value.split('\t')[-1].split(', ')
-                            if 'new' in value:
-                                pressure_unit = input("You want to digitize a new P-T path. Please provide the physical unit for the pressure value you intend to use.[kbar/GPa]")
-                                value[2] = pressure_unit
-                        elif key == 'path_increment':
-                            value = value.split('\t')[-1].split(', ')
-                        elif key == 'min_permeability' or key == 'shearstress':
-                            value = float(value)
-                        elif key == 'Marco' or key == 'grt_frac_off':
-                            value = True
-                        init_data[key] = value
+                continue
+            for condition, key in conditions.items():
+                if condition in entry:
+                    print(f"{condition}:\n{entry}")
+                    pos = entry.index(":")
+                    value = entry[pos+1:].split('\t')[-1]
+                    if key == 'path_arguments':
+                        value = value.split('\t')[-1].split(', ')
+                        if 'new' in value:
+                            pressure_unit = input("You want to digitize a new P-T path. Please provide the physical unit for the pressure value you intend to use.[kbar/GPa]")
+                            value[2] = pressure_unit
+                    elif key == 'path_increment':
+                        value = value.split('\t')[-1].split(', ')
+                    elif key == 'min_permeability' or key == 'shearstress':
+                        value = float(value)
+                    elif key == 'Marco' or key == 'grt_frac_off':
+                        value = True
+                    init_data[key] = value
 
         # updating the pressure unit in init file when a new path is created
         for j, entry in enumerate(init):
@@ -151,10 +148,9 @@ def run_routine():
         rock_dic = {}
         for i, item in enumerate(breaks):
             if item == breaks[-1]:
-                pass
-            else:
-                rocktag = "rock" + f"{i:03}"
-                rock_dic[rocktag] = init[item+1:breaks[i+1]]
+                continue
+            rocktag = "rock" + f"{i:03}"
+            rock_dic[rocktag] = init[item+1:breaks[i+1]]
 
         database = []
         bulk = []
@@ -162,10 +158,10 @@ def run_routine():
         init_data['shear'] = []
         init_data['diffstress'] = []
         init_data['friction'] = []
-        init_data['cohesion'] = []
         init_data['geometry'] = []
         init_data['Tensile strength'] = []
         init_data['Extraction scheme'] = []
+        init_data['Min Permeability'] = []
         # TODO add name from init file?
         for rock in rock_dic.keys():
             rock_init = rock_dic[rock]
@@ -175,12 +171,22 @@ def run_routine():
                     db = entry[pos+1:].split('\t')[-1]
                     database.append(db + ".txt")
                 if 'Bulk' in entry:
+                    # read bulk composition and add hyrogen and carbon mole fraction
                     pos = entry.index(":")
                     bulkr = entry[pos+1:].split('\t')[-1]
                     bulkr = bulkr.split('\t')[-1]
                     bulkr = bulkr[1:-1].split(',')
                     for j, item in enumerate(bulkr):
                         bulkr[j] = float(item)
+                    for inner_entry in rock_init:
+                        if 'Mole of H' in inner_entry:
+                            pos = inner_entry.index(":")
+                            hydrogen_mole = np.float64(inner_entry[pos+1:].split('\t')[-1])
+                        if 'Mole of C' in inner_entry:
+                            pos = inner_entry.index(":")
+                            carbon_mole = np.float64(inner_entry[pos+1:].split('\t')[-1])
+                    bulkr.append(hydrogen_mole)
+                    bulkr.append(carbon_mole)
                     bulk.append(bulkr)
                 if 'OxygenVal' in entry:
                     pos = entry.index(":")
@@ -196,10 +202,6 @@ def run_routine():
                     abc = entry[pos+1:].split('\t')[-1]
                     abc = abc[1:-1].split(',')
                     init_data['geometry'].append(abc)
-                if 'Cohesion' in entry:
-                    pos = entry.index(":")
-                    cohesion = entry[pos+1:].split('\t')[-1]
-                    init_data['cohesion'].append(float(cohesion))
                 if 'Friction' in entry:
                     pos = entry.index(":")
                     friction = entry[pos+1:].split('\t')[-1]
@@ -216,13 +218,16 @@ def run_routine():
                     pos = entry.index(":")
                     rock_mechanics = entry[pos+1:].split('\t')[-1]
                     init_data['Extraction scheme'].append(rock_mechanics)
+                if 'Minimum Permeability' in entry:
+                    pos = entry.index(":")
+                    min_permeability = entry[pos+1:].split('\t')[-1]
+                    init_data['Min Permeability'].append(float(min_permeability))
 
         init_data['Database'] = database
         init_data['Path'] = init_data['path']
         init_data['Path arguments'] = path_arguments
         init_data['Bulk'] = bulk
         init_data['Oxygen'] = oxygen
-        init_data['Extraction'] = extraction
 
         if database[0] == "tc55.txt" or database[0] == "tc55_Serp.txt":
             init_data['fluid_name_tag'] = "water.fluid"
@@ -234,7 +239,7 @@ def run_routine():
             quit()
 
         # test run for theriak
-        test_output = test_theriak(theriak, database[0], 500.0, 20000.0, whole_rock="SI(7.9)AL(2.9)FE(0.8)MN(0.0)MG(1.7)CA(1.8)NA(0.7)TI(0.1)K(0.03)H(100.0)C(0.0)O(?)O(0.0)    * CalculatedBulk")
+        test_output = test_theriak(init_data['theriak'], database[0], 500.0, 20000.0, whole_rock="SI(7.9)AL(2.9)FE(0.8)MN(0.0)MG(1.7)CA(1.8)NA(0.7)TI(0.1)K(0.03)H(100.0)C(0.0)O(?)O(0.0)    * CalculatedBulk")
         if len(test_output) > 200:
             print("Theriak test run passed. Theriak is ready to use.")
         else:
@@ -258,7 +263,7 @@ def run_routine():
         set_origin()
 
         # Pre-routine activations from init inputs
-        database = init_data['Database']
+        # database = init_data['Database']
         path = init_data['Path']
         rock_bulk = init_data['Bulk']
         oxygen = init_data['Oxygen']
@@ -359,7 +364,8 @@ def run_routine():
                 exit()
 
         # /////////////////////////////////////////////////////
-        # LINK fluid release flag
+        # REVIEW fluid release flag old version - deactivated
+        """
         # Choose fluid fractionation scheme - set it to True
         factor_method = False
         steady_method = False
@@ -382,7 +388,7 @@ def run_routine():
         if extraction == 'Mohr-Coulomb-Permea':
             coulomb_permea = True
         if extraction == 'Mohr-Coulomb-Permea2':
-            coulomb_permea2 = True
+            coulomb_permea2 = True"""
 
         # /////////////////////////////////////////////////////
         # LINK rock directory
@@ -438,7 +444,7 @@ def run_routine():
             master_rock[tag]['extr_time'] = []
             master_rock[tag]['extr_svol'] = []
             master_rock[tag]['tensile strength'] = init_data['Tensile strength'][i]
-            master_rock[tag]['diff. stress'] = []
+            master_rock[tag]['diff. stress'] = init_data['diffstress'][i]
             master_rock[tag]['fracture bool'] = []
             master_rock[tag]['save_factor'] = []
             master_rock[tag]['friction'] = init_data['friction'][i]
@@ -489,18 +495,18 @@ def run_routine():
 
         path_method = (calc_path, vho, pathfinder)
 
-        mechanical_methods = (
+        """mechanical_methods = (
                 factor_method,
                 steady_method,
                 dynamic_method,
                 coulomb,
                 coulomb_permea,
                 coulomb_permea2
-                )
+                )"""
 
         ThorPT = ThorPT_Routines(temperatures, pressures, master_rock, rock_origin,
-                track_time, track_depth, grt_frac, mechanical_methods, path_method,
-                lowest_permeability, conv_speed, angle, time_step, theriak)
+                track_time, track_depth, grt_frac, path_method,
+                lowest_permeability, conv_speed, angle, time_step, init_data['theriak'])
 
 
         if answer == 1:

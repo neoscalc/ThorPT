@@ -275,7 +275,7 @@ class ThorPT_Routines():
 
     def __init__(self,
             temperatures, pressures, master_rock, rock_origin,
-            track_time, track_depth, garnet_fractionation, mechanical_methods, path_methods,
+            track_time, track_depth, garnet_fractionation, path_methods,
             lowest_permeability, speed, angle, time_step, theriak):
         # Output variables
         self.temperatures = temperatures
@@ -285,7 +285,7 @@ class ThorPT_Routines():
         self.track_depth = track_depth
         self.rock_origin = rock_origin
         self.garnet_fractionation = garnet_fractionation
-        self.mechanical_methods = mechanical_methods
+        # self.mechanical_methods = mechanical_methods
         self.path_methods = path_methods
         self.minimum_permeability = lowest_permeability
         self.speed = speed
@@ -306,6 +306,9 @@ class ThorPT_Routines():
         # Main variables mechanical model
         lowest_permeability = self.minimum_permeability
         # NOTE shear_stress = self.shear_stress
+
+        """
+        # REVIEW - mechanical methods
         # Methods
         factor_method = self.mechanical_methods[0]
         steady_method = self.mechanical_methods[1]
@@ -313,7 +316,7 @@ class ThorPT_Routines():
         coulomb = self.mechanical_methods[3]
         coulomb_permea = self.mechanical_methods[4]
         coulomb_permea2 = self.mechanical_methods[5]
-
+        """
 
         # Main variables fractionation
         grt_frac = self.garnet_fractionation
@@ -883,6 +886,8 @@ class ThorPT_Routines():
         # Main variables mechanical model
         lowest_permeability = self.minimum_permeability
 
+        """
+        # REVIEW - mechanical methods
         # Methods
         factor_method = self.mechanical_methods[0]
         steady_method = self.mechanical_methods[1]
@@ -890,6 +895,8 @@ class ThorPT_Routines():
         coulomb = self.mechanical_methods[3]
         coulomb_permea = self.mechanical_methods[4]
         coulomb_permea2 = self.mechanical_methods[5]
+        """
+
 
         # Main variables fractionation
         grt_frac = self.garnet_fractionation
