@@ -642,6 +642,7 @@ class ThorPT_Routines():
                                         master_rock[item]['tensile strength'],
                                         differential_stress= master_rock[item]['diff. stress'],
                                         friction= master_rock[item]['friction'],
+                                        fluid_pressure_mode= master_rock[item]['fluid_pressure'],
                                         fluid_name_tag=fluid_name_tag ,subduction_angle=self.angle,
                                         )
 

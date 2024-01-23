@@ -163,6 +163,7 @@ def run_routine():
         init_data['Extraction scheme'] = []
         init_data['Min Permeability'] = []
         init_data['fluid_name_tag'] = []
+        init_data['fluid_pressure'] = []
         # TODO add name from init file?
         for rock in rock_dic.keys():
             rock_init = rock_dic[rock]
@@ -227,6 +228,10 @@ def run_routine():
                     pos = entry.index(":")
                     fluid_name = entry[pos+1:].split('\t')[-1]
                     init_data['fluid_name_tag'].append(fluid_name)
+                if 'Fluid pressure' in entry:
+                    pos = entry.index(":")
+                    fluid_pressure = entry[pos+1:].split('\t')[-1]
+                    init_data['fluid_pressure'].append(fluid_pressure.lower())
 
         init_data['Database'] = database
         init_data['Path'] = init_data['path']
@@ -430,6 +435,7 @@ def run_routine():
             master_rock[tag]['fluid_oxygen'] = []
             master_rock[tag]['track_refolidv'] = []
             master_rock[tag]['database_fluid_name'] = init_data['fluid_name_tag'][i]
+            master_rock[tag]['fluid_pressure'] = init_data['fluid_pressure'][i]
 
             # Isotope data
             master_rock[tag]['save_oxygen'] = []

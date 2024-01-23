@@ -1385,7 +1385,8 @@ class Ext_method_master:
             fluid_volume_before, fluid_volume_new,
             solid_volume_before, solid_volume_new,
             save_factor, master_norm, phase_data,
-            tensile_s, differential_stress, friction, subduction_angle, fluid_name_tag, rock_item_tag=0):
+            tensile_s, differential_stress, friction, subduction_angle,
+            fluid_pressure_mode, fluid_name_tag, rock_item_tag=0):
         """
         Initialize all the values and data necessary for calculations
 
@@ -1418,6 +1419,7 @@ class Ext_method_master:
         self.friction = friction
         self.failure_dictionary = {}
         self.fluid_name_tag = fluid_name_tag
+        self.fluid_pressure_mode = fluid_pressure_mode
 
     def couloumb_method(self, t_ref_solid, tensile=20):
         """
@@ -1823,10 +1825,16 @@ class Ext_method_master:
         # get system conditions at present step and previous step
         vol_t0 = self.solid_t0 + self.fluid_t0
         vol_new = self.solid_t1 + self.fluid_t1
+
         # Fluid pressure calculation
-        # Duesterhoft 2019 method
-        # hydro = normal_stress + normal_stress/vol_t0 * (vol_t0+(vol_new-vol_t0))-normal_stress
-        hydro = mean_stress/vol_t0 * (vol_t0+(vol_new-vol_t0))
+        # fluid pressure close to mean stress
+        if self.fluid_pressure_mode == 'mean stress':
+            hydro = mean_stress/vol_t0 * (vol_t0+(vol_new-vol_t0))
+        elif self.fluid_pressure_mode == 'normal stress':
+            # Duesterhoft 2019 method
+            hydro = normal_stress/vol_t0 * (vol_t0+(vol_new-vol_t0))
+        else:
+            hydro = mean_stress
 
         # Mohr circle arguments
         r = self.diff_stress/2      # radius of the circle
