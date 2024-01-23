@@ -1815,7 +1815,7 @@ class Ext_method_master:
         # normal stress after Cox et al. 2010
         # normal stress = lithostatic when theta is 90°
         normal_stress = ((sig1+sig3)/2) - ((sig1-sig3)/2) * np.cos(2*theta)
-
+        mean_stress = litho + (sig1-sig3)/2
         # #########################################
         # Fluid pressure
         # get system conditions at present step and previous step
@@ -1823,7 +1823,8 @@ class Ext_method_master:
         vol_new = self.solid_t1 + self.fluid_t1
         # Fluid pressure calculation
         # Duesterhoft 2019 method
-        hydro = normal_stress + normal_stress/vol_t0 * (vol_t0+(vol_new-vol_t0))-normal_stress
+        # hydro = normal_stress + normal_stress/vol_t0 * (vol_t0+(vol_new-vol_t0))-normal_stress
+        hydro = mean_stress/vol_t0 * (vol_t0+(vol_new-vol_t0))
 
         # Mohr circle arguments
         r = self.diff_stress/2      # radius of the circle
@@ -1854,7 +1855,7 @@ class Ext_method_master:
             # normal stress after Cox et al. 2010
             # normal stress = lithostatic when theta is 90°
             normal_stress = ((sig1+sig3)/2) - ((sig1-sig3)/2) * np.cos(2*theta)
-
+            mean_stress = litho + (sig1-sig3)/2
             # #########################################
             # Fluid pressure
             # get system conditions at present step and previous step
@@ -1862,7 +1863,8 @@ class Ext_method_master:
             vol_new = self.solid_t1 + self.fluid_t1
             # Fluid pressure calculation
             # Duesterhoft 2019 method
-            hydro = normal_stress + normal_stress/vol_t0 * (vol_t0+(vol_new-vol_t0))-normal_stress
+            # hydro = normal_stress + normal_stress/vol_t0 * (vol_t0+(vol_new-vol_t0))-normal_stress
+            hydro = mean_stress/vol_t0 * (vol_t0+(vol_new-vol_t0))
 
             # Mohr circle arguments
             r = self.diff_stress/2      # radius of the circle

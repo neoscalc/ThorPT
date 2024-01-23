@@ -178,7 +178,6 @@ def whole_rock_to_weight_normalizer(rock_bulk=[32.36, 0.4, 8.78, 2.91, 0.0, 0.0,
     return new_bulk, rockOxy
 
 
-
 def oxygen_isotope_recalculation(isotope_data, oxygen_data):
     temp_oxygen_data = pd.DataFrame(
         isotope_data[-1]['delta_O'],

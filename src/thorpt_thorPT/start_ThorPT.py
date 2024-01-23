@@ -19,6 +19,7 @@ import copy
 from dataclasses import dataclass
 from tkinter import filedialog
 
+
 def file_opener():
     filein = filedialog.askopenfilename(
         title="Select init file to read",
@@ -93,63 +94,54 @@ def run_routine():
         # take path, fracturing and further settings from init file applied to all rocks modelled
         path_arguments = False
         path_incerement = False
+        conditions = {
+            'Theriak:': 'theriak',
+            'Path:': 'path',
+            'Path-increments:': 'path_increment',
+            'Extraction scheme:': 'extraction',
+            'Min Permea:': 'min_permeability',
+            'ShearStress:': 'shearstress',
+            'Marco:': 'Marco',
+            'grt_frac_off:': 'grt_frac_off',
+            'Input-arguments:': 'path_arguments'
+        }
+
         for entry in init:
             if '*' in entry:
                 pass
             else:
-                if 'Theriak:' in entry:
-                    print(f"Theriak path input:\n{entry}")
-                    pos = entry.index(":")
-                    theriak = entry[pos+1:].split('\t')[-1]
-                if 'Path:' in entry:
-                    print(f"PT path module:\n{entry}")
-                    pos = entry.index(":")
-                    path = entry[pos+1:].split('\t')[-1]
-                if 'Path-increments:' in entry:
-                    print(f"List of path increments, dP, dT:\n{entry}")
-                    pos = entry.index(":")
-                    path_incerement = entry[pos+1:].split('\t')[-1].split(', ')
-                if 'Extraction scheme:' in entry:
-                    print(f"Extraction line:\n{entry}")
-                    pos = entry.index(":")
-                    extraction = entry[pos+1:].split('\t')[-1]
-                if 'Min Permea:' in entry:
-                    pos = entry.index(":")
-                    lowestpermea = entry[pos+1:].split('\t')[-1]
-                    init_data['Min Permeability'] = float(lowestpermea)
-                if 'ShearStress:' in entry:
-                    pos = entry.index(":")
-                    shearstress = entry[pos+1:].split('\t')[-1]
-                    init_data['shearstress'] = float(shearstress)
-                if 'Marco:' in entry:
-                    init_data['Marco'] = True
-                if 'grt_frac_off:' in entry:
-                    init_data['grt_frac_off'] = True
-                if 'Input-arguments:' in entry:
-                    print(f"List of input arguments:\n{entry}")
-                    pos = entry.index(":")
-                    path_arguments = entry[pos+1:].split('\t')[-1].split(', ')
-
-        # FIXME ROUTINE - static decision should be input answer
-        # answer = int(input("Type 1 for multiple rock script. Type 2 for column interaction."))
-        if 'new' in path_arguments:
-            pressure_unit = input("You want to digitize a new P-T path. Please provide the physical unit for the pressure value you intend to use.[kbar/GPa]")
-            path_arguments[2] = pressure_unit
+                for condition, key in conditions.items():
+                    if condition in entry:
+                        print(f"{condition}:\n{entry}")
+                        pos = entry.index(":")
+                        value = entry[pos+1:].split('\t')[-1]
+                        if key == 'path_arguments':
+                            value = value.split('\t')[-1].split(', ')
+                            if 'new' in value:
+                                pressure_unit = input("You want to digitize a new P-T path. Please provide the physical unit for the pressure value you intend to use.[kbar/GPa]")
+                                value[2] = pressure_unit
+                        elif key == 'path_increment':
+                            value = value.split('\t')[-1].split(', ')
+                        elif key == 'min_permeability' or key == 'shearstress':
+                            value = float(value)
+                        elif key == 'Marco' or key == 'grt_frac_off':
+                            value = True
+                        init_data[key] = value
 
         # updating the pressure unit in init file when a new path is created
         for j, entry in enumerate(init):
             if 'Input-arguments' in entry:
-                redo_arguments = ', '.join(path_arguments)
-                redo_arguments = ["Input-arguments:",redo_arguments]
+                redo_arguments = ', '.join(init_data['path_arguments'])
+                redo_arguments = ["Input-arguments:", redo_arguments]
                 redo_arguments = ''.join(redo_arguments)
-                init[j]=redo_arguments
+                init[j] = redo_arguments
         # write new condition to init file
-        redo_init='\n'.join(init)
+        redo_init = '\n'.join(init)
         with open(file_to_open, 'w') as file:
             file.write(redo_init)
 
-        answer = int(path_arguments[-1])
-        path_arguments = path_arguments[:-1]
+        answer = int(init_data['path_arguments'][-1])
+        init_data['path_arguments'] = init_data['path_arguments'][:-1]
         # answer = 2
 
         breaks = []
@@ -168,6 +160,7 @@ def run_routine():
         bulk = []
         oxygen = []
         init_data['shear'] = []
+        init_data['diffstress'] = []
         init_data['friction'] = []
         init_data['cohesion'] = []
         init_data['geometry'] = []
@@ -215,6 +208,10 @@ def run_routine():
                     pos = entry.index(":")
                     shear = entry[pos+1:].split('\t')[-1]
                     init_data['shear'].append(float(shear))
+                if 'Diffential stress' in entry:
+                    pos = entry.index(":")
+                    diff_stress = entry[pos+1:].split('\t')[-1]
+                    init_data['diffstress'].append(float(diff_stress))
                 if 'Extraction scheme' in entry:
                     pos = entry.index(":")
                     rock_mechanics = entry[pos+1:].split('\t')[-1]
@@ -527,9 +524,17 @@ def run_routine():
             ThorPT.data_reduction(init_file)
 
     # Directing to sounds - play at end
-    # dirname = os.path.dirname(os.path.abspath(__file__))
-    # playsound(os.path.abspath(f'{dirname}/DataFiles/sound/wow.mp3'))
-    # playsound(os.path.abspath(f'{dirname}/DataFiles/sound/Tequila.mp3'))
+    dirname = os.path.dirname(os.path.abspath(__file__))
+
+    # NOTE playsound to be fixed
+    """
+    # Play a sound from file location and import a module
+    import winsound
+    winsound.PlaySound(os.path.abspath(f'{dirname}/DataFiles/sound/wow.mp3'), winsound.SND_FILENAME)
+
+    playsound(os.path.abspath(f'{dirname}/DataFiles/sound/wow.mp3'))
+    playsound(os.path.abspath(f'{dirname}/DataFiles/sound/Tequila.mp3'))
+    """
 
     print("Script is ending...\u03BA\u03B1\u03BB\u03B7\u03BD\u03C5\u03C7\u03C4\u03B1!")
     time.sleep(1)
