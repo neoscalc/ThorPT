@@ -550,9 +550,6 @@ def run_main_routine():
             # ThorPT.data_reduction()
             ThorPT.data_reduction(init_file)
 
-    # Directing to sounds - play at end
-    dirname = os.path.dirname(os.path.abspath(__file__))
-
     # NOTE playsound to be fixed
     """
     # Play a sound from file location and import a module
@@ -565,6 +562,19 @@ def run_main_routine():
 
     print("Script is ending...\u03BA\u03B1\u03BB\u03B7\u03BD\u03C5\u03C7\u03C4\u03B1!")
     time.sleep(1)
+
+    import pygame
+    # Directing to sounds - play at end
+    dirname = os.path.dirname(os.path.abspath(__file__))
+    pygame.mixer.init()
+    pygame.mixer.music.load(os.path.abspath(f'{dirname}/DataFiles/sound/wow.mp3'))
+    pygame.mixer.music.play()
+    while pygame.mixer.music.get_busy():
+        pygame.time.Clock().tick(10)
+    pygame.mixer.music.load(os.path.abspath(f'{dirname}/DataFiles/sound/tequila.mp3'))
+    pygame.mixer.music.play()
+    while pygame.mixer.music.get_busy():
+        pygame.time.Clock().tick(10)
 
 
 
