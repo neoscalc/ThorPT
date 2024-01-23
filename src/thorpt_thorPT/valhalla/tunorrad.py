@@ -1801,6 +1801,7 @@ class Ext_method_master:
         # input of shear stress is deactivated, direct input of differential stress (15.01.2024)
         # differential stress is taken as 2*shear stress - fix before proper diff stress input from input file
         # self.diff_stress = 2*shear_stress
+        shear_stress = self.diff_stress/2
         """
         # differential stress from shear stress input, recasted after Cox et al. 2010
         # 45 degree gives that diff stress is two time shear stress (and not more)

@@ -1786,7 +1786,7 @@ class ThorPT_Routines():
 
                                 # save dataframe_fracture_module to hdf5 in rock/item
                                 # dataframe_fracture_module.to_hdf(f_path, f"{rock}/{item}/failure module", mode='a', append=True)
-                                hf.create_dataset(f"{rock}/failure module", data=dataframe_fracture_module)
+                                hf.create_dataset(f"{rock}/{item}", data=dataframe_fracture_module)
                                 hf[f"{rock}/{item}"].attrs.create('header', item_list)
 
 
