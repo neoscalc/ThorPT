@@ -18,8 +18,10 @@ from pathlib import Path
 
 # from thorpt_thorPT.valhalla.tunorrad import *
 # from thorpt_thorPT.valhalla.Pathfinder import *
-from valhalla.tunorrad import *
-from valhalla.Pathfinder import *
+# from valhalla.tunorrad import *
+# from valhalla.Pathfinder import *
+from .tunorrad import *
+from .Pathfinder import *
 from dataclasses import dataclass
 
 
@@ -661,7 +663,7 @@ class ThorPT_Routines():
                                         differential_stress= master_rock[item]['diff. stress'],
                                         friction= master_rock[item]['friction'],
                                         fluid_pressure_mode= master_rock[item]['fluid_pressure_mode'],
-                                        fluid_name_tag=fluid_name_tag ,subduction_angle=self.angle,
+                                        fluid_name_tag=fluid_name_tag ,subduction_angle=self.angle
                                         )
 
                     # //////////////////////////////////////////////////////////////////////////
@@ -1068,6 +1070,22 @@ class ThorPT_Routines():
                 ic = k/kk*100
                 progress(ic)
                 print("\n")
+
+                # tracking theriak input before minimization
+                if isinstance(master_rock[item]['theriak_input_record'], dict) == False:
+                    master_rock[item]['theriak_input_record'] = {}
+                    master_rock[item]['theriak_input_record']['temperature'] = [temperature]
+                    master_rock[item]['theriak_input_record']['pressure'] = [pressures[num]]
+                    master_rock[item]['theriak_input_record']['bulk'] = [master_rock[item]['new_bulk']]
+                    print("Tracking theriak -> Create dictionary -> first entry")
+
+                # test for empty dictionary
+                elif isinstance(master_rock[item]['theriak_input_record'], dict) == True:
+                    master_rock[item]['theriak_input_record']['temperature'].append(temperature)
+                    master_rock[item]['theriak_input_record']['pressure'].append(pressures[num])
+                    master_rock[item]['theriak_input_record']['bulk'].append(master_rock[item]['new_bulk'])
+                    print("Tracking theriak -> dictionary exists -> add entry")
+
                 # _____________________________________________________________________________
                 # 1) Initialize rock
                 # LINK 1) Initialisation of the rock system
@@ -1075,7 +1093,7 @@ class ThorPT_Routines():
                     master_rock[item]['database'], master_rock[item]['new_bulk'],
                     temperature, pressures[num], master_rock[item]['df_var_dictionary'],
                     master_rock[item]['df_h2o_content_dic'], master_rock[item]['df_element_total'],
-                    num)
+                    num, fluid_name_tag=master_rock[item]['database_fluid_name'])
                 # //////////////////////////////////////////////////////////////////////////
                 # Master norm values
                 # calculating difference between new Volumes and previous P-T-step volumes - for derivate, not difference!!!
@@ -1298,7 +1316,8 @@ class ThorPT_Routines():
                 # Physical fracture model section - active if free fluid is present
                 # Checking if free fluid is present. Stores this value, initializes
                 print(f"Mechanical failure model activated.")
-                if 'water.fluid' in list(master_rock[item]['df_element_total'].columns):
+                fluid_name_tag = master_rock[item]['database_fluid_name']
+                if fluid_name_tag in list(master_rock[item]['df_element_total'].columns):
                     print("-> Fluid extraction test")
                     # Prepare fluid extraction
                     if master_rock[rock_react_item]['reactivity'].react is True:
@@ -1318,7 +1337,11 @@ class ThorPT_Routines():
                         master_rock[item]['solid_volume_before'], master_rock[item]['solid_volume_new'],
                         master_rock[item]['save_factor'], master_rock[item]['master_norm'][-1],
                         master_rock[item]['minimization'].df_phase_data,
-                        master_rock[item]['tensile strength'], subduction_angle=self.angle,
+                        master_rock[item]['tensile strength'],
+                        differential_stress= master_rock[item]['diff. stress'],
+                        friction= master_rock[item]['friction'],
+                        fluid_pressure_mode= master_rock[item]['fluid_pressure_mode'],
+                        fluid_name_tag=fluid_name_tag, subduction_angle=self.angle,
                         rock_item_tag=item
                         )
                     # //////////////////////////////////////////////////////////////////////////
@@ -1407,11 +1430,13 @@ class ThorPT_Routines():
                                 )
 
                         elif failure_mech == 'Mohr-Coulomb-Griffith':
-                            master_rock[item]['fluid_calculation'].mohr_cloulomb_griffith(
-                                shear_stress=master_rock[item]['shear'],
-                                friction=master_rock[item]['friction'],
-                                cohesion=master_rock[item]['cohesion']
-                                )
+                            print("\t===== Mohr-Coulomb-Griffith method active =====")
+                            if 'diff. stress' in master_rock[item].keys():
+                                master_rock[item]['fluid_calculation'].mohr_cloulomb_griffith()
+                            else:
+                                master_rock[item]['fluid_calculation'].mohr_cloulomb_griffith(
+                                        shear_stress=master_rock[item]['shear']
+                                        )
                             master_rock[item]['failure module'].append(
                                 master_rock[item]['fluid_calculation'].failure_dictionary)
 
@@ -1435,10 +1460,6 @@ class ThorPT_Routines():
                         # if coulomb is True or coulomb_permea2 is True or coulomb_permea is True:
                         if failure_mech in ['Factor', 'Dynamic', 'Steady', 'Mohr-Coulomb-Permea2', 'Mohr-Coulomb-Griffith']:
 
-                            # store the differential stresses
-                            master_rock[item]['diff. stress'].append(
-                                master_rock[item]['fluid_calculation'].diff_stress)
-
                             # store a bool index for the type of fracturing
                             master_rock[item]['fracture bool'].append(
                                 master_rock[item]['fluid_calculation'].frac_respo)
@@ -1461,7 +1482,7 @@ class ThorPT_Routines():
                             # LINK Release criteria
                             # Fluid Extraction when the modules before give true fracturing
                             # checking with the mohr-coloumb model and decision for fracturing or not
-                            if fracturing_flag is True and v_permea > lowest_permeability:
+                            if fracturing_flag is True and v_permea > lowest_permeability[tt]:
                                 print("!!! Below minimum permeability!")
                             # FIXME modified extraction criteria - minimum permeability is never reached 06.03.2023
                             if fracturing_flag is True:
@@ -1477,7 +1498,8 @@ class ThorPT_Routines():
                                     new_fluid_V=master_rock[item]['fluid_volume_new'],
                                     sys_H=master_rock[item]['total_hydrogen'],
                                     element_frame=master_rock[item]['df_element_total'],
-                                    st_fluid_post=master_rock[item]['st_fluid_after']
+                                    st_fluid_post=master_rock[item]['st_fluid_after'],
+                                    fluid_name_tag=fluid_name_tag
                                     )
                                 # backup before extraction
                                 master_rock[item]['fluid_hydrogen'].append(master_rock[item]['df_element_total']['water.fluid']['H'].copy())
@@ -1528,7 +1550,6 @@ class ThorPT_Routines():
                     print(f"Value is {master_rock[item]['bulk_oxygen']}")
                 else:
                     master_rock[item]['save_factor'].append(0)
-                    master_rock[item]['diff. stress'].append(0)
                     master_rock[item]['fracture bool'].append(0)
                     master_rock[item]['live_fluid-flux'].append(np.nan)
                     master_rock[item]['live_permeability'].append(np.nan)

@@ -5,20 +5,31 @@ Thorsten Markmann
 thorsten.markmann@geo.unibe.ch
 status: 17.02.2023
 """
-
+# External modules
 import numpy as np
 import pandas as pd
 import os
-# from thorpt_thorPT.valhalla.Pathfinder import *
-# from thorpt_thorPT.valhalla.routines_ThorPT import *
-from valhalla.Pathfinder import *
-from valhalla.routines_ThorPT import *
-from valhalla.tunorrad import run_theriak as test_theriak
 from pathlib import Path
 import copy
 from dataclasses import dataclass
 from tkinter import filedialog
+import time
 
+# ThorPT modules
+# from thorpt_thorPT.valhalla.Pathfinder import *
+# from thorpt_thorPT.valhalla.routines_ThorPT import *
+# from valhalla.Pathfinder import *
+# from valhalla.routines_ThorPT import *
+# from valhalla.tunorrad import run_theriak as test_theriak
+from valhalla import Pathfinder
+from valhalla import routines_ThorPT
+from valhalla.tunorrad import run_theriak as test_theriak
+
+
+# NOTE: this is the main file to run the ThorPT routine
+# import thorpt_thorPT.valhalla.Pathfinder as nasa
+# from thorpt_thorPT.valhalla.routines_ThorPT import *
+# from thorpt_thorPT.valhalla.tunorrad import run_theriak as test_theriak
 
 def file_opener():
     filein = filedialog.askopenfilename(
@@ -52,7 +63,7 @@ class rockactivity:
 
 
 
-def run_routine():
+def run_main_routine():
     set_origin()
 
     # Starting up and select the init file to model
@@ -297,14 +308,14 @@ def run_routine():
             olivine = True
 
         path_arguments = init_data['path_arguments']
-        path_incerement = init_data['path_increment']
+        path_increment = init_data['path_increment']
 
         # P-T- pathway calculation / preparation
         # Calling subduction module
         if calc_path is True:
             print("===== Pathfinder creator active =====")
             # Using pathfinder module to calculate P-T-t path
-            function = Pathfinder_calc(100_000, 100e6, 10, 100)
+            function = Pathfinder.Pathfinder_calc(100_000, 100e6, 10, 100)
             function.calc_time_model()
             # Storing P-T-t from pathfinder - modul
             temperatures = np.array(function.T)
@@ -313,16 +324,16 @@ def run_routine():
 
         elif pathfinder is True:
             # Calling Pathfinder module and executing digitization function
-            nasa = Pathfinder()
+            nasa = Pathfinder.Pathfinder()
             # nasa.execute_digi()
-            if path_arguments is False and path_incerement is False:
+            if path_arguments is False and path_increment is False:
                 nasa.connect_extern()
             elif path_arguments is False:
-                nasa.connect_extern(path_incerement)
-            elif path_incerement is False:
+                nasa.connect_extern(path_increment)
+            elif path_increment is False:
                 nasa.connect_extern(path_arguments)
             else:
-                nasa.connect_extern(path_arguments, path_incerement)
+                nasa.connect_extern(path_arguments=path_arguments, path_increment=path_increment)
             # Store P-T-t information
             temperatures = nasa.temperature
             pressures = nasa.pressure
@@ -346,7 +357,7 @@ def run_routine():
             #                    18_000, 20_000, 21_500, 23_000, 26_000]
 
             # Call pathfinder
-            nasa = call_Pathfinder(temp=temperatures_start,
+            nasa = Pathfinder.call_Pathfinder(temp=temperatures_start,
                                 pressure=pressures_start)
             nasa.execute_digi_mod()
             temperatures = nasa.temp
@@ -514,7 +525,7 @@ def run_routine():
                 coulomb_permea2
                 )"""
 
-        ThorPT = ThorPT_Routines(temperatures, pressures, master_rock, rock_origin,
+        ThorPT = routines_ThorPT.ThorPT_Routines(temperatures, pressures, master_rock, rock_origin,
                 track_time, track_depth, grt_frac, path_method,
                 lowest_permeability, conv_speed, angle, time_step, init_data['theriak'])
 
@@ -559,7 +570,7 @@ def run_routine():
 
 if __name__ == '__main__':
     print("File call __name__ is set to: {}" .format(__name__))
-    run_routine()
+    run_main_routine()
 
 
 

@@ -11,6 +11,7 @@ status: 11.06.2023
 
 
 import matplotlib.pyplot as plt
+import matplotlib.tri as tri
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -194,6 +195,22 @@ def mineral_translation(database):
                        'Oxygen_count': phase_counts}
 
     return translation_dic
+
+
+def calc_moles_to_weightpercent(moles):
+
+    # oxide_list = [SIO2, TIO2, AL2O3, FEO, MNO, MGO, CAO, NA2O, K2O, H2O]
+    oxide_molar_weight = [60.08, 79.87, 101.96, 71.85, 70.94, 40.30, 56.08, 61.98, 94.20, 18.02]
+    cation_molar_weight = [28.08, 47.87, 26.98, 55.85, 54.94, 24.30, 40.08, 22.98, 39.09, 1.01]
+    oxide_number_cations = [1, 1, 2, 1, 1, 1, 1, 2, 2, 2]
+    oxide_number_oxygen = [2, 2, 3, 1, 1, 1, 1, 1, 1, 1]
+
+    # calculate weight percent of cations
+    moles_arr = np.array(moles).T
+    bulk_wpercent = ((moles_arr * oxide_molar_weight).T / (sum((moles_arr * oxide_molar_weight).T)) * 100).T
+
+    return bulk_wpercent
+
 
 
 def Merge_phase_group(data):
@@ -599,6 +616,8 @@ class Rock:
     garnet: any
     garnets_bools: any
 
+    element_record: any
+
 
 # Compiled data as dataclass
 @dataclass
@@ -625,6 +644,7 @@ class CompiledData:
     all_porosity: any
     all_extraction_boolean: any
     all_fluid_pressure: any
+    all_td_data: any
 
 
 # HDF5 reader
@@ -668,6 +688,7 @@ class ThorPT_hdf5_reader():
         sysv_post = {}
         garnets_bools = {}
         volume_data = {}
+        element_record = {}
 
         o_file = file_opener()
 
@@ -844,8 +865,6 @@ class ThorPT_hdf5_reader():
                 extraction_boolean = np.array(frac_bool, dtype=bool)
                 extraction_boolean = np.invert(extraction_boolean)
 
-
-
                 #######################################################
                 el = list(f[group_key].attrs['garnet'])
                 params = {}
@@ -872,6 +891,12 @@ class ThorPT_hdf5_reader():
                 garnets[group_key] = phase
 
                 garnets_bools[group_key] = np.array(f[group_key]['GarnetData']['garnet_check'])
+
+                # read the st_elements
+                element_record[group_key] = pd.DataFrame(f[group_key]['SystemData']['st_elements'])
+                element_record[group_key].index = td_data_tag
+
+
 
                 #######################################################
                 # Write the dataclass
@@ -908,7 +933,8 @@ class ThorPT_hdf5_reader():
                     v_permeability=0,
                     v_timeintflux=0,
                     garnet=garnets,
-                    garnets_bools=garnets_bools)
+                    garnets_bools=garnets_bools,
+                    element_record=element_record)
 
                 #######################################################
                 # Compiling section
@@ -958,7 +984,8 @@ class ThorPT_hdf5_reader():
                     all_database,
                     all_porosity,
                     all_extraction_boolean,
-                    all_fluid_pressure)
+                    all_fluid_pressure,
+                    all_td_data)
 
 
 # Module of plotting functions for reducing the data from modelling with ThorPT
@@ -3004,6 +3031,72 @@ class ThorPT_plots():
                     frames.append(image)
             imageio.mimsave(f'{self.mainfolder}/img_{self.filename}/msg_redistribution/output.gif', frames, duration=400)
 
+    def ternary_vs_extraction(self):
+
+        print("The 'data.rock[key]' keys are:")
+
+        element_data = self.rockdic['rock000'].element_record['rock000']
+        ts = self.rockdic['rock000'].temperature
+
+        # [SIO2, TIO2, AL2O3, FEO, MNO, MGO, CAO, NA2O, K2O, H2O]
+
+        # if no MN in index add a row with zeros
+        if 'MN' not in element_data.index:
+            element_data.loc['MN'] = np.zeros(len(element_data.columns))
+        # reorder the element data index to SI, TI, AL, FE, MN, MG, CA, NA, K, H
+        moles = element_data.reindex(['SI', 'TI', 'AL', 'FE', 'MN', 'MG', 'CA', 'NA', 'K', 'H'])
+
+        # calculate the bulk in weight percent from the moles
+        bulk_wt = calc_moles_to_weightpercent(moles)
+
+        na2o = bulk_wt.T[8]
+        mgo = bulk_wt.T[5]
+        cao = bulk_wt.T[6]
+
+        # normalize for ternary plot
+        na2o_norm = na2o/(na2o+mgo+cao)
+        mgo_norm = mgo/(na2o+mgo+cao)
+        cao_norm = cao/(na2o+mgo+cao)
+
+        x = mgo_norm + (1 - (mgo_norm + na2o_norm))/2
+        y = cao_norm*np.sqrt(1-0.5**2)
+
+        # Plot in a ternary diagram
+        plt.figure(101, dpi=100)
+        # figure with aspect ratio of 1:1
+        # plt.gca().set_aspect('equal', adjustable='box')
+        plt.rc('axes', labelsize=16)
+        plt.rc('ytick', labelsize=12)  # fontsize of the y tick labels
+        plt.rc('xtick', labelsize=12)  # fontsize of the x tick labels
+        # plot the ternary diagram
+        # create the grid
+        corners = np.array([[0, 0], [1, 0], [0.5,  np.sqrt(3)*0.5]])
+        triangle = tri.Triangulation(corners[:, 0], corners[:, 1])
+        # creating the grid
+        refiner = tri.UniformTriRefiner(triangle)
+        trimesh = refiner.refine_triangulation(subdiv=4)
+        #plotting the mesh
+        plt.triplot(trimesh,'k--', alpha=0.3)
+        # create the triangle frame
+        frame = plt.plot([0, 1, 0.5, 0], [0, 0, np.sqrt(1-0.5**2), 0],
+                         c='black', linewidth=1.0, alpha=0.6)
+
+        # plot the data
+        result = plt.scatter(x, y, s= 50, edgecolor='black', c=ts, cmap='Reds')
+
+        # add a colorbar with label
+        cbar = plt.colorbar(result, label='Temperature [°C]')
+        # hide the ticks
+        plt.tick_params(axis='both', which='both', bottom=False, top=False,
+                        labelbottom=False, right=False, left=False, labelleft=False)
+        # hide the frame
+        plt.box(False)
+        # annotate the plot
+        plt.annotate('MgO', xy=(1.0, 0.0), xytext=(1.0, -0.05), fontsize=12)
+        plt.annotate('CaO', xy=(0.5, 0.88), xytext=(0.45, 0.88), fontsize=12)
+        plt.annotate('Na2O', xy=(0.0, 0.0), xytext=(-0.1, -0.05), fontsize=12)
+
+        print()
 
 
 if __name__ == '__main__':
@@ -3016,6 +3109,7 @@ if __name__ == '__main__':
     compPlot = ThorPT_plots(
         data.filename, data.mainfolder, data.rock, data.compiledrock)
 
+    compPlot.ternary_vs_extraction()
 
     # Protocol for lawsonite surface plot
     lawsonite_surface = False
@@ -3081,8 +3175,6 @@ if __name__ == '__main__':
                 data_box, num_rocks=3,
                 rock_colors=["#0592c1", "#f74d53", '#10e6ad'],
                 rock_symbol = ['d--', 'd--', 'd--', 's--'], rock_names=True)
-
-
 
         ##########################################
         print("The 'data.rock[key]' keys are:")
