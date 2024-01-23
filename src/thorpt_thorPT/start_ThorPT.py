@@ -218,7 +218,7 @@ def run_routine():
                     init_data['Extraction scheme'].append(rock_mechanics)
 
         init_data['Database'] = database
-        init_data['Path'] = path
+        init_data['Path'] = init_data['path']
         init_data['Path arguments'] = path_arguments
         init_data['Bulk'] = bulk
         init_data['Oxygen'] = oxygen
