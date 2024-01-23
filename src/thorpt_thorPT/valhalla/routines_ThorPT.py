@@ -366,14 +366,33 @@ class ThorPT_Routines():
             for item in master_rock:
                 # Start of modelling scheme for rock
                 print("\n")
-                print("¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦")
-                print("v v v v v v v v v v v v v v v v v v v v v v v v")
+                # print("¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦")
+                # print("v v v v v v v v v v v v v v v v v v v v v v v v")
+                print("\N{Runic Letter Mannaz Man M}\N{Runic Letter Isaz Is Iss I}\N{Runic Letter Naudiz Nyd Naud N}\N{Runic Letter Isaz Is Iss I}\N{Runic Letter Mannaz Man M}\N{Runic Letter Isaz Is Iss I}\N{Runic Letter Algiz Eolhx}\N{Runic Letter Ansuz A}\N{Runic Letter Tiwaz Tir Tyr T}\N{Runic Letter Isaz Is Iss I}\N{Runic Letter Othalan Ethel O}\N{Runic Letter Naudiz Nyd Naud N}")
                 print(f"-> Forward modeling step initiated - {item}")
                 # display modelling progress
                 ic = k/kk*100
                 progress(ic)
                 print("\n")
                 print(master_rock[item]['new_bulk'])
+
+                # tracking theriak input before minimization
+                # save temperature, pressure and master_rock[item]['new_bulk']
+                # test if varibale is dictionary
+                if isinstance(master_rock[item]['theriak_input_record'], dict) == False:
+                    master_rock[item]['theriak_input_record'] = {}
+                    master_rock[item]['theriak_input_record']['temperature'] = [temperature]
+                    master_rock[item]['theriak_input_record']['pressure'] = [pressures[num]]
+                    master_rock[item]['theriak_input_record']['bulk'] = [master_rock[item]['new_bulk']]
+                    print("Tracking theriak -> Create dictionary -> first entry")
+
+                # test for empty dictionary
+                elif isinstance(master_rock[item]['theriak_input_record'], dict) == True:
+                    master_rock[item]['theriak_input_record']['temperature'].append(temperature)
+                    master_rock[item]['theriak_input_record']['pressure'].append(pressures[num])
+                    master_rock[item]['theriak_input_record']['bulk'].append(master_rock[item]['new_bulk'])
+                    print("Tracking theriak -> dictionary exists -> add entry")
+
 
                 # Send information to the theriak wrapper
                 master_rock[item]['minimization'] = Therm_dyn_ther_looper(self.theriak,
@@ -419,8 +438,7 @@ class ThorPT_Routines():
                 if num < 1:
                     # Volume and Density ouput - Dataframes (df_N, df_Vol% etc)
                     for variable in list(master_rock[item]['minimization'].df_phase_data.index):
-                        master_rock[item]['df_var_dictionary']['df_' +
-                                                            str(variable)] = pd.DataFrame()
+                        master_rock[item]['df_var_dictionary']['df_' + str(variable)] = pd.DataFrame()
                     water_cont_ind = ["N", "H2O[pfu]", "H2O[mol]",
                                     "H2O[g]", "wt%_phase", "wt%_solids", "wt%_H2O.solid"]
                     for variable in water_cont_ind:
@@ -642,7 +660,7 @@ class ThorPT_Routines():
                                         master_rock[item]['tensile strength'],
                                         differential_stress= master_rock[item]['diff. stress'],
                                         friction= master_rock[item]['friction'],
-                                        fluid_pressure_mode= master_rock[item]['fluid_pressure'],
+                                        fluid_pressure_mode= master_rock[item]['fluid_pressure_mode'],
                                         fluid_name_tag=fluid_name_tag ,subduction_angle=self.angle,
                                         )
 
@@ -1707,12 +1725,24 @@ class ThorPT_Routines():
         meta_h5 = ['bulk', 'new_bulk', 'database',
                 'phase_order', 'el_index', 'el_col', 'pot_tag', 'oxy_data_phases', 'database_fluid_name']
         h5_parameters = ['time_frame', 'cohesion', 'temperatures', 'pressures', 'convergence_speed', 'subuction_angle', 'geometry',
-                         'shear', 'friction', 'tensile strength', 'Extraction scheme', 'depth', 'diff. stress', 'line']
+                         'shear', 'friction', 'tensile strength', 'Extraction scheme', 'depth', 'diff. stress', 'line', 'theriak_input_record']
         h5_oxygenisotope = ['all_oxy', 'save_oxygen', 'save_bulk_oxygen_pre', 'save_bulk_oxygen_post', 'bulk_oxygen',
                             'bulk_oxygen_after_influx', 'bulk_oxygen_before_influx']
         h5_fluiddata = ['extr_svol', 'extracted_fluid_data', 'fluid_hydrogen', 'fluid_influx_data', 'fluid_oxygen', 'extr_time']
         h5_mechanicaldata = ['fluid_volume_before', 'fluid_volume_new', 'solid_volume_before', 'solid_volume_new', 'save_factor',
-                             'st_fluid_before', 'st_fluid_after', 'st_solid', 'fracture bool', 'fracture_value', 'track_refolidv']
+                             'st_fluid_before', 'st_fluid_after', 'st_solid', 'fracture bool', 'fracture_value', 'track_refolidv', 'fluid_pressure_mode']
+        h5_system_data = [
+            'g_sys',
+            'df_element_total',
+            'st_elements',
+            'pot_data',
+            ]
+        h5_garnet_data = [
+            'garnet_check',
+            'meta_grt_volume',
+            'meta_grt_weight'
+        ]
+
         # ANCHOR - static path
         if defined_path is False:
             # static
@@ -1748,6 +1778,7 @@ class ThorPT_Routines():
                 for i, item in enumerate(master_rock[rock]):
                     if item in no_go:
                         pass
+                    # save master_rock[item]['theriak_input_record'] to hdf5 in rock/item
                     elif item in meta_h5:
                         if item == 'bulk':
                             hf[rock].attrs.create(item, master_rock[rock][item])
@@ -1774,7 +1805,8 @@ class ThorPT_Routines():
                         for subject in master_rock[rock][item]:
                             if isinstance(subject, dict) is True:
                                 item_list = list(subject.keys())
-                                dataframe_fracture_module = pd.DataFrame(np.zeros((len(master_rock[rock][item]), len(item_list))))
+                                dataframe_fracture_module = pd.DataFrame(
+                                    np.zeros((len(master_rock[rock][item]), len(item_list))))
                                 dataframe_fracture_module.columns = item_list
                                 for kkey in item_list:
                                     stored = []
@@ -1790,7 +1822,7 @@ class ThorPT_Routines():
                                 hf.create_dataset(f"{rock}/{item}", data=dataframe_fracture_module)
                                 hf[f"{rock}/{item}"].attrs.create('header', item_list)
 
-                                break 
+                                break
 
                     elif item == 'garnet':
                         tts = []
@@ -1826,7 +1858,7 @@ class ThorPT_Routines():
                                 moles, name, pps, tts, volp, volume, volPmole]
                         for j in range(len(values1)):
                             dataset = hf.create_dataset(
-                                f"{rock}/{item}/{values1[j]}", data=values2[j])
+                                f"{rock}/GarnetData/{item}/{values1[j]}", data=values2[j])
 
                         hf[rock].attrs.create(item, list(elements.index))
 
@@ -1838,31 +1870,34 @@ class ThorPT_Routines():
                             new_dic_names = ['df_N', 'df_vol_mol', 'df_volume', 'df_vol%', 'df_wt_mol', 'df_wt', 'df_wt%', 'df_density']
                             old_dic_names = list(master_rock[rock][item].keys())
                             for jj, entry in enumerate(new_dic_names):
-                                dataset = hf.create_dataset(f"{rock}/{item}/{entry}",
+                                dataset = hf.create_dataset(f"{rock}/SystemData/{item}/{entry}",
                                                         data=master_rock[rock][item][old_dic_names[jj]])
                         else:
                             for entry in master_rock[rock][item]:
-                                dataset = hf.create_dataset(f"{rock}/{item}/{entry}",
+                                dataset = hf.create_dataset(f"{rock}/SystemData/{item}/{entry}",
                                                             data=master_rock[rock][item][entry])
 
                     # Structuring the single variables in groups for the hdf5 file (paramters, isotope data, fluid data, mechanical data, other recordings)
                     elif item in h5_parameters:
-                        dataset = hf.create_dataset(
-                            f"{rock}/Parameters/{entries[i]}", data=master_rock[rock][item])
+                        if item == 'theriak_input_record':
+                            data_in = pd.DataFrame(master_rock[rock][item])
+                            data_in_bulk = np.array(data_in['bulk'])
+                            hf.create_dataset(f"{rock}/{item}", data=data_in_bulk)
+                            # hf[f"{rock}/{item}"].attrs.create('header', list(master_rock[rock][item].keys()))
+                        else:
+                            hf.create_dataset(f"{rock}/Parameters/{entries[i]}", data=master_rock[rock][item])
                     elif item in h5_oxygenisotope:
-                        dataset = hf.create_dataset(
-                            f"{rock}/IsotopeData/{entries[i]}", data=master_rock[rock][item])
+                        hf.create_dataset(f"{rock}/IsotopeData/{entries[i]}", data=master_rock[rock][item])
                     elif item in h5_fluiddata:
-                        dataset = hf.create_dataset(
-                            f"{rock}/FluidData/{entries[i]}", data=master_rock[rock][item])
+                        hf.create_dataset(f"{rock}/FluidData/{entries[i]}", data=master_rock[rock][item])
                     elif item in h5_mechanicaldata:
-                        dataset = hf.create_dataset(
-                            f"{rock}/MechanicsData/{entries[i]}", data=master_rock[rock][item])
-
+                        hf.create_dataset(f"{rock}/MechanicsData/{entries[i]}", data=master_rock[rock][item])
+                    elif item in h5_garnet_data:
+                        hf.create_dataset(f"{rock}/GarnetData/{entries[i]}", data=master_rock[rock][item])
+                    elif item in h5_system_data:
+                        hf.create_dataset(f"{rock}/SystemData/{entries[i]}", data=master_rock[rock][item])
                     else:
-
-                        dataset = hf.create_dataset(
-                            f"{rock}/{entries[i]}", data=master_rock[rock][item])
+                        hf.create_dataset(f"{rock}/Other/{entries[i]}", data=master_rock[rock][item])
 
         print('\n=====================\
             ===============================\nHDF5 data saved\n====================\

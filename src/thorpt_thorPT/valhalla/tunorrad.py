@@ -1830,11 +1830,14 @@ class Ext_method_master:
         # fluid pressure close to mean stress
         if self.fluid_pressure_mode == 'mean stress':
             hydro = mean_stress/vol_t0 * (vol_t0+(vol_new-vol_t0))
+            delta_p = mean_stress - hydro
         elif self.fluid_pressure_mode == 'normal stress':
             # Duesterhoft 2019 method
             hydro = normal_stress/vol_t0 * (vol_t0+(vol_new-vol_t0))
+            delta_p = normal_stress - hydro
         else:
             hydro = mean_stress
+            delta_p = mean_stress - hydro
 
         # Mohr circle arguments
         r = self.diff_stress/2      # radius of the circle
@@ -1906,28 +1909,29 @@ class Ext_method_master:
             self.frac_respo = 0
 
         self.failure_dictionary = {
+            "sigma 1":copy.deepcopy(sig1),
+            "sigma 3":copy.deepcopy(sig3),
+            "fluid pressure": copy.deepcopy(hydro),
+            "delta p": copy.deepcopy(delta_p),
+            "normal pressure": copy.deepcopy(normal_stress),
+            "diff stress":(self.diff_stress),
+            "fracture key": copy.deepcopy(self.frac_respo),
+            "tensile strength": copy.deepcopy(self.tensile_strength),
+            "shear stress": shear_stress,
             "friction coeff": copy.deepcopy(self.friction),
             "cohesion": (cohesion),
-            "shear stress": shear_stress,
-            "diff stress":(self.diff_stress),
-            "radius": copy.deepcopy(r),
-            "center": copy.deepcopy(center),
-            "effective position": copy.deepcopy(pos),
-            "critical fluid pressure normal": copy.deepcopy(crit_fluid_pressure),
-            "critical fluid pressure griffith": copy.deepcopy(pf_crit_griffith),
-            "fluid pressure": copy.deepcopy(hydro),
-            "normal pressure": copy.deepcopy(normal_stress),
+            "angle": copy.deepcopy(self.angle),
             "vol t0":copy.deepcopy(vol_t0),
             "solid t0":copy.deepcopy(self.solid_t0),
             "fluid t0":copy.deepcopy(self.fluid_t0),
             "vol t1":copy.deepcopy(vol_new),
             "solid t1":copy.deepcopy(self.solid_t1),
             "fluid t1":copy.deepcopy(self.fluid_t1),
-            "sigma 1":copy.deepcopy(sig1),
-            "sigma 3":copy.deepcopy(sig3),
-            "angle": copy.deepcopy(self.angle),
-            "fracture key": copy.deepcopy(self.frac_respo),
-            "tensile strength": copy.deepcopy(self.tensile_strength)
+            "radius": copy.deepcopy(r),
+            "center": copy.deepcopy(center),
+            "effective position": copy.deepcopy(pos),
+            "critical fluid pressure normal": copy.deepcopy(crit_fluid_pressure),
+            "critical fluid pressure griffith": copy.deepcopy(pf_crit_griffith)
             }
 
         if self.frac_respo > 0:
@@ -2037,7 +2041,14 @@ class Fluid_master():
         self.element_frame.loc['H', self.fluid_name_tag] = 0.0
         self.st_fluid_post[-1] = self.st_fluid_post[-1] - extracted_fluid_vol
         # print("=====================================")
-        print("=======yummy yummy yummy, I drunk all your water========")
+        print("======= Fluid fractionation 100% ========")
+        print("\t    \N{BLACK DROPLET}")
+        print("\t   \N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
+        print("\t \N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
+        print("\t\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
+        print("\t\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
+        print("\t \N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
+        print("\t   \N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
         # print("=====================================")
 
     def hydrogen_partial_ext(self):

@@ -411,6 +411,7 @@ def run_routine():
             master_rock[tag]['bulk'] = item
             master_rock[tag]['depth'] = depth
             master_rock[tag]['database'] = database[i]
+            master_rock[tag]['theriak_input_record'] = False
 
             # System data
             master_rock[tag]['df_var_dictionary'] = {}
@@ -435,7 +436,7 @@ def run_routine():
             master_rock[tag]['fluid_oxygen'] = []
             master_rock[tag]['track_refolidv'] = []
             master_rock[tag]['database_fluid_name'] = init_data['fluid_name_tag'][i]
-            master_rock[tag]['fluid_pressure'] = init_data['fluid_pressure'][i]
+            master_rock[tag]['fluid_pressure_mode'] = init_data['fluid_pressure'][i]
 
             # Isotope data
             master_rock[tag]['save_oxygen'] = []

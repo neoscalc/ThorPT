@@ -713,10 +713,10 @@ class ThorPT_hdf5_reader():
                     line = False
 
                 # Modelled params
-                permea = np.array(f[group_key]['permeability'])
-                t_flux = np.array(f[group_key]['time-int flux'])
-                virtual_perm = np.array(f[group_key]['virtual permeability'])
-                virtual_flux = np.array(f[group_key]['virtual time-int flux'])
+                permea = np.array(f[group_key]['Other']['permeability'])
+                t_flux = np.array(f[group_key]['Other']['time-int flux'])
+                virtual_perm = np.array(f[group_key]['Other']['virtual permeability'])
+                virtual_flux = np.array(f[group_key]['Other']['virtual time-int flux'])
 
                 # Fluid extraction
                 extr_d = pd.DataFrame(f[group_key]['FluidData']['extracted_fluid_data'])
@@ -730,9 +730,9 @@ class ThorPT_hdf5_reader():
 
                 # get some physics arrays
                 sys_physc = {}
-                for item in f[group_key]['sys_physicals']:
+                for item in f[group_key]['SystemData']['sys_physicals']:
                     sys_physc[item] = np.array(
-                        f[group_key]['sys_physicals'][item])
+                        f[group_key]['SystemData']['sys_physicals'][item])
 
                 system_vol_pre = sys_physc['system_vol_pre']
                 system_vol_post = sys_physc['system_vol_post']
@@ -750,21 +750,21 @@ class ThorPT_hdf5_reader():
 
                 # retrieve all the thermodyamica physical data
                 df_var_d = {}
-                for item in f[group_key]['df_var_dictionary'].keys():
+                for item in f[group_key]['SystemData']['df_var_dictionary'].keys():
                     df_var_d[item] = pd.DataFrame(
-                        f[group_key]['df_var_dictionary'][item])
+                        f[group_key]['SystemData']['df_var_dictionary'][item])
                     if len(phases) > len(df_var_d[item].columns):
                         pass
                     else:
                         df_var_d[item].columns = phases
                 # element data
-                td_data = pd.DataFrame(f[group_key]['df_element_total'])
+                td_data = pd.DataFrame(f[group_key]['SystemData']['df_element_total'])
                 td_data_tag = list(f[group_key].attrs['el_index'])
                 td_data = td_data.T
                 td_data.columns = td_data_tag
                 # Get the chemical potential data
                 pot_tag = list(f[group_key].attrs['pot_tag'])
-                p_data = pd.DataFrame(f[group_key]['pot_data'])
+                p_data = pd.DataFrame(f[group_key]['SystemData']['pot_data'])
                 p_data.index = pot_tag
 
                 # Oxygen fractionation data
@@ -849,13 +849,13 @@ class ThorPT_hdf5_reader():
                 #######################################################
                 el = list(f[group_key].attrs['garnet'])
                 params = {}
-                for item in f[group_key]['garnet']:
+                for item in f[group_key]['GarnetData']['garnet']:
                     if item == 'elements':
-                        params[item] = pd.DataFrame(f[group_key]['garnet'][item], index=el)
+                        params[item] = pd.DataFrame(f[group_key]['GarnetData']['garnet'][item], index=el)
                     elif item == 'name':
-                        params[item] = list(f[group_key]['garnet'][item])
+                        params[item] = list(f[group_key]['GarnetData']['garnet'][item])
                     else:
-                        params[item] = np.array(f[group_key]['garnet'][item])
+                        params[item] = np.array(f[group_key]['GarnetData']['garnet'][item])
 
                 phase = Phasecomp(params['name'],
                                 params['temperature'],
@@ -871,7 +871,7 @@ class ThorPT_hdf5_reader():
                                 )
                 garnets[group_key] = phase
 
-                garnets_bools[group_key] = np.array(f[group_key]['garnet_check'])
+                garnets_bools[group_key] = np.array(f[group_key]['GarnetData']['garnet_check'])
 
                 #######################################################
                 # Write the dataclass
@@ -3262,8 +3262,7 @@ if __name__ == '__main__':
         plt.ylabel("Fluid filled porosity norm.")
         plt.show()
 
-        applied_diff_stress = np.array(data_box[0].compiledrock.all_diffs).T[-1]
-        applied_diff_stress = np.around(applied_diff_stress,1)
+        applied_diff_stress = np.array(data_box[0].compiledrock.all_diffs)
         used_tensile_strengths = data_box[0].compiledrock.all_tensile
 
         # do the colorbar in a seperate plot
