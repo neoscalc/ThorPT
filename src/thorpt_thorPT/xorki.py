@@ -997,6 +997,21 @@ class ThorPT_hdf5_reader():
 
 # Module of plotting functions for reducing the data from modelling with ThorPT
 class ThorPT_plots():
+    """
+    Class for generating various plots related to ThorPT data.
+
+    Args:
+        filename (str): The name of the file.
+        mainfolder (str): The main folder path.
+        rockdata (dict): A dictionary containing rock data.
+        compiledrockdata (dict): A dictionary containing compiled rock data. Compiled rock data is a dataclass.
+
+    Attributes:
+        filename (str): The name of the file.
+        mainfolder (str): The main folder path.
+        rockdic (dict): A dictionary containing rock data. Each rock data is a dataclass.
+        comprock (dict): A dictionary containing compiled rock data. Compiled rock data is a dataclass.
+    """
 
     def __init__(self, filename, mainfolder, rockdata, compiledrockdata):
 
@@ -3107,7 +3122,6 @@ class ThorPT_plots():
         plt.annotate('Na2O', xy=(0.0, 0.0), xytext=(-0.1, -0.05), fontsize=12)
 
         plt.show()
-        plt.clf()
         plt.close()
 
     def sensitivity_compared_porosity_plot(self, num_list_of_keys):
@@ -3207,32 +3221,15 @@ class ThorPT_plots():
         # looping for bulk rocks to mask array for plotting
         unique_bulks = np.unique(self.comprock.all_starting_bulk)
         boolean_bulk = []
-        for item in self.comprock.all_starting_bulk:
-            if item == unique_bulks[0]:
-                boolean_bulk.append(1)
-            elif item == unique_bulks[1]:
-                boolean_bulk.append(2)
-            elif item == unique_bulks[2]:
-                boolean_bulk.append(3)
-            elif item == unique_bulks[3]:
-                boolean_bulk.append(4)
-            elif item == unique_bulks[4]:
-                boolean_bulk.append(5)
-            elif item == unique_bulks[5]:
-                boolean_bulk.append(6)
+        bulk_mapping = {bulk: index + 1 for index, bulk in enumerate(unique_bulks)}
 
-        """number_of_bulks = number_of_bulks
-        bulk_interval = number_of_interval
-        for i in range(number_of_bulks):
-            start_index = i * bulk_interval
-            end_index = (i + 1) * bulk_interval
-            boolean_bulk_i = np.array([True if start_index <= j < end_index else False for j in range(len(data.compiledrock.all_diffs))])
-            boolean_bulk_i = np.invert(boolean_bulk_i)
-            boolean_bulk.append(boolean_bulk_i)"""
+        for item in self.comprock.all_starting_bulk:
+            boolean_bulk.append(bulk_mapping[item])
+
         # prepare plot
-        plt.figure(104, dpi=150)
+        fig = plt.figure(104, dpi=150)
         # looping over bulk rock to plot the arrays
-        for i, item in enumerate(boolean_bulk):
+        for i, item in enumerate(np.unique(boolean_bulk)):
             print(item)
             # get boolean array where boolean_bul equals item
             bool_mask = np.array(boolean_bulk) == item
@@ -3246,10 +3243,10 @@ class ThorPT_plots():
         plt.xlabel("Differential stress [$\it{MPa}$]")
         plt.legend(track_legend, title="Rock bulk")
 
-        subfolder = 'bulk_rock_sensitivity'
+        subfolder = 'sensitivity'
         os.makedirs(f'{data.mainfolder}/img_{data.filename}/{subfolder}', exist_ok=True)
         plt.savefig(f'{data.mainfolder}/img_{data.filename}/{subfolder}/bulk_rock_sensitivity.png',transparent=False)
-        # plt.show()
+        plt.close()
 
     def tensile_strength_sensitivity(self):
         """
@@ -3307,13 +3304,13 @@ class ThorPT_plots():
 
         plt.ylabel("# of extractions")
         plt.xlabel("Differential stress [$\it{MPa}$]")
-        plt.legend(track_legend, title="Rock bulk")
+        plt.legend(track_legend, title="Tensile strength [MPa]")
 
         # saving image
-        subfolder = 'tensile_strength_sensitivity'
+        subfolder = 'sensitivity'
         os.makedirs(f'{data.mainfolder}/img_{data.filename}/{subfolder}', exist_ok=True)
         plt.savefig(f'{data.mainfolder}/img_{data.filename}/{subfolder}/tensile_strength_sensitivity.png',transparent=False)
-
+        plt.close()
 
 if __name__ == '__main__':
 
@@ -3338,13 +3335,13 @@ if __name__ == '__main__':
         compPlot.lawsonite_surface(True)
 
     # Protocol for standard plotting (Stack, oxygen isotopes, release fluid volume)
-    standard_plots = False
+    standard_plots = True
     if standard_plots is True:
             for key in data.rock.keys():
                 print(key)
                 compPlot.phases_stack_plot(rock_tag=key, img_save=True,
                             val_tag='volume', transparent=False, fluid_porosity=True)
-                # compPlot.oxygen_isotopes(rock_tag=key, img_save=True)
+                compPlot.oxygen_isotopes(rock_tag=key, img_save=True)
                 # compPlot.release_fluid_volume_plot(rock_tag=key, img_save=False)
 
             # compPlot.pt_path_plot(key, img_save=True, gif_save=True)
