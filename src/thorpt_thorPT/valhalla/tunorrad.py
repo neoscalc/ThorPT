@@ -19,10 +19,27 @@ from dataclasses import dataclass, field
 from typing import List
 from scipy.optimize import minimize
 import copy
+from collections.abc import Iterable
 
 
 @dataclass
 class Phasecomp:
+    """
+    Represents a phase composition.
+
+    Attributes:
+        name (str): The name of the phase.
+        temperature (float): The temperature in degree Celsius.
+        pressure (float): The pressure in bar.
+        moles (float): The number of moles.
+        volume (float): The volume in cubic centimeters (ccm).
+        volp (float): The volume percentage.
+        mass (float): The mass in grams.
+        massp (float): The mass percentage.
+        density (float): The density in grams per cubic centimeter (g/ccm).
+        elements (any): The elements present in the phase.
+        volPmole (float): The volume per mole in cubic centimeters per mole (ccm/mol).
+    """
     name: str
     temperature: float = field(metadata={'unit': 'degree C'})
     pressure: float = field(metadata={'unit': 'bar'})
@@ -38,18 +55,35 @@ class Phasecomp:
 
 @dataclass
 class Phaseclass:
+    """
+    Represents a phase class.
+
+    Attributes:
+        comps (List[Phasecomp]): List of phase components.
+    """
     comps: List[Phasecomp]
 
 # collision of mohr circle with shear failure envelope
 
 
 def checkCollision(a, b, c, x, y, radius):
-    # Finding the distance of line
-    # from center.
+    """
+    Check if a point (x, y) is colliding with a line defined by the equation ax + by + c = 0.
+
+    Parameters:
+    a (float): The coefficient of x in the line equation.
+    b (float): The coefficient of y in the line equation.
+    c (float): The constant term in the line equation.
+    x (float): The x-coordinate of the point.
+    y (float): The y-coordinate of the point.
+    radius (float): The radius of the collision detection.
+
+    Returns:
+    str: The collision status. Possible values are "Touch" if the point is on the line,
+    "Intersect" if the point is inside the collision radius, and "Outside" if the point is outside the collision radius.
+    """
     dist = ((abs(a * x + b * y + c)) /
             np.sqrt(a * a + b * b))
-    # Checking if the distance is less
-    # than, greater than or equal to radius.
     if (radius == dist):
         output = "Touch"
     elif (radius > dist):
@@ -60,6 +94,21 @@ def checkCollision(a, b, c, x, y, radius):
     return output
 
 def checkCollision_linear(a, b, c, x, y, radius):
+    """
+    Check if a point (x, y) lies within the collision radius of a linear equation ax + by + c = 0.
+
+    Parameters:
+    a (float): The coefficient of x in the linear equation.
+    b (float): The coefficient of y in the linear equation.
+    c (float): The constant term in the linear equation.
+    x (float): The x-coordinate of the point.
+    y (float): The y-coordinate of the point.
+    radius (float): The collision radius.
+
+    Returns:
+    collision (bool): True if the point lies within the collision radius, False otherwise.
+    dist (float): The distance of the point from the line defined by the linear equation.
+    """
     # Finding the distance of line
     # from center.
     dist = ((abs(a * x + b * y + c)) /
@@ -82,8 +131,20 @@ def checkCollision_linear(a, b, c, x, y, radius):
     return collision, dist
 
 def checkCollision_curve(pos, diff, tensile):
-    # Finding the minimum distance of circle center to curve
+    """
+    Checks if there is a collision between a circle and a curve.
 
+    Args:
+        pos (float): The x-coordinate of the circle center.
+        diff (float): The diameter of the circle.
+        tensile (float): The tensile strength of the curve.
+
+    Returns:
+        tuple: A tuple containing a boolean value indicating whether there is a collision,
+               and the minimum distance between the circle center and the curve.
+    """
+
+    # Finding the minimum distance of circle center to curve
     # Defining the function for griffith failure
     def f(normal, T=tensile):
         return np.sqrt(4*normal*T +4*T**2)
@@ -112,24 +173,20 @@ def checkCollision_curve(pos, diff, tensile):
     return collision, minimum
 
 def check_redo_bulk(bulk):
-    bulk = bulk
+    """
+    Check and update the bulk dictionary with missing elements and their default values.
+
+    Args:
+        bulk (dict): The dictionary representing the bulk composition.
+
+    Returns:
+        str: The updated bulk composition string.
+    """
     el_list = bulk.keys()
-    if 'H' not in el_list:
-        bulk['H'] = 0
-    if 'C' not in el_list:
-        bulk['C'] = 0
-    if 'MN' not in el_list:
-        bulk['MN'] = 0
-    if 'CA' not in el_list:
-        bulk['CA'] = 0
-    if 'TI' not in el_list:
-        bulk['TI'] = 0
-    if 'MG' not in el_list:
-        bulk['MG'] = 0
-    if 'NA' not in el_list:
-        bulk['NA'] = 0
-    if 'K' not in el_list:
-        bulk['K'] = 0
+    elements = ['H', 'C', 'MN', 'CA', 'TI', 'MG', 'NA', 'K']
+    for element in elements:
+        if element not in el_list:
+            bulk[element] = 0
 
     new_bulk = (
         f"SI({bulk['SI']})AL({bulk['AL']})FE({bulk['FE']})"
@@ -141,31 +198,32 @@ def check_redo_bulk(bulk):
 
 
 def first_Occurrence_char(char, string):
-    """finds position of first occurence
+    """Finds the position of the first occurrence of a character in a string.
 
     Args:
-        char ([string]): [can be a letter or anything]
-        string ([string]): [can be a word]
+        char (str): The character to search for.
+        string (str): The string to search in.
 
     Returns:
-        [type]: [description]
+        int: The position of the first occurrence of the character in the string,
+             or 'no' if the character is not found.
     """
-    # print(string)
     for num, item in enumerate(string):
-        if(string[num] == char):
+        if string[num] == char:
             return num
     return 'no'
 
 
 def remove_items(test_list, item):
-    """[removes item in a list - used in code to remove blanks or tabs in a list]
+    """
+    Removes specified item from a list.
 
     Args:
-        test_list ([list]): [a list with items read from a txt file]
-        item ([string or number ...]): [can be anything - used in this case for symbols, blanks or tabs]
+        test_list (list): A list with items read from a txt file.
+        item (str or int): The item to be removed from the list.
 
     Returns:
-        [list]: [list of items now cleaned from the item defined]
+        list: A new list with the specified item removed.
     """
     # using list comprehension to perform the task
     res = [i for i in test_list if i != item]
@@ -174,13 +232,13 @@ def remove_items(test_list, item):
 
 def flatten(lis):
     """
-    Cleaning nested lists to on level
+    Cleaning nested lists to one level.
 
     Args:
-        lis ([nested list]): [any nested list]
+        lis (nested list): Any nested list.
 
     Yields:
-        [list]: [single level list]
+        list: Single level list.
     """
     for item in lis:
         if isinstance(item, Iterable) and not isinstance(item, str):
@@ -192,8 +250,8 @@ def flatten(lis):
 
 def mineral_translation():
     """
-    read DB_database in DataFiles file and stores to list
-    - is the translation between theriak nad the DBOxygen dataset
+    Read DB_database in DataFiles file and stores to list.
+    This function translates between theriak and the DBOxygen dataset.
 
     Returns:
         Dictionary: Including 'DB_phases', 'Theriak_phases', 'SSolution_Check', 'SSolution_set', 'Oxygen_count'
@@ -290,17 +348,21 @@ def mineral_translation():
 
 def decode_lines(line_number, line_file, number=11, one_element_row=True):
     """
-    Decodes the output from theriak from a line into dictionary.
-        - Especially the whitespaces are annoying
+    Decodes the output from theriak from a line into a dictionary.
 
     Args:
-        line_number (int): Line number of an output or txt file read as a list -
-        def "keyword search" find the line for specific keywords
-        line_file (type): declares the variable name in which the file
-            (eg. the theriak output) is stored
+        line_number (int): Line number of an output or txt file read as a list.
+            Use "keyword search" to find the line for specific keywords.
+        line_file (list): The file (e.g., theriak output) stored as a list.
         number (int, optional): Variable to handle the lines with less or more
-        than 10 entries (Theriak switches to the next line e.g.,
-        if more than 10 elements are in the system). Defaults to 10.
+            than 10 entries. Theriak switches to the next line if more than 10
+            elements are in the system. Defaults to 10.
+        one_element_row (bool, optional): Specifies whether the line contains
+            only one element. If False, the line number is incremented by 1.
+            Defaults to True.
+
+    Returns:
+        dict: A dictionary containing the decoded line.
     """
     if one_element_row is False:
         line_number = line_number + 1
@@ -308,13 +370,11 @@ def decode_lines(line_number, line_file, number=11, one_element_row=True):
     temp_list = line_file[line_number]
     list_decrypt = []
     temp_dictionary = {}
-    # print(f"1) {temp_list}\n")
+
     temp_list = temp_list.split(' ')
-    # print(f"2) {temp_list}\n")
     for word in temp_list:
         list_decrypt.append(word)
-        # takes entry in selected line (temp_list) from line_file
-        # and splits the entries from the whitespaces. Then appends them to the decrpyt_list
+
     while '' in list_decrypt:
         list_decrypt.remove('')
 
@@ -323,11 +383,10 @@ def decode_lines(line_number, line_file, number=11, one_element_row=True):
         second_row = second_row.split(' ')
         while '' in second_row:
             second_row.remove('')
-        # if any(chr.isdigit() for chr in second_row[0]) == False:
-        #    pass
-        # else:
+
         for word in second_row:
             list_decrypt.append(word)
+
     while '' in list_decrypt:
         list_decrypt.remove('')
 
@@ -342,12 +401,22 @@ def run_theriak(theriak_path, database, temperature, pressure, whole_rock):
     conditions and uses a specific chemical composition (NannoOoze - Plank 2014) - date: february, 8 2021)
 
     Args:
-        temperature (int): value for temperature condition
-        pressure (int): value for pressure condition
+        theriak_path (str): The path where theriak can be executed.
+        database (str): The chemical composition database to be used by theriak.
+        temperature (int): The value for the temperature condition.
+        pressure (int): The value for the pressure condition.
+        whole_rock (str): The whole rock composition.
 
     Returns:
-        list: output (theriak in lines) from theriak as a list - ready to read and process
+        list: The output from theriak as a list of lines.
+
+    Raises:
+        FileNotFoundError: If the theriak executable file is not found.
+
     """
+
+
+    ######################################################################
     # Old way of calling theriak - now with input by user in init
     """
     if platform.system() == 'Windows':
@@ -387,6 +456,9 @@ def run_theriak(theriak_path, database, temperature, pressure, whole_rock):
         file_object.write(database)
         file_object.write("\n")
         file_object.write("no")"""
+
+    ######################################################################
+    # New way of calling theriak - now with input by user in init
     # initializes the list were the theriak output is stored
     therin_condition = '    ' + str(temperature) + '    ' + str(pressure)
     file_to_open = Path(theriak_path)
@@ -441,21 +513,19 @@ def run_theriak(theriak_path, database, temperature, pressure, whole_rock):
 
 def read_to_dataframe(index_entry, df_index_as_list, input_in_lines, skip=2, number=200):
     """
-    A file read from lines to a list is transformed to a Dataframe
+    A file read from lines to a list is transformed to a DataFrame.
 
     Args:
-        index_entry (int): index number in list that has been read from a txt file and got checked for a specific entry
-        df_index_as_list (list): passing the header for the DataFrame (moles etc from theriak output)
-        input_in_lines (list): file from txt file has been read to a list by its lines
-        skip (int, optional): Sometimes there are lines to skip before the aimed entry is coming. Defaults to 2.
-        number (int, optional):
-            defines how long the loop is running for the entries
-            - sometimes not necessary - could be done smarter. Defaults to 200.
+        index_entry (int): Index number in the list that has been read from a txt file and checked for a specific entry.
+        df_index_as_list (list): The header for the DataFrame (moles etc from theriak output).
+        input_in_lines (list): The file from the txt file that has been read to a list by its lines.
+        skip (int, optional): The number of lines to skip before the aimed entry is encountered. Defaults to 2.
+        number (int, optional): The number of entries to process. Defaults to 200.
 
     Returns:
-        Dataframe: A dataframe with the defined headers and the values
-            for each stable phase at the momentary P-T condition
+        DataFrame: A DataFrame with the defined headers and the values for each stable phase at the current P-T condition.
     """
+
     data = {}
     current_number = 0
     while current_number <= 12:
@@ -493,18 +563,21 @@ def read_to_dataframe(index_entry, df_index_as_list, input_in_lines, skip=2, num
 
 def read_theriak(theriak_path, database, temperature, pressure, whole_rock):
     """
-    Starts and read the theriak minimization at specific P-T and bulk rock to Dataframes that
+    Starts and reads the theriak minimization at specific P-T and bulk rock to Dataframes that
     contain the physical values for each stable phase,
-    elemental distribution, solid solutions and phases with water content.
+    elemental distribution, solid solutions, and phases with water content.
 
     Args:
-        temperature (int): temperature at given condition
-        pressure (int): pressure at given condition
-        whole_rock (list of floats): calculated bulk rock for the system
+        theriak_path (str): The path to the theriak executable.
+        database (str): The path to the thermodynamic database.
+        temperature (int): The temperature at the given condition.
+        pressure (int): The pressure at the given condition.
+        whole_rock (list of floats): The calculated bulk rock for the system.
 
     Returns:
-        Dictionary: A dictionary that contains all the created dataframes
+        dict: A dictionary that contains all the created dataframes.
     """
+
     # Print the calculation inforamtion
     # print(
     #     f"--------Calculation for P = {pressure} Bar and T = {temperature} °C-------"
@@ -619,7 +692,7 @@ def read_theriak(theriak_path, database, temperature, pressure, whole_rock):
             current_number += 1
     except NameError:
         print("---ERROR:---What? No solid stable phases?")
-    
+
     # test if data dictionary is empty
     if not data:
         df_Vol_Dens = pd.DataFrame(data)
@@ -1006,6 +1079,18 @@ def boron_fraction(fluidV, rockV, conc_TE_rock, Frac_fac_whitemica=1.4, conc_flu
 
 
 def garnet_bulk_from_dataframe(frame, moles, volumePermole, volume):
+    """
+    Generate a bulk formula string for garnet from a dataframe.
+
+    Args:
+        frame (pandas.DataFrame): The dataframe containing the element concentrations.
+        moles (float): The number of moles of the bulk.
+        volumePermole (float): The volume per mole.
+        volume (float): The total volume.
+
+    Returns:
+        str: The bulk formula string for garnet.
+    """
     new_bulk1 = []
 
     # normalization to 1 mol
@@ -1027,13 +1112,30 @@ def garnet_bulk_from_dataframe(frame, moles, volumePermole, volume):
 
 class Therm_dyn_ther_looper:
     """
-        Class for thermodynamic minimization for P-T-t steps and includes data
-        reduction scheme. Data can be read after calling different functions.
-        Order to call:
-            1. initialize 'Therm_dyn_ther_looper'
-            2. execute minimization with 'thermodynamic_looping_station'
-            3. data reduction with 'merge_dataframe_dic' to incorporate dataframe into dictionaries
-            4. Checking for volume changes and making variables easy to access via 'step_on_water'
+    Class for thermodynamic minimization for P-T-t steps and includes data
+    reduction scheme. Data can be read after calling different functions.
+    Order to call:
+        1. initialize 'Therm_dyn_ther_looper'
+        2. execute minimization with 'thermodynamic_looping_station'
+        3. data reduction with 'merge_dataframe_dic' to incorporate dataframe into dictionaries
+        4. Checking for volume changes and making variables easy to access via 'step_on_water'
+
+    Args:
+        theriak_path (str): The path to the theriak executable.
+        database (str): The path to the thermodynamic database.
+        bulk_rock (list): A list of values for each element as mol normalized to 1 kg of rock.
+                          Weight percent values are calculated with 'whole_rock_to_weight_normalizer'
+                          to mol per 1kg of rock.
+        temperature (int): One temperature value in °C from list from P-T-t path.
+        pressure (type): One pressure value in bar from list from P-T-t path.
+        df_var_dictionary (dictionary): At start empty. Stores for each stable phase
+                                        its physical properties (density, weight) a dataframe compiled in this dic.
+        df_hydrous_data_dic (dictionary): At start empty. Stores for each hydrous
+                                          stable phase its physical properties (weight, H2O content) a dataframe compiled in this dic.
+        df_all_elements (dataframe): Frame that stores for each phase plus the
+                                      total the respective element amount (O, C, H etc.).
+        num (int): Looping step.
+        fluid_name_tag (str): The fluid name tag based on the database used.
     """
 
     def __init__(
@@ -1105,6 +1207,12 @@ class Therm_dyn_ther_looper:
         Calls theriak and passes T, P and bulk rock. Resulting data is read and formatted.
         First check for 'water.fluid' is included.
         Prints messages and gives Volume, Density, Mol and Weight of present fluid as feedback.
+
+        Parameters:
+            marco (bool): Flag indicating whether to perform recalculation for oversaturation of water. Default is False.
+
+        Returns:
+            None
         """
 
         # Flag: is set to True if water.fluid is stable in the system for further calculations
@@ -1202,8 +1310,16 @@ class Therm_dyn_ther_looper:
 
     def merge_dataframe_dic(self):
         """
-        phase chache contains newly calculated phase data and is concenated
-        with "df_var_dictionary" for each physical property ('N', 'volume', 'density' etc)"
+        Merges the calculated values from theriak output with the existing dataframes.
+
+        This method merges the newly calculated phase data from the phase cache with the
+        existing dataframe for each physical property ('N', 'volume', 'density', etc).
+        It also merges the hydrous solids and fluid phases from the hydrous cache with
+        the existing hydrous data dataframe. Finally, it merges the element data with
+        the existing dataframe of all elements.
+
+        Returns:
+            None
         """
         # Merging calculated values from theriak output with concat into (first empty) dataframe
         # This is added each P-T-step the new calculated values to the
@@ -1237,6 +1353,15 @@ class Therm_dyn_ther_looper:
     def step_on_water(self):
         """
         Collecting data about solids and fluid from t=0 (new calculation) and t=-1 (previous calculation)
+
+        This method calculates and collects data related to solids and fluid at two time points: t=0 (new calculation) and t=-1 (previous calculation).
+        It performs the following steps:
+        1. Calculates the total volume of the system without extraction at t=0.
+        2. Retrieves the volume data before the current time step from the variable dictionary.
+        3. Compares the water data between the current time step and the previous time step.
+        4. Determines the volume of free water before the current time step.
+        5. Calculates the volume of solids before the current time step.
+        6. Calculates the new volume of solids by subtracting the volume of free water from the total volume of the system at t=0.
         """
         self.sys_vol_no_extraction = self.df_phase_data.loc['volume[ccm]'].sum(
         )
@@ -1279,6 +1404,12 @@ class Therm_dyn_ther_looper:
     def system_condi(self):
         """
         Collecting the system data from calculations
+
+        This method collects various system data from calculations, such as volume, density, weight, number of moles,
+        volume percentage, and weight percentage. It then performs some data cleaning by filling any missing values with 0.
+
+        Finally, it calculates the total volume of stable phases for each temperature (and pressure) step, as well as the
+        solid phase volume (excluding the fluid phase if present) for each temperature (and pressure) step.
         """
 
         sys_vol_data = self.df_phase_data.loc['volume[ccm]']
@@ -1312,9 +1443,16 @@ class Therm_dyn_ther_looper:
 
     def mineral_fractionation(self, oxygen_data, name):
         """
-        uses stable phases and checks for garnet
-        we need a fractionation for garnet so we substract the element amount of garnet from the bulk
+        Calculates the fractionation of a mineral from the bulk composition.
+
+        Parameters:
+        oxygen_data (dict): Dictionary containing oxygen data.
+        name (str): Name of the mineral to be fractionated.
+
+        Returns:
+        float: The new oxygen bulk composition after fractionation.
         """
+
         # diminish double total: in dataframe
         if self.df_all_elements.columns[-1] == self.df_all_elements.columns[-2]:
             self.df_all_elements = self.df_all_elements.iloc[:, :-1]
@@ -1378,6 +1516,33 @@ class Therm_dyn_ther_looper:
 class Ext_method_master:
     """
     Module to calculate the factor important for the extraction of the water from the system
+
+    Attributes:
+        rock_item (int): The tag for the rock item.
+        fluid_t1 (int): The fluid volume from the new P-T step.
+        fluid_t0 (int): The fluid volume from the previous P-T step.
+        solid_t1 (int): The solids volume from the new P-T step.
+        solid_t0 (int): The solids volume from the previous P-T step.
+        master_norm (list): The normalization of the values due to the slope of P-T steps.
+        save_factor (list): The factor regulating the extraction - saved to a list.
+        phase_data (dict): The phase data.
+        unlock_freewater (bool): Flag indicating if the freewater is unlocked.
+        pressure (float): The pressure.
+        tensile_strength (float): The tensile strength.
+        fracture (bool): Flag indicating if there is fracture.
+        shear_stress (float): The shear stress.
+        frac_respo (int): The response to fracturing.
+        angle (float): The subduction angle.
+        diff_stress (float): The differential stress.
+        friction (float): The friction.
+        failure_dictionary (dict): The failure dictionary.
+        fluid_name_tag (str): The fluid name tag.
+        fluid_pressure_mode (str): The fluid pressure mode.
+
+    Methods:
+        __init__: Initialize all the values and data necessary for calculations.
+        couloumb_method: Extraction of water/fluid follows the overstepping of a certain factor.
+        couloumb_method2: Calculate the Coulomb test method 2 for rock failure.
     """
 
     def __init__(
@@ -1424,6 +1589,13 @@ class Ext_method_master:
     def couloumb_method(self, t_ref_solid, tensile=20):
         """
         Extraction of water/fluid follows the overstepping of a certain factor - calculated similar to Etheridge (2020)
+
+        Args:
+            t_ref_solid (float): Reference temperature for solid.
+            tensile (float, optional): Tensile strength. Defaults to 20.
+
+        Returns:
+            None
         """
 
         print('\tsolid_t0:{} solid_t-1:{} fluid_t0:{} fluid_t-1:{}'.format(self.solid_t0,
@@ -1521,16 +1693,25 @@ class Ext_method_master:
 
     def couloumb_method2(self, shear_stress, friction, cohesion):
         """
-        06.02.2023
-        Assume
-        1) differential stress (as inout from init file),
-        2) tensile strength,
-        3) fluid pressure from volume change
-        Blanpied et al. 1992 state that low effective stresses can lead to slide failure
-        or even extensional failure eventhough the system has low differential stresses.
-        Extraction of water/fluid when the shear envelope or tensile strength are intersectedf
-        - idea similar to Etheridge (2020) - no fluid factor approach
+        Calculate the Coulomb test method 2 for rock failure.
+
+        Args:
+            shear_stress (float): The shear stress applied to the rock.
+            friction (float): The internal friction angle of the rock.
+            cohesion (float): The cohesion of the rock.
+
+        Returns:
+            None
+
+        Raises:
+            None
+
+        Notes:
+            - This method calculates the critical fluid pressure and checks for brittle shear failure.
+            - It also performs a double check for Mohr-Coulomb failure, considering both brittle extension and brittle shear.
+            - The results are printed to the console.
         """
+
         print("Coulomb test method 2 answer:")
         print('\tsolid_t0:{}\n\tsolid_t1:{}\n\tfluid_t0:{}\n\tfluid_t1:{}'.format(self.solid_t0,
               self.solid_t1, self.fluid_t0, self.fluid_t1))
@@ -1725,16 +1906,27 @@ class Ext_method_master:
 
     def mohr_cloulomb_griffith(self, shear_stress=False):
         """
-        026.06.2023
-        Estimates on
-        1) differential stress (sig1 is lithostatic, shear resolves sig3),
-        2) tensile strength (estimates from literature and experiments therein),
-        3) fluid pressure from volume change (Duesterhoft 2019)
-        Blanpied et al. 1992 state that low effective stresses can lead to slide failure
-        or even extensional failure eventhough the system has low differential stresses.
-        Extraction of water/fluid when the shear envelope or tensile strength are intersectedf
-        - idea similar to Etheridge (2020) - no fluid factor approach
+        Estimates the differential stress, tensile strength, and fluid pressure
+        based on the Mohr-Coulomb failure criterion and Griffith's criterion.
+
+        Args:
+            shear_stress (bool): Flag indicating whether to use shear stress as input.
+                If False, the differential stress is directly input.
+
+        Returns:
+            None
         """
+
+        # 26.06.2023
+        # Estimates on
+        # 1) differential stress (sig1 is lithostatic, shear resolves sig3),
+        # 2) tensile strength (estimates from literature and experiments therein),
+        # 3) fluid pressure from volume change (Duesterhoft 2019)
+        # Blanpied et al. 1992 state that low effective stresses can lead to slide failure
+        # or even extensional failure eventhough the system has low differential stresses.
+        # Extraction of water/fluid when the shear envelope or tensile strength are intersectedf
+        # - idea similar to Etheridge (2020) - no fluid factor approach
+
 
         # NOTE testing with plot - Not working after Cassis update (23.01.2024)
         # arrays for plotting the Mohr-Coloumb diagramm
@@ -1835,6 +2027,15 @@ class Ext_method_master:
             # Duesterhoft 2019 method
             hydro = normal_stress/vol_t0 * (vol_t0+(vol_new-vol_t0))
             delta_p = normal_stress - hydro
+        # if fluid_pressure_mode is a string but not mean_stress or normal_stress
+        elif isinstance(self.fluid_pressure_mode, str):
+            # NOTE - this is a very specific solution for the input of the fluid pressure
+            # read the string and extract value "mean_stress-10" -> 10
+            s = self.fluid_pressure_mode
+            value = s.split("-")[1]
+            new_pressure = mean_stress - float(value)
+            hydro = new_pressure/vol_t0 * (vol_t0+(vol_new-vol_t0))
+            delta_p = new_pressure - hydro
         else:
             hydro = mean_stress
             delta_p = mean_stress - hydro
@@ -1914,6 +2115,7 @@ class Ext_method_master:
             "fluid pressure": copy.deepcopy(hydro),
             "delta p": copy.deepcopy(delta_p),
             "normal pressure": copy.deepcopy(normal_stress),
+            "mean_stress": copy.deepcopy(mean_stress),
             "diff stress":(self.diff_stress),
             "fracture key": copy.deepcopy(self.frac_respo),
             "tensile strength": copy.deepcopy(self.tensile_strength),
@@ -1999,57 +2201,81 @@ class Fluid_master():
     """
 
     def __init__(self, phase_data, ext_data, temperature, new_fluid_V, sys_H, element_frame, st_fluid_post, fluid_name_tag):
+        """
+        Initialize the Tunorrad class.
+
+        Args:
+            phase_data (dict): Phase data for the fluid.
+            ext_data (dict): External data.
+            temperature (float): Temperature value.
+            new_fluid_V (float): New fluid volume.
+            sys_H (float): System H value.
+            element_frame (DataFrame): Element frame.
+            st_fluid_post (str): Fluid post.
+            fluid_name_tag (str): Fluid name tag.
+        """
         self.phase_data_fluid = phase_data
         self.ext_data = ext_data
         self.temp = temperature
-        self.new_fluid_V = new_fluid_V # REVIEW can be changed = self.phase_data_fluid['volume[ccm]']
-        self.sys_H = sys_H # self.element_frame.loc['H', 'total:']
+        self.new_fluid_V = new_fluid_V
+        self.sys_H = sys_H
         self.element_frame = element_frame.copy()
         self.st_fluid_post = st_fluid_post
         self.fluid_name_tag = fluid_name_tag
 
     def hydrogen_ext_all(self):
-        """
-        recalculates hydrogen content due to fluid extraction
-        """
-        new_extraction = self.phase_data_fluid
-        self.ext_data = pd.concat([self.ext_data, new_extraction], axis=1)
-        self.ext_data = self.ext_data.rename(
-            columns={self.fluid_name_tag: self.temp})
+            """
+            Recalculates hydrogen content due to fluid extraction.
 
-        # diminish double total: in dataframe
-        if self.element_frame.columns[-1] == self.element_frame.columns[-2]:
-            self.element_frame = self.element_frame.iloc[:, :-1]
+            This method updates the hydrogen content in the system after fluid extraction.
+            It subtracts the hydrogen content of the extracted fluid from the total system,
+            and sets the remaining hydrogen content as the new bulk hydrogen content.
+            The fluid hydrogen content is set to zero after this step.
 
-        # settings some important values from element data frame
-        extracted_fluid_vol = self.phase_data_fluid['volume[ccm]']
-        fluid_H = self.element_frame.loc['H', self.fluid_name_tag]
-        sys_H = self.element_frame.loc['H', 'total:']
-        fluid_O = self.element_frame.loc['O', self.fluid_name_tag]
-        sys_O = self.element_frame.loc['O','total:']
+            Parameters:
+            - None
 
-        # remaining H and O in bulk
-        total_hydrogen = sys_H - fluid_H
-        total_oxygen = sys_O - fluid_O
+            Returns:
+            - None
+            """
+            new_extraction = self.phase_data_fluid
+            self.ext_data = pd.concat([self.ext_data, new_extraction], axis=1)
+            self.ext_data = self.ext_data.rename(
+                columns={self.fluid_name_tag: self.temp})
 
-        # IMPORTANT step - substracting H and O of fluid from total system - total system will be new bulk
-        self.element_frame.loc['H', 'total:'] = total_hydrogen
-        self.element_frame.loc['O', 'total:'] = total_oxygen
+            # diminish double total: in dataframe
+            if self.element_frame.columns[-1] == self.element_frame.columns[-2]:
+                self.element_frame = self.element_frame.iloc[:, :-1]
 
-        # set fluid O and H to zero after this step
-        self.element_frame.loc['O', self.fluid_name_tag] = 0.0
-        self.element_frame.loc['H', self.fluid_name_tag] = 0.0
-        self.st_fluid_post[-1] = self.st_fluid_post[-1] - extracted_fluid_vol
-        # print("=====================================")
-        print("======= Fluid fractionation 100% ========")
-        print("\t    \N{BLACK DROPLET}")
-        print("\t   \N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
-        print("\t \N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
-        print("\t\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
-        print("\t\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
-        print("\t \N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
-        print("\t   \N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
-        # print("=====================================")
+            # settings some important values from element data frame
+            extracted_fluid_vol = self.phase_data_fluid['volume[ccm]']
+            fluid_H = self.element_frame.loc['H', self.fluid_name_tag]
+            sys_H = self.element_frame.loc['H', 'total:']
+            fluid_O = self.element_frame.loc['O', self.fluid_name_tag]
+            sys_O = self.element_frame.loc['O','total:']
+
+            # remaining H and O in bulk
+            total_hydrogen = sys_H - fluid_H
+            total_oxygen = sys_O - fluid_O
+
+            # IMPORTANT step - substracting H and O of fluid from total system - total system will be new bulk
+            self.element_frame.loc['H', 'total:'] = total_hydrogen
+            self.element_frame.loc['O', 'total:'] = total_oxygen
+
+            # set fluid O and H to zero after this step
+            self.element_frame.loc['O', self.fluid_name_tag] = 0.0
+            self.element_frame.loc['H', self.fluid_name_tag] = 0.0
+            self.st_fluid_post[-1] = self.st_fluid_post[-1] - extracted_fluid_vol
+            # print("=====================================")
+            print("======= Fluid fractionation 100% ========")
+            print("\t    \N{BLACK DROPLET}")
+            print("\t   \N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
+            print("\t \N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
+            print("\t\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
+            print("\t\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
+            print("\t \N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
+            print("\t   \N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
+            # print("=====================================")
 
     def hydrogen_partial_ext(self):
         pass
@@ -2061,7 +2287,18 @@ class System_status:
     """
 
     def __init__(self, df_var_dictionary, df_h2o_content_dic, df_element_total, st_elements):
+        """
+        Initialize the Tunorrad class.
 
+        Args:
+            df_var_dictionary (dict): A dictionary containing thermodynamic data.
+            df_h2o_content_dic (dict): A dictionary containing hydrate data.
+            df_element_total (DataFrame): A DataFrame containing total element data.
+            st_elements (str): A string representing the elements.
+
+        Returns:
+            None
+        """
         self.therm_data = df_var_dictionary
         self.hydrate_data = df_h2o_content_dic
         self.df_element_total = df_element_total
@@ -2376,8 +2613,28 @@ class Isotope_calc():
 
 
 class Garnet_recalc():
+    """
+    Class for performing recalculation of garnets.
+
+    Attributes:
+        theriak (str): The path to the Theriak software.
+        dataclass (list): List of garnet data objects.
+        temperature (float): The temperature in Kelvin.
+        pressure (float): The pressure in bars.
+        recalc_volume (float): The recalculated volume of garnets.
+        recalc_weight (float): The recalculated weight of garnets.
+    """
 
     def __init__(self, theriak, dataclass, temperature, pressure):
+        """
+        Initialize a Tunorrad object.
+
+        Args:
+            theriak (str): The path to the Theriak executable.
+            dataclass: The data class for the mineral.
+            temperature (float): The temperature in Kelvin.
+            pressure (float): The pressure in bars.
+        """
         self.mineral = dataclass
         self.recalc_volume = 0
         self.recalc_weight = 0
@@ -2386,6 +2643,12 @@ class Garnet_recalc():
         self.theriak_path = theriak
 
     def recalculation_of_garnets(self):
+        """
+        Recalculates the volume and weight of garnets based on the provided data.
+
+        Returns:
+            None
+        """
         for garnet in self.mineral:
             vals = garnet.elements[0]
             index = garnet.elements[1]

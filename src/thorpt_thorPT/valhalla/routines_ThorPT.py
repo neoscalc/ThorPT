@@ -27,11 +27,20 @@ from dataclasses import dataclass
 
 
 def set_origin():
+    """
+    Sets the current working directory to the directory of the current file.
+    """
     dirname = os.path.dirname(os.path.abspath(__file__))
     os.chdir(dirname)
 
 
 def file_save_path():
+    """
+    Prompts the user to select a file path to save the data.
+
+    Returns:
+        str: The selected file path.
+    """
     # write the data to a file
     # first get the filename
     validFile = False
@@ -51,6 +60,16 @@ def file_save_path():
 
 
 def whole_rock_convert_3(ready_mol_bulk=0):
+    """
+    Converts the whole rock composition to a format passable to theriak.
+
+    Args:
+        ready_mol_bulk (pd.DataFrame or float, optional): The whole rock composition. If a DataFrame is provided,
+            it should have a single column representing the mole fractions of each element. Defaults to 0.
+
+    Returns:
+        str: The converted whole rock composition in a format passable to theriak.
+    """
     # Rock input, water input and more chemical starting conditions!!!
     # //////////// whole rock composition selection passable to theriak ////////////
 
@@ -96,6 +115,20 @@ def whole_rock_convert_3(ready_mol_bulk=0):
 
 def whole_rock_to_weight_normalizer(rock_bulk=[32.36, 0.4, 8.78, 2.91, 0.0, 0.0, 1.45, 23.16, 1.96, 1.66],
                                     ready_bulk=False, init_water=0.2, init_carbon=0.41):
+    """
+    Converts the whole rock composition to weight-normalized bulk composition.
+
+    Args:
+        rock_bulk (list): List of the bulk composition of the rock. Default is [32.36, 0.4, 8.78, 2.91, 0.0, 0.0, 1.45, 23.16, 1.96, 1.66].
+        ready_bulk (bool): Flag indicating if the bulk composition is ready. Default is False.
+        init_water (float): Initial water content. Default is 0.2.
+        init_carbon (float): Initial carbon content. Default is 0.41.
+
+    Returns:
+        tuple: A tuple containing the weight-normalized bulk composition and the total oxygen content.
+
+    """
+
     # Rock input, water input and more chemical starting conditions!!!
     # //////////// whole rock composition selection passable to theriak ////////////
     # Oxides and stochimetry
@@ -181,10 +214,21 @@ def whole_rock_to_weight_normalizer(rock_bulk=[32.36, 0.4, 8.78, 2.91, 0.0, 0.0,
 
 
 def oxygen_isotope_recalculation(isotope_data, oxygen_data):
+    """
+    Recalculates the oxygen isotope composition based on isotope data and oxygen data.
+
+    Args:
+        isotope_data (list): List of dictionaries containing isotope data.
+        oxygen_data (pandas.DataFrame): DataFrame containing oxygen data.
+
+    Returns:
+        float: The recalculated oxygen isotope composition.
+
+    """
     temp_oxygen_data = pd.DataFrame(
         isotope_data[-1]['delta_O'],
         index=isotope_data[-1]['Phases']
-            )
+    )
     # Oxygen signature from last fractionation
     last_oxygen = isotope_data[-1]
     # read moles of oxygen
@@ -201,6 +245,20 @@ def oxygen_isotope_recalculation(isotope_data, oxygen_data):
 
 
 def fluid_injection_isotope_recalculation(isotope_data, oxygen_data, input_deltaO, input_hydrogen, input_oxygen, interaction_factor=1):
+    """
+    Recalculates the bulk oxygen isotope signature after fluid injection.
+
+    Args:
+        isotope_data (list): List of dictionaries containing isotope data for each fractionation step.
+        oxygen_data (pandas.DataFrame): DataFrame containing oxygen data for different phases.
+        input_deltaO (pandas.DataFrame): DataFrame containing input delta O values for different phases.
+        input_hydrogen (float): Input hydrogen value.
+        input_oxygen (float): Input oxygen value.
+        interaction_factor (float, optional): Interaction factor. Defaults to 1.
+
+    Returns:
+        float: The new bulk oxygen isotope signature.
+    """
 
     # last oxygen isotope data saved to temporary variable
     temp_oxygen_data = pd.DataFrame(
@@ -247,6 +305,16 @@ def fluid_injection_isotope_recalculation(isotope_data, oxygen_data, input_delta
 
 # Progressbar init
 def progress(percent=0, width=40):
+    """
+    Display a progress bar with a given percentage and width.
+
+    Parameters:
+    percent (float): The percentage of progress (default is 0).
+    width (int): The width of the progress bar (default is 40).
+
+    Returns:
+    None
+    """
     left = width * percent // 100
     right = width - left
     tags = "#" * int(left)
@@ -256,6 +324,13 @@ def progress(percent=0, width=40):
 
 @dataclass
 class rockactivity:
+    """
+    A class representing rock activity.
+
+    Attributes:
+        function: The function attribute.
+        react: The react attribute.
+    """
     function: any
     react: any
 
@@ -279,6 +354,24 @@ class ThorPT_Routines():
             temperatures, pressures, master_rock, rock_origin,
             track_time, track_depth, garnet_fractionation, path_methods,
             lowest_permeability, speed, angle, time_step, theriak):
+        """
+        Initialize the ThorPT class.
+
+        Parameters:
+        temperatures (list): List of temperatures.
+        pressures (list): List of pressures.
+        master_rock (dict): Dictionary containing rock information.
+        rock_origin (str): Origin of the rock.
+        track_time (bool): Flag indicating whether to track time.
+        track_depth (bool): Flag indicating whether to track depth.
+        garnet_fractionation (bool): Flag indicating whether to perform garnet fractionation.
+        path_methods (list): List of path methods.
+        lowest_permeability (float): Lowest permeability value.
+        speed (float): Speed value.
+        angle (float): Angle value.
+        time_step (float): Time step value.
+        theriak (str): Theriak value.
+        """
         # Output variables
         self.temperatures = temperatures
         self.pressures = pressures
@@ -296,6 +389,16 @@ class ThorPT_Routines():
         self.theriak = theriak
 
     def unreactive_multi_rock(self):
+        """
+        Perform calculations for unreactive multi-rock system.
+
+        This method performs calculations for an unreactive multi-rock system. It initializes thermodynamic conditions,
+        calculates thermo data using the theriak wrapper, stores and merges the calculated data, and performs additional
+        calculations such as MicaPotassium, SystemFluidTest, oxygen-isotope module, and mineral fractionation.
+
+        Returns:
+            None
+        """
 
         # Main variables petrology
         temperatures = self.temperatures
@@ -331,7 +434,7 @@ class ThorPT_Routines():
         # ////////////////////////////////////////////////
         count = 0
         k = 0
-        kk = len(temperatures)
+        kk = len(temperatures)*len(master_rock)
         progress(int(k/kk)*100)
         for num, temperature in enumerate(temperatures):
 
@@ -374,6 +477,7 @@ class ThorPT_Routines():
                 print(f"-> Forward modeling step initiated - {item}")
                 # display modelling progress
                 ic = k/kk*100
+                k += 1
                 progress(ic)
                 print("\n")
                 print(master_rock[item]['new_bulk'])
@@ -887,7 +991,7 @@ class ThorPT_Routines():
                 print("\n")
 
             count += 1
-            k += 1
+            #k += 1
             ic = k/kk*100
             print("=====Progress=====")
             progress(ic)
@@ -899,7 +1003,19 @@ class ThorPT_Routines():
 
 
     def transmitting_multi_rock(self):
+        """
+        Perform multi-rock transmission calculations.
 
+        This method calculates the transmission of multiple rocks based on various parameters such as temperature, pressure,
+        rock composition, and mechanical methods. It iterates over the list of temperatures and performs calculations for each
+        temperature.
+
+        Args:
+            self: The current object instance.
+
+        Returns:
+            None
+        """
 
         # Main variables petrology
         temperatures = self.temperatures
@@ -932,7 +1048,7 @@ class ThorPT_Routines():
         # ////////////////////////////////////////////////
         count = 0
         k = 0
-        kk = len(temperatures)
+        kk = len(temperatures)*len(master_rock)
         progress(int(k/kk)*100)
         for num, temperature in enumerate(temperatures):
 
@@ -1069,6 +1185,7 @@ class ThorPT_Routines():
                 # display modelling progress
                 ic = k/kk*100
                 progress(ic)
+                k += 1
                 print("\n")
 
                 # tracking theriak input before minimization
@@ -1562,7 +1679,7 @@ class ThorPT_Routines():
                 print("\n")
 
             count += 1
-            k += 1
+            # k += 1
             ic = k/kk*100
             print("=====Progress=====")
             progress(ic)
@@ -1577,6 +1694,15 @@ class ThorPT_Routines():
 
 
     def data_reduction(self, defined_path=False):
+        """
+        Perform data reduction on the given parameters. Runs after each of the main routines. Performs the saving of the data to a hdf5 file.
+
+        Args:
+            defined_path (bool, optional): Flag indicating whether a defined path is used for saving the data. Defaults to False.
+
+        Returns:
+            None
+        """
 
         # Main variables petrology
         master_rock = self.rock_dic

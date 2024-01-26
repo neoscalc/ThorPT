@@ -3,7 +3,7 @@
 Written by
 Thorsten Markmann
 thorsten.markmann@geo.unibe.ch
-status: 17.02.2023
+status: 25.01.2024
 """
 
 import pandas as pd
@@ -23,9 +23,20 @@ from scipy.interpolate import Rbf, InterpolatedUnivariateSpline
 def getReferenceLength(index):
     '''
     Get the reference length in the requested direction
-    USAGE: factor = getReferenceLength(index)
-    index = 0 for x-direction or 1 for y-direction
+
+    Args:
+        index (int): Index value representing the direction. Use 0 for x-direction or 1 for y-direction.
+
+    Returns:
+        tuple: A tuple containing the scaling factor, the coordinate value of the starting point, and the origin value.
+
+    Raises:
+        None
+
+    Usage:
+        factor, start_coord, origin_value = getReferenceLength(index)
     '''
+
     # define a 'direction' string
     direction = 'x' if index == 0 else 'y'
     # get the reference length
@@ -75,6 +86,13 @@ def getReferenceLength(index):
     return factor, coord[0][index], base
 
 def read_temperature_pressure_txt():
+    """
+    Reads temperature and pressure information from a txt file.
+
+    Returns:
+        temperatures (numpy.ndarray): Array of temperature values.
+        pressures (numpy.ndarray): Array of pressure values.
+    """
 
     # GUI to select the txt file of P-T information
     filein = filedialog.askopenfilename(
@@ -105,11 +123,38 @@ def read_temperature_pressure_txt():
     return temperatures, pressures
 
 class Pathfinder_Theoule:
+    """
+    A class that represents a pathfinder for Theoule.
 
-    # Takes pressure and temperature array from digitized P-T path
-    # Links path to time dependend subduction calculated on speed and angle
-    # to match calculated pressure values with spline temperature from digitized path
+    Attributes:
+    - temperatures (list): The temperature array from the digitized P-T path.
+    - pressures (list): The pressure array from the digitized P-T path.
+    - path_increment (list): The path increment values for pressure and temperature.
+    - sub_angle (float): The subduction angle in degrees.
+    - plate_speed (float): The plate speed in m/year.
+    - dt (int): The time increment in years.
+    - rho (list): The density values for the crust and mantle.
+    - time (list): The time array for the path.
+    - depth (list): The depth array for the path.
+    - lower_t_bound (float): The lower temperature bound for filtering.
+
+    Methods:
+    - prograde(): Performs the prograde calculation for the path.
+    - loop(): Performs the loop calculation for the path.
+    """
     def __init__(self, temperatures, pressures, path_increment, sub_angle=False, plate_speed=False, dt=10000):
+        """
+        Initializes a Pathfinder_Theoule object.
+
+        Parameters:
+        - temperatures (list): The temperature array from the digitized P-T path.
+        - pressures (list): The pressure array from the digitized P-T path.
+        - path_increment (list): The path increment values for pressure and temperature.
+        - sub_angle (float): The subduction angle in degrees. (default: False)
+        - plate_speed (float): The plate speed in m/year. (default: False)
+        - dt (int): The time increment in years. (default: 10000)
+        """
+
         if plate_speed is False:
             self.speed = float(input("Give me a speed in m/year:\n"))
         else:
@@ -128,8 +173,15 @@ class Pathfinder_Theoule:
         self.t_increment = np.float64(path_increment[1])
         self.lower_t_bound = np.float64(path_increment[2])
 
-
     def prograde(self):
+        """
+        Perform prograde calculation to determine the depth and temperature profile
+        of a planetary body based on pressure and temperature data.
+
+        Returns:
+            None
+        """
+
         # prepare spline from input P-T
         spl = splrep(self.pressure, self.temp)
 
@@ -245,6 +297,19 @@ class Pathfinder_Theoule:
         self.pressure = c_p_list
 
     def loop(self):
+        """
+        Performs the burial and exhumation process to generate a P-T path.
+
+        This method calculates the pressure-temperature (P-T) path by performing burial and exhumation steps.
+        The burial step starts from the initial depth and increases the depth until the calculated pressure
+        reaches the maximum pressure in the provided pressure array. The exhumation step starts from the
+        maximum depth reached during burial and decreases the depth until the calculated pressure is greater
+        than the minimum pressure in the provided pressure array.
+
+        Returns:
+            None
+        """
+
         # NOTE "doing here different function for prograde, retrograde, loop and more?"
         # prepare spline from input P-T
 
@@ -619,12 +684,38 @@ class Create_new_or_read_txt_pt_path:
 
 class call_Pathfinder:
 
+    """
+    A class that represents a Pathfinder object.
+
+    Attributes:
+        temp (int): The temperature value.
+        pressure (int): The pressure value.
+        time_var (int): The time variable.
+        depth (int): The depth value.
+        dt (int): The time step value.
+        new_or_read (Create_new_or_read_txt_pt_path): An instance of the Create_new_or_read_txt_pt_path class.
+
+    Methods:
+        execute_digi_prograde: Executes the digitization process for a prograde P-T path.
+        execute_digi: Executes the digitization process for a P-T path.
+        execute_digi_mod: Executes the modified digitization process for a P-T path.
+        execute_digi_mod2: Executes the second modified digitization process for a P-T path.
+    """
+
     # External call to use Pathfinder module
     # Decide by input if you want to digitise a P-T path from image
     # or
     # use a stored P-T path from txt file
 
     def __init__(self, temp=0, pressure=0, dt=1000):
+        """
+        Initializes a Pathfinder object.
+
+        Args:
+            temp (int): The temperature value (default is 0).
+            pressure (int): The pressure value (default is 0).
+            dt (int): The time step value (default is 1000).
+        """
         self.temp = temp
         self.pressure = pressure
         self.time_var = 0
@@ -634,7 +725,9 @@ class call_Pathfinder:
         self.new_or_read = Create_new_or_read_txt_pt_path()
 
     def execute_digi_prograde(self):
-
+        """
+        Executes the digitization process for a prograde P-T path.
+        """
         answers = ["new", "stored"]
 
         # Choose new digitization or stored
@@ -687,7 +780,9 @@ class call_Pathfinder:
         self.depth = nasa.depth
 
     def execute_digi(self):
-
+        """
+        Executes the digitization process for a P-T path.
+        """
         answers = ["new", "stored"]
 
         # Choose new digitization or stored
@@ -744,7 +839,9 @@ class call_Pathfinder:
     # idea get pieces of prograde and retrograde path and the number of slices then iterate
     # is the BACK-UP that 'vho path' is using
     def execute_digi_mod(self):
-
+        """
+        Executes the modified digitization process for a P-T path.
+        """
         pressures = self.pressure
         temperatures = self.temp
 
@@ -837,7 +934,13 @@ class call_Pathfinder:
 
     # Deactivated loop - this is the up-to-date version for prograde digitized path modelling
     def execute_digi_mod2(self, path_arguments=False, path_increment=False):
+        """
+        Executes the second modified digitization process for a P-T path.
 
+        Args:
+            path_arguments (bool or list, optional): The path arguments (default is False).
+            path_increment (bool, optional): The path increment value (default is False).
+        """
         answers = ["new", "stored"]
         # Choose new digitization or stored
         # init inout or manual input
@@ -987,13 +1090,22 @@ class call_Pathfinder:
 
     # copy of execute_digi_mod2 - Active loop - solution for prograde plus retrograde modelling
     def loop_digi(self):
+        """
+        Performs the loop digitization process.
 
+        This method prompts the user to choose between new digitization or stored path.
+        It then stores the image P-T path in an array, converts the pressure units,
+        considers prograde, peak, and retrograde path units, performs interpolation,
+        and updates the self variables.
+
+        Returns:
+            None
+        """
         answers = ["new", "stored"]
         # Choose new digitization or stored
         for val in answers:
             print(val)
-        answer = input(
-            "Pathfinder function - new or stored path? Select answer\n")
+        answer = input("Pathfinder function - new or stored path? Select answer\n")
         if answer == answers[0]:
             self.PathfinderV2.run()
         elif answer == answers[1]:
@@ -1005,8 +1117,7 @@ class call_Pathfinder:
         pressures = self.PathfinderV2.pressures
 
         # convert units into Bar - THIS IS NOT SI units because of theriak input
-        units = input(
-            "What was the unit of pressure input? Bar/kbar/GPa/MPa?\n")
+        units = input("What was the unit of pressure input? Bar/kbar/GPa/MPa?\n")
         if units == 'GPa':
             pressures = pressures * 10000
         if units == 'MPa':
@@ -1073,8 +1184,7 @@ class call_Pathfinder:
         # plt.plot(yi, p_line, 'xr-', fi, p_line2, 'xb-', temperatures, pressures, 'd')
 
         temperatures = list(np.around(yi, 2)) + list(np.around(fi, 2))
-        pressures = list(np.around(p_line, 2)) + \
-            list(np.around(p_line2, 2))
+        pressures = list(np.around(p_line, 2)) + list(np.around(p_line2, 2))
 
         # Theoule pathfinder creator
         nasa = Pathfinder_Theoule(
@@ -1093,17 +1203,21 @@ class call_Pathfinder:
         self.depth = nasa.depth
 
     def simple_digi(self, path_arguments=False):
+        """
+        This method allows the user to choose between new digitization or stored path.
+        If `path_arguments` is False, the user is prompted to select the method manually.
+        If `path_arguments` is provided, the method uses the provided argument.
+        The selected method is then executed using the `PathfinderV2` object.
+        The image P-T path is stored in the `temp` and `pressure` arrays.
+        """
         answers = ["new", "stored"]
-        # Choose new digitization or stored
-        # init inout or manual input
+        
         if path_arguments is False:
-            # manual
+            # manual input
             for val in answers:
                 print(val)
-            answer = input(
-                "Pathfinder function - new or stored path? Select answer\n")
+            answer = input("Pathfinder function - new or stored path? Select answer\n")
 
-            # Selected method from answer - 0 new digitisation - 1 stored txt
             if answer == answers[0]:
                 self.PathfinderV2.run()
             elif answer == answers[1]:
@@ -1115,7 +1229,7 @@ class call_Pathfinder:
         else:
             # init input
             answer = path_arguments[1]
-            # Selected method from answer - 0 new digitisation - 1 stored txt
+
             if answer == answers[0]:
                 self.PathfinderV2.run()
             elif answer == answers[1]:
@@ -1125,55 +1239,78 @@ class call_Pathfinder:
                 time.sleep(10)
                 exit()
 
-        # Store image P-T path in array
         self.temp = self.PathfinderV2.temperatures
         self.pressure = self.PathfinderV2.pressures
 
     def gridding(self, path_arguments, path_increment):
-        self.new_or_read.stored_digitization()
+            """
+            Grids the temperature and pressure arrays based on the given path arguments and increments.
 
-        temperatures = self.new_or_read.temperatures
-        pressures = self.new_or_read.pressures
+            Args:
+                path_arguments (list): List of path arguments, where the third element represents the pressure unit.
+                path_increment (list): List of path increments, where the first element represents the pressure increment
+                                       and the second element represents the temperature increment.
 
-        # transform pressure based on path_arguments to bar
-        if path_arguments[2] == 'GPa':
-            pressures = pressures * 10000
-        if path_arguments[2] == 'kbar':
-            pressures = pressures * 1000
+            Returns:
+                None
+            """
+            self.new_or_read.stored_digitization()
 
-        # round the pressure array based on the increment
-        if np.float32(path_increment[0]) >=10:
-            pressures = np.round(pressures,-1)
+            temperatures = self.new_or_read.temperatures
+            pressures = self.new_or_read.pressures
 
-        # round the temperature array based on the increment
-        if np.float32(path_increment[1]) >=10:
-            temperatures = np.round(temperatures,-1)
+            # transform pressure based on path_arguments to bar
+            if path_arguments[2] == 'GPa':
+                pressures = pressures * 10000
+            if path_arguments[2] == 'kbar':
+                pressures = pressures * 1000
 
-        # Creating arrays for temperature and pressure based on input increments
-        x = np.arange(min(temperatures), max(temperatures), np.int32(path_increment[1]))
-        y = np.arange(min(pressures), max(pressures), np.int32(path_increment[0]))
+            # round the pressure array based on the increment
+            if np.float32(path_increment[0]) >=10:
+                pressures = np.round(pressures,-1)
 
-        # generating mesh array
-        xv, yv = np.meshgrid(x, y)
+            # round the temperature array based on the increment
+            if np.float32(path_increment[1]) >=10:
+                temperatures = np.round(temperatures,-1)
 
-        # flatten the mesh array for node input
-        temperatures = xv.flatten()
-        pressures = yv.flatten()
+            # Creating arrays for temperature and pressure based on input increments
+            x = np.arange(min(temperatures), max(temperatures), np.int32(path_increment[1]))
+            y = np.arange(min(pressures), max(pressures), np.int32(path_increment[0]))
 
-        # Write infromation to function variables
-        self.temp = temperatures
-        self.pressure = pressures
-        self.time_var = np.full(len(temperatures),np.nan)
-        self.depth = np.full(len(temperatures),np.nan)
-        self.sub_angle = "Undefined"
-        self.plate_v = "Undefined"
+            # generating mesh array
+            xv, yv = np.meshgrid(x, y)
+
+            # flatten the mesh array for node input
+            temperatures = xv.flatten()
+            pressures = yv.flatten()
+
+            # Write infromation to function variables
+            self.temp = temperatures
+            self.pressure = pressures
+            self.time_var = np.full(len(temperatures),np.nan)
+            self.depth = np.full(len(temperatures),np.nan)
+            self.sub_angle = "Undefined"
+            self.plate_v = "Undefined"
 
 
 
 class Pathfinder:
+    """
+    Class representing a pathfinder for calculating temperature and pressure values along a path.
 
+    Attributes:
+    - temperature: The temperature values along the path.
+    - pressure: The pressure values along the path.
+    - time: The time values along the path.
+    - depth: The depth values along the path.
+    - metadata: Additional metadata associated with the path.
+    - dt: The time step used for calculations.
+
+    Methods:
+    - connect_extern: Connects to external modules and performs calculations based on the selected mode.
+    """
+    
     def __init__(self):
-        # Output variables
         self.temperature = 0
         self.pressure = 0
         self.time = 0
@@ -1181,13 +1318,21 @@ class Pathfinder:
         self.metadata = {}
         self.dt = 0
 
-        # call classes which are the different mods
         self.mod2 = Create_new_or_read_txt_pt_path()
         self.mod3 = Pub_pathfinder()
         self.theoule = call_Pathfinder()
 
     def connect_extern(self, path_arguments=False, path_increment=False):
+        """
+        Connects to external modules and performs calculations based on the selected mode.
 
+        Parameters:
+        - path_arguments: Optional. List of path arguments.
+        - path_increment: Optional. List of path increments.
+
+        Returns:
+        None
+        """
         main_folder = Path(__file__).parent.absolute()
         file_to_open = main_folder / "output_Pathfinder.txt"
 

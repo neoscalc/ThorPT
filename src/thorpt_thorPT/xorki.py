@@ -2,14 +2,12 @@
 Written by
 Thorsten Markmann
 thorsten.markmann@geo.unibe.ch
-status: 11.06.2023
+status: 25.01.2024
 """
 
 # Plotting module for ThorPT
 # Reading hdf5 file
 # Suit of plotting functions for petrological modelling
-
-
 import matplotlib.pyplot as plt
 import matplotlib.tri as tri
 import numpy as np
@@ -29,8 +27,13 @@ import copy
 from dataclasses import dataclass, field
 from dataclasses import fields
 
-
 def file_opener():
+    """
+    Opens a file dialog to select an HDF5 file to read.
+
+    Returns:
+        str: The path of the selected HDF5 file.
+    """
     root = Tk()
     root.withdraw()
     root.update()
@@ -60,7 +63,18 @@ def remove_items(test_list, item):
 
 
 def phases_and_colors_XMT(database, phases):
+    """
+    Returns the phase names and corresponding colors for XMapTools based on the given database and phases.
 
+    Parameters:
+    database (str): The name of the database.
+    phases (list): A list of phase names.
+
+    Returns:
+    tuple: A tuple containing two lists - phase_set and color_set.
+        - phase_set (list): A list of phase names.
+        - color_set (list): A list of RGB color values corresponding to each phase.
+    """
     # XMapTools mineral names and colors
     script_folder = Path(__file__).parent.absolute()
     file_to_open = script_folder / "DataFiles" / "XMap_MinColors.txt"
@@ -198,6 +212,16 @@ def mineral_translation(database):
 
 
 def calc_moles_to_weightpercent(moles):
+    """
+    Calculate the weight percent of cations based on the given moles.
+
+    Args:
+        moles (list): A list of moles for each oxide in the following order:
+                      [SIO2, TIO2, AL2O3, FEO, MNO, MGO, CAO, NA2O, K2O, H2O]
+
+    Returns:
+        list: A list of weight percent of cations for each oxide in the same order as the input moles.
+    """
 
     # oxide_list = [SIO2, TIO2, AL2O3, FEO, MNO, MGO, CAO, NA2O, K2O, H2O]
     oxide_molar_weight = [60.08, 79.87, 101.96, 71.85, 70.94, 40.30, 56.08, 61.98, 94.20, 18.02]
@@ -214,6 +238,16 @@ def calc_moles_to_weightpercent(moles):
 
 
 def Merge_phase_group(data):
+    """
+    Merge the phase groups in the given data frame.
+
+    Args:
+        data (pd.DataFrame): The input data frame.
+
+    Returns:
+        pd.DataFrame: The merged data frame.
+    """
+
     frame = data
     phases = list(frame.columns)
     li_BIO = []
@@ -269,21 +303,21 @@ def Merge_phase_group(data):
                  li_PHNG, li_ClAMP, li_OMPH, li_GARNET, li_OLIVINE, li_OPX, li_SERP]
 
     for collection in selection:
-        chache = pd.DataFrame()
+        cache = pd.DataFrame()
         phase_frame = pd.DataFrame()
         # Check each dataframe in collection and combines multiple
         for phase in collection:
-            if chache.empty is True:
-                chache = frame[phase]
+            if cache.empty is True:
+                cache = frame[phase]
             else:
-                chache = chache + frame[phase]
+                cache = cache + frame[phase]
 
         if not collection:
             pass
         else:
             name = collection[0]
             name = name[:name.index('_')]
-            phase_frame[name] = chache
+            phase_frame[name] = cache
 
         rev_data = pd.concat([rev_data, phase_frame], axis=1)
 
@@ -305,6 +339,16 @@ def Merge_phase_group(data):
 
 
 def Merge_phase_group_oxy(data):
+    """
+    Merge phase groups in the given DataFrame.
+
+    Args:
+        data (pandas.DataFrame): The input DataFrame containing phase data.
+
+    Returns:
+        pandas.DataFrame: The merged DataFrame with phase groups combined.
+
+    """
     frame = data
     phases = list(frame.columns)
     li_BIO = []
@@ -321,6 +365,7 @@ def Merge_phase_group_oxy(data):
     li_all = []
     rev_data = pd.DataFrame()
 
+    # Group phases based on their names
     for item in phases:
         if 'CCDO' in item:
             li_CCDO.append(item)
@@ -359,10 +404,10 @@ def Merge_phase_group_oxy(data):
     selection = [li_BIO, li_CCDO, li_FSP, li_CHLR,
                  li_PHNG, li_ClAMP, li_OMPH, li_GARNET, li_OLIVINE, li_OPX, li_SERP]
 
+    # Combine multiple dataframes in each phase group
     for collection in selection:
         chache = pd.DataFrame()
         phase_frame = pd.DataFrame()
-        # Check each dataframe in collection and combines multiple
         for phase in collection:
             if chache.empty is True:
                 chache = frame[phase].fillna(0.00)
@@ -378,13 +423,17 @@ def Merge_phase_group_oxy(data):
 
         rev_data = pd.concat([rev_data, phase_frame], axis=1)
     rev_data = rev_data.replace(0.00, np.nan)
+
+    # Drop the original phase columns from the frame
     for phase in li_all:
         frame = frame.drop(phase, axis=1)
 
+    # Concatenate the original frame with the merged phase data
     frame = pd.concat([frame, rev_data], axis=1)
 
     frame = frame.T
 
+    # Handle special case for 'LIQtc_h2oL' and 'fluid' columns
     if 'LIQtc_h2oL' in frame.index and 'fluid' in frame.index:
         water_1 = frame.loc['LIQtc_h2oL']
         water_2 = frame.loc['fluid']
@@ -396,6 +445,19 @@ def Merge_phase_group_oxy(data):
 
 
 def create_gif(phase_data, mainfolder, filename, group_key, subfolder='default'):
+    """
+    Create a GIF animation from a sequence of images.
+
+    Args:
+        phase_data (pandas.DataFrame): Data containing information about the phases.
+        mainfolder (str): Path to the main folder.
+        filename (str): Name of the file.
+        group_key (str): Key for grouping the images.
+        subfolder (str, optional): Subfolder within the main folder. Defaults to 'default'.
+
+    Returns:
+        None
+    """
     # reading images and put it to GIF
     frames = []
     for i in range(len(phase_data.index)):
@@ -408,6 +470,13 @@ def create_gif(phase_data, mainfolder, filename, group_key, subfolder='default')
 
 # Progressbar init
 def progress(percent=0, width=40):
+    """
+    Display a progress bar with a given percentage.
+
+    Args:
+        percent (float, optional): The percentage of progress. Defaults to 0.
+        width (int, optional): The width of the progress bar. Defaults to 40.
+    """
     left = width * percent // 100
     right = width - left
     tags = "\N{BLACK DROPLET}" * int(left)
@@ -416,43 +485,65 @@ def progress(percent=0, width=40):
     print("\r[", tags, spaces, "]", percents, sep="", end="", flush=True)
 
 def clean_frame(dataframe_to_clean, legend_phases, color_set):
-            dataframe = dataframe_to_clean.copy()
-            # copy information before manipulation
-            colorframe = pd.DataFrame(color_set, index=legend_phases)
-            new_color_set2 = []
-            new_legend_phases = []
-            new_dataframe = pd.DataFrame()
+    """
+    Cleans a dataframe by filtering multiple assigned phase columns and merging rows with the same phase name.
 
-            # routine to filter multiple assigned phase columns
-            for phase in legend_phases:
-                # Merge dataframe rows of multiple entries with name of phase
-                pcount = legend_phases.count(phase)
-                if pcount > 1:
-                    if phase in new_legend_phases:
-                        pass
-                    else:
-                        # Sum the dataframe rows of multiple entries with name of phase
-                        dat = dataframe.loc[phase].sum()
-                        # Merge dat to new_dataframe
-                        new_dataframe = pd.concat([new_dataframe, dat], axis=1)
-                        new_legend_phases.append(phase)
-                        new_color_set2.append(tuple(colorframe.loc[phase].mean()))
-                else:
-                    dat = dataframe.loc[phase]
-                    # Merge dat to new_dataframe
-                    new_dataframe = pd.concat([new_dataframe, dat], axis=1)
-                    new_legend_phases.append(phase)
-                    new_color_set2.append(tuple(colorframe.loc[phase]))
+    Args:
+        dataframe_to_clean (pd.DataFrame): The dataframe to be cleaned.
+        legend_phases (list): The list of phase names.
+        color_set (list): The list of colors corresponding to each phase.
 
-            new_dataframe = new_dataframe.T
-            new_dataframe.index = new_legend_phases
-            print('Cleaning done!')
+    Returns:
+        tuple: A tuple containing the cleaned dataframe, the updated list of phase names, and the updated list of colors.
+    """
+    dataframe = dataframe_to_clean.copy()
+    # copy information before manipulation
+    colorframe = pd.DataFrame(color_set, index=legend_phases)
+    new_color_set2 = []
+    new_legend_phases = []
+    new_dataframe = pd.DataFrame()
 
+    # routine to filter multiple assigned phase columns
+    for phase in legend_phases:
+        # Merge dataframe rows of multiple entries with name of phase
+        pcount = legend_phases.count(phase)
+        if pcount > 1:
+            if phase in new_legend_phases:
+                pass
+            else:
+                # Sum the dataframe rows of multiple entries with name of phase
+                dat = dataframe.loc[phase].sum()
+                # Merge dat to new_dataframe
+                new_dataframe = pd.concat([new_dataframe, dat], axis=1)
+                new_legend_phases.append(phase)
+                new_color_set2.append(tuple(colorframe.loc[phase].mean()))
+        else:
+            dat = dataframe.loc[phase]
+            # Merge dat to new_dataframe
+            new_dataframe = pd.concat([new_dataframe, dat], axis=1)
+            new_legend_phases.append(phase)
+            new_color_set2.append(tuple(colorframe.loc[phase]))
 
-            return new_dataframe, new_legend_phases, new_color_set2
+    new_dataframe = new_dataframe.T
+    new_dataframe.index = new_legend_phases
+    print('Cleaning done!')
+
+    return new_dataframe, new_legend_phases, new_color_set2
 
 
 def depth_porosity(data_box, num_rocks=3, rock_colors=["#0592c1", "#f74d53", '#10e6ad'], rock_symbol = ['d', 's']):
+    """
+    Plot the fluid-filled porosity as a function of depth for different rocks.
+
+    Parameters:
+    - data_box: The data box containing the rock data.
+    - num_rocks: The number of rocks to plot.
+    - rock_colors: The colors to use for each rock.
+    - rock_symbol: The symbols to use for each rock.
+
+    Returns:
+    None
+    """
 
     for j, subdata in enumerate(data_box):
         step = int(len(subdata.compiledrock.all_porosity)/num_rocks)
@@ -475,8 +566,18 @@ def depth_porosity(data_box, num_rocks=3, rock_colors=["#0592c1", "#f74d53", '#1
     plt.show()
 
 def density_porosity(data_box, num_rocks=3, rock_colors=["#0592c1", "#f74d53", '#10e6ad'], rock_symbol = ['d', 's']):
+    """
+    Plot the change in density as a function of fluid-filled porosity at extraction for different rocks.
 
+    Parameters:
+    data_box (list): List of data containing rock properties.
+    num_rocks (int): Number of rocks to plot.
+    rock_colors (list): List of colors for each rock.
+    rock_symbol (list): List of symbols for each rock.
 
+    Returns:
+    None
+    """
     for j, subdata in enumerate(data_box):
         step = int(len(subdata.compiledrock.all_porosity)/num_rocks)
 
@@ -500,8 +601,19 @@ def density_porosity(data_box, num_rocks=3, rock_colors=["#0592c1", "#f74d53", '
     plt.show()
 
 def extraction_stress(data_box, num_rocks=3, rock_colors=["#0592c1", "#f74d53", '#10e6ad'], rock_symbol = ['d', 's'], rock_names=False):
+    """
+    Plot the number of extractions against the differential stress for each rock.
 
+    Parameters:
+    data_box (list): A list of subdata containing rock data.
+    num_rocks (int): The number of rocks to plot.
+    rock_colors (list): A list of colors for each rock.
+    rock_symbol (list): A list of symbols for each rock.
+    rock_names (bool): Whether to use rock names instead of symbols.
 
+    Returns:
+    None
+    """
     for j, subdata in enumerate(data_box):
         step = int(len(subdata.compiledrock.all_porosity)/num_rocks)
 
@@ -529,22 +641,50 @@ def extraction_stress(data_box, num_rocks=3, rock_colors=["#0592c1", "#f74d53", 
     plt.show()
 
 def resort_frame(y, legend_phases, color_set):
-            # read the position of "Water" in legen_phases and move "Water" to the end of the legend_phases list
-            # move the color of "Water" to the end of the color_set list
-            color_set.append(color_set.pop(legend_phases.index('Water')))
-            legend_phases.append(legend_phases.pop(legend_phases.index('Water')))
-            # reindex the dataframe and move "Water" to the end of the dataframe
-            y = y.reindex(legend_phases)
-            return y, legend_phases, color_set
+    """
+    Reorders the given dataframe, legend phases, and color set by moving "Water" to the end.
+
+    Args:
+        y (pandas.DataFrame): The dataframe to be reordered.
+        legend_phases (list): The list of legend phases.
+        color_set (list): The list of colors corresponding to the legend phases.
+
+    Returns:
+        tuple: A tuple containing the reordered dataframe, legend phases, and color set.
+    """
+    # read the position of "Water" in legen_phases and move "Water" to the end of the legend_phases list
+    # move the color of "Water" to the end of the color_set list
+    color_set.append(color_set.pop(legend_phases.index('Water')))
+    legend_phases.append(legend_phases.pop(legend_phases.index('Water')))
+    # reindex the dataframe and move "Water" to the end of the dataframe
+    y = y.reindex(legend_phases)
+    return y, legend_phases, color_set
 
 class Simple_binary_plot():
+    """
+    A class for creating a simple binary plot.
+
+    Attributes:
+        x (list): The x-axis values.
+        y (list): The y-axis values.
+
+    Methods:
+        path_plot(save=False): Plots the binary data and allows the user to customize the plot.
+            Args:
+                save (bool, optional): Whether to save the plot as an image. Defaults to False.
+    """
 
     def __init__(self, x, y):
         self.x = x
         self.y = y
 
     def path_plot(self, save=False):
+        """
+        Plots the binary data and allows the user to customize the plot.
 
+        Args:
+            save (bool, optional): Whether to save the plot as an image. Defaults to False.
+        """
         # TODO - Add exception when user aborts input or gives no input - Needs a default mode (x,y)
         x_ax_label = input("Please provide the x-axis label...")
         y_ax_label = input("Please provide the y-axis label...")
@@ -558,6 +698,22 @@ class Simple_binary_plot():
 
 @dataclass
 class Phasecomp:
+    """
+    Represents a phase composition.
+
+    Attributes:
+        name (str): The name of the phase composition.
+        temperature (float): The temperature in degree Celsius.
+        pressure (float): The pressure in bar.
+        moles (float): The number of moles.
+        volume (float): The volume in cubic centimeters (ccm).
+        volp (float): The volume percentage.
+        mass (float): The mass in grams.
+        massp (float): The mass percentage.
+        density (float): The density in grams per cubic centimeter (g/ccm).
+        elements (any): The elements present in the phase composition.
+        volPmole (float): The volume per mole in cubic centimeters per mole (ccm/mol).
+    """
     name: str
     temperature: float = field(metadata={'unit': 'degree C'})
     pressure: float = field(metadata={'unit': 'bar'})
@@ -574,8 +730,46 @@ class Phasecomp:
 # single rock data as dataclass
 @dataclass
 class Rock:
+    """
+    Represents a rock object with various properties.
+
+    Attributes:
+        name (str): The name of the rock.
+        temperature: The temperature of the rock.
+        pressure: The pressure on the rock.
+        depth: The depth at which the rock is located.
+        time: The time at which the rock is observed.
+        systemVolPre: The system volume before a process.
+        systemVolPost: The system volume after a process.
+        fluidbefore: The fluid present before a process.
+        tensile_strength: The tensile strength of the rock.
+        differentialstress: The differential stress on the rock.
+        frac_bool: A boolean indicating if the rock is fractured.
+        permeability: The permeability of the rock.
+        timeintflux: The time-integrated flux of the rock.
+        arr_line: The array line of the rock.
+        geometry: The geometry of the rock.
+        database: The database associated with the rock.
+        phases: The phases present in the rock.
+        phases2: Additional phases present in the rock.
+        phase_data: Data related to the phases in the rock.
+        td_data: Data related to the rock's thermal decomposition.
+        oxygen_data: Data related to the oxygen content in the rock.
+        bulk_deltao_pre: The bulk delta-oxygen content before a process.
+        bulk_deltao_post: The bulk delta-oxygen content after a process.
+        group_key (str): The group key of the rock.
+        extracted_fluid_volume: The volume of fluid extracted from the rock.
+        extraction_boolean: A boolean indicating if fluid extraction is possible.
+        porosity: The porosity of the rock.
+        time_int_flux: The time-integrated flux of the rock.
+        time_int_flux2: Additional time-integrated flux of the rock.
+        v_permeability: The vertical permeability of the rock.
+        v_timeintflux: The vertical time-integrated flux of the rock.
+        garnet: The garnet present in the rock.
+        garnets_bools: A boolean indicating the presence of garnets.
+        element_record: The record of elements in the rock.
+    """
     name: str
-    # temperature: float = field(metadata={'unit': 'degree C'})
     temperature: any
     pressure: any
     depth: any
@@ -617,10 +811,41 @@ class Rock:
 
     element_record: any
 
+    failure_model: any
+
 
 # Compiled data as dataclass
 @dataclass
 class CompiledData:
+    """
+    Represents a collection of compiled data.
+
+    Attributes:
+        all_ps: Any
+        all_tensile: Any
+        all_diffs: Any
+        all_frac_bool: Any
+        arr_line: Any
+        all_permea: Any
+        all_t_flux: Any
+        all_depth: Any
+        all_virtual_perm: Any
+        all_virtual_flux: Any
+        all_geometry: Any
+        all_system_vol_pre: Any
+        all_system_vol_post: Any
+        all_system_density_pre: Any
+        all_system_density_post: Any
+        all_fluid_before: Any
+        all_phases: Any
+        all_phases2: Any
+        all_database: Any
+        all_porosity: Any
+        all_extraction_boolean: Any
+        all_fluid_pressure: Any
+        all_td_data: Any
+        all_starting_bulk: Any
+    """
     all_ps: any
     all_tensile: any
     all_diffs: any
@@ -649,6 +874,16 @@ class CompiledData:
 
 # HDF5 reader
 class ThorPT_hdf5_reader():
+    """
+    A class for reading ThorPT HDF5 files and extracting data.
+
+    Attributes:
+        rock (dict): A dictionary to store rock data.
+        rock_names (list): A list to store the names of rocks.
+        compiledrock (int): A variable to store the compiled rock data.
+        mainfolder (bool): A flag indicating if the main folder is set.
+        filename (bool): A flag indicating if the filename is set.
+    """
 
     def __init__(self):
         self.rock = {}
@@ -658,6 +893,12 @@ class ThorPT_hdf5_reader():
         self.filename = False
 
     def open_ThorPT_hdf5(self):
+        """
+        Opens a ThorPT HDF5 file and extracts data.
+
+        Returns:
+            None
+        """
 
         # lists for compiling data
         all_ps = []
@@ -940,7 +1181,8 @@ class ThorPT_hdf5_reader():
                     v_timeintflux=0,
                     garnet=garnets,
                     garnets_bools=garnets_bools,
-                    element_record=element_record)
+                    element_record=element_record,
+                    failure_model=failure_module_data)
 
                 #######################################################
                 # Compiling section
@@ -1021,90 +1263,107 @@ class ThorPT_plots():
         self.comprock = compiledrockdata
 
     def boxplot_to_GIF(self, rock_tag, img_save=False, gif_save=False):
+            """
+            Generate boxplots images and optionally save them as GIF.
 
-        if gif_save is True:
-            img_save = True
+            Parameters:
+            rock_tag (str): The tag of the rock.
+            img_save (bool, optional): Whether to save the boxplot images. Defaults to False.
+            gif_save (bool, optional): Whether to save the boxplot images as GIF. Defaults to False.
+            """
+            if gif_save is True:
+                img_save = True
 
-        ts = self.rockdic[rock_tag].temperature
-        database = self.rockdic[rock_tag].database
-        phases = self.rockdic[rock_tag].phases
-        phases2 = self.rockdic[rock_tag].phases2
-        phase_data = self.rockdic[rock_tag].phase_data['df_N']
-        group_key = self.rockdic[rock_tag].group_key
+            ts = self.rockdic[rock_tag].temperature
+            database = self.rockdic[rock_tag].database
+            phases = self.rockdic[rock_tag].phases
+            phases2 = self.rockdic[rock_tag].phases2
+            phase_data = self.rockdic[rock_tag].phase_data['df_N']
+            group_key = self.rockdic[rock_tag].group_key
 
-        # Clean up dataframe to be used by mineral names and no NaN
-        phase_data.columns = phases
-        phase_data[np.isnan(phase_data) == True] = 0
+            # Clean up dataframe to be used by mineral names and no NaN
+            phase_data.columns = phases
+            phase_data[np.isnan(phase_data) == True] = 0
 
-        # saving folder
-        subfolder = 'phase_modes'
+            # saving folder
+            subfolder = 'phase_modes'
 
-        # XMT naming and coloring
-        legend_phases, color_set = phases_and_colors_XMT(database, phases2)
+            # XMT naming and coloring
+            legend_phases, color_set = phases_and_colors_XMT(database, phases2)
 
-        # when image save is active
-        if img_save is True:
-            print("\n\nGenerating boxplots images. Please wait...")
-            # Start progress bar
-            k = 0
-            kk = len(ts)
-            progress(int(k/kk)*100)
-
-            os.makedirs(
-                f'{self.mainfolder}/img_{self.filename}', exist_ok=True)
-
-            for i in range(len(phase_data.index)):
-                mole_fractions = phase_data.iloc[i, :] / \
-                    np.sum(phase_data.iloc[i, :])*100
+            # when image save is active
+            if img_save is True:
+                print("\n\nGenerating boxplots images. Please wait...")
+                # Start progress bar
+                k = 0
+                kk = len(ts)
+                progress(int(k/kk)*100)
 
                 os.makedirs(
-                    f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}', exist_ok=True)
-                # -------------------------------------------------------------------
-                fig = plt.figure(constrained_layout=False,
-                                 facecolor='0.9', figsize=(9, 9))
-                gs = fig.add_gridspec(nrows=3, ncols=3, left=0.15,
-                                      right=0.95, hspace=0.6, wspace=0.5)
-                # All the single plots
-                # plot 1
-                y_offset = 0
-                ax2 = fig.add_subplot(gs[:, :2])
-                for t, val in enumerate(np.array(mole_fractions)):
-                    if val == np.float64(0):
-                        ax2.bar(
-                            1, val, bottom=0, color=color_set[t], edgecolor='black', linewidth=0.1, label=legend_phases[t])
-                    else:
-                        ax2.bar(1, val, bottom=y_offset,
-                                color=color_set[t], edgecolor='black', linewidth=0.1, label=legend_phases[t])
-                    y_offset = y_offset + val
-                # legend
-                handles, labels = ax2.get_legend_handles_labels()
-                legend_properties = {'weight': 'bold'}
-                ax2.legend(handles[::-1], labels[::-1],
-                           title='Phases', bbox_to_anchor=(1.2, 0.8), fontsize=18)
-                ax2.get_xaxis().set_visible(False)
-                ax2.get_yaxis().set_visible(False)
-                ax2.set_aspect(0.02)
+                    f'{self.mainfolder}/img_{self.filename}', exist_ok=True)
 
-                # Finishing plot - save
-                plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}/img_{i}.png',
-                            transparent=False, facecolor='white')
+                for i in range(len(phase_data.index)):
+                    mole_fractions = phase_data.iloc[i, :] / \
+                        np.sum(phase_data.iloc[i, :])*100
 
-                # plt.pause(2)
-                plt.close()
+                    os.makedirs(
+                        f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}', exist_ok=True)
+                    # -------------------------------------------------------------------
+                    fig = plt.figure(constrained_layout=False,
+                                     facecolor='0.9', figsize=(9, 9))
+                    gs = fig.add_gridspec(nrows=3, ncols=3, left=0.15,
+                                          right=0.95, hspace=0.6, wspace=0.5)
+                    # All the single plots
+                    # plot 1
+                    y_offset = 0
+                    ax2 = fig.add_subplot(gs[:, :2])
+                    for t, val in enumerate(np.array(mole_fractions)):
+                        if val == np.float64(0):
+                            ax2.bar(
+                                1, val, bottom=0, color=color_set[t], edgecolor='black', linewidth=0.1, label=legend_phases[t])
+                        else:
+                            ax2.bar(1, val, bottom=y_offset,
+                                    color=color_set[t], edgecolor='black', linewidth=0.1, label=legend_phases[t])
+                        y_offset = y_offset + val
+                    # legend
+                    handles, labels = ax2.get_legend_handles_labels()
+                    legend_properties = {'weight': 'bold'}
+                    ax2.legend(handles[::-1], labels[::-1],
+                               title='Phases', bbox_to_anchor=(1.2, 0.8), fontsize=18)
+                    ax2.get_xaxis().set_visible(False)
+                    ax2.get_yaxis().set_visible(False)
+                    ax2.set_aspect(0.02)
 
-                k += 1
-                ic = int(np.ceil(k/kk*100))
-                print("=====Progress=====")
-                progress(ic)
+                    # Finishing plot - save
+                    plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}/img_{i}.png',
+                                transparent=False, facecolor='white')
 
-        # reading images and put it to GIF
-        if gif_save is True:
-            # call gif function
-            create_gif(phase_data, self.mainfolder, self.filename,
-                       group_key, subfolder=subfolder)
+                    # plt.pause(2)
+                    plt.close()
+
+                    k += 1
+                    ic = int(np.ceil(k/kk*100))
+                    print("=====Progress=====")
+                    progress(ic)
+
+            # reading images and put it to GIF
+            if gif_save is True:
+                # call gif function
+                create_gif(phase_data, self.mainfolder, self.filename,
+                           group_key, subfolder=subfolder)
 
     def pt_path_plot(self, rock_tag, img_save=False, gif_save=False):
+        """
+        Plot the PT path for a given rock tag.
 
+        Parameters:
+            rock_tag (str): The tag of the rock.
+            img_save (bool, optional): Whether to save the images of the PT path. Defaults to False.
+            gif_save (bool, optional): Whether to save the PT path as a GIF. Defaults to False.
+
+        Returns:
+            None
+        """
         if gif_save is True:
             img_save = True
 
@@ -1122,7 +1381,6 @@ class ThorPT_plots():
         subfolder = 'PT_path'
 
         if img_save is True:
-
             print("\n\nGenerating PT-path images. Please wait...")
             # Start progress bar
             k = 0
@@ -1154,7 +1412,7 @@ class ThorPT_plots():
                 ax5.set_xlabel("Temperature [°C]", fontsize=18)
                 ax5.tick_params(axis='both', labelsize=18)
 
-            # Finishing plot - save
+                # Finishing plot - save
                 plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}/img_{i}.png',
                             transparent=False, facecolor='white')
                 # plt.pause(2)
@@ -1191,6 +1449,14 @@ class ThorPT_plots():
                        group_key, subfolder=subfolder)
 
     def permeability_plot(self, rock_tag, img_save=False, gif_save=False):
+        """
+        Generates a permeability plot for a given rock tag.
+
+        Parameters:
+        rock_tag (str): The tag of the rock for which the permeability plot is generated.
+        img_save (bool, optional): Flag indicating whether to save the plot images. Defaults to False.
+        gif_save (bool, optional): Flag indicating whether to save the plot images as a GIF. Defaults to False.
+        """
 
         if gif_save is True:
             img_save = True
@@ -1331,6 +1597,14 @@ class ThorPT_plots():
                        group_key, subfolder=subfolder)
 
     def time_int_flux_plot(self, rock_tag, img_save=False, gif_save=False):
+        """
+        Plot the time-integrated fluid flux as a function of depth for a given rock tag.
+
+        Parameters:
+        rock_tag (str): The tag of the rock for which the time-integrated fluid flux will be plotted.
+        img_save (bool, optional): Whether to save the plot as an image file. Defaults to False.
+        gif_save (bool, optional): Whether to generate a GIF animation of the plot. Defaults to False.
+        """
 
         group_key = self.rockdic[rock_tag].group_key
 
@@ -1626,6 +1900,14 @@ class ThorPT_plots():
             plt.show()
 
     def porosity_plot(self, rock_tag, img_save=False, gif_save=False):
+        """
+        Generate a porosity plot for a given rock tag.
+
+        Parameters:
+        rock_tag (str): The tag of the rock to generate the porosity plot for.
+        img_save (bool, optional): Flag indicating whether to save the plot as images. Defaults to False.
+        gif_save (bool, optional): Flag indicating whether to save the plot as a GIF. Defaults to False.
+        """
 
         if gif_save is True:
             img_save = True
@@ -1761,6 +2043,14 @@ class ThorPT_plots():
                        group_key, subfolder=subfolder)
 
     def release_fluid_volume_plot(self, rock_tag, img_save=False, gif_save=False):
+        """
+        Generate and display plots of the released fluid volume.
+
+        Parameters:
+        rock_tag (str): The tag of the rock.
+        img_save (bool, optional): Flag indicating whether to save the plots as images. Defaults to False.
+        gif_save (bool, optional): Flag indicating whether to save the plots as a GIF. Defaults to False.
+        """
 
         if gif_save is True:
             img_save = True
@@ -1886,6 +2176,17 @@ class ThorPT_plots():
                        group_key, subfolder=subfolder)
 
     def phases_stack_plot(self, rock_tag, img_save=False, val_tag=False, transparent=False, fluid_porosity=True):
+        """
+        Plot the phase changes for P-T-t.
+
+        Parameters:
+        rock_tag (str): The tag of the rock.
+        img_save (bool, optional): Whether to save the plot as an image. Defaults to False.
+        val_tag (bool, optional): The value tag for the stack plot input. Defaults to False.
+        transparent (bool, optional): Whether to make the plot transparent. Defaults to False.
+        fluid_porosity (bool, optional): Whether to include the fluid-filled porosity in the plot. Defaults to True.
+        """
+
         group_key = self.rockdic[rock_tag].group_key
         subfolder = 'stack_plot'
 
@@ -2201,6 +2502,16 @@ class ThorPT_plots():
         plt.close()
 
     def binary_plot(self, rock_tag, img_save=False):
+        """
+        Generates a binary plot based on the provided rock tag and user input for x-axis and y-axis data.
+
+        Parameters:
+        rock_tag (str): The tag of the rock data to be plotted.
+        img_save (bool, optional): Indicates whether to save the plot as an image file. Default is False.
+
+        Returns:
+        None
+        """
 
         data = self.rockdic[rock_tag]
         attributes = [field.name for field in fields(data)]
@@ -3054,6 +3365,17 @@ class ThorPT_plots():
             imageio.mimsave(f'{self.mainfolder}/img_{self.filename}/msg_redistribution/output.gif', frames, duration=400)
 
     def ternary_vs_extraction(self):
+        """
+        Plot the data in a ternary diagram.
+
+        This method plots the data in a ternary diagram using matplotlib.
+        It calculates the normalized values for the elements Na2O, MgO, and CaO,
+        and plots the data points on the ternary diagram based on these values.
+        The temperature values are used to color the data points.
+
+        Returns:
+            None
+        """
 
         print("The 'data.rock[key]' keys are:")
 
@@ -3125,53 +3447,62 @@ class ThorPT_plots():
         plt.close()
 
     def sensitivity_compared_porosity_plot(self, num_list_of_keys):
-        # Basic compilation variables
-        first_entry_name = list(self.rockdic.keys())[0]
-        # read temperature and pressure
-        ts = self.rockdic[first_entry_name].temperature
-        ps = self.rockdic[first_entry_name].pressure
-        # read all porosity values for each rock in the model
-        all_porosity = np.array(self.comprock.all_porosity)
-        all_porosity = all_porosity*100
-        # extraction boolean list
-        all_boolean = np.array(self.comprock.all_extraction_boolean)
-        color_palette = sns.color_palette("viridis", len(all_porosity))
-        # read the applied differential stress and tensile strength
-        applied_diff_stress = np.array(self.comprock.all_diffs)
-        used_tensile_strengths = self.comprock.all_tensile
+            """
+            Plot the porosity of each rock in the model compared to the porosity of the first rock in the model.
+            
+            Parameters:
+            - num_list_of_keys (list): A list of indices representing the rocks to be plotted.
+            
+            Returns:
+            None
+            """
+            # Basic compilation variables
+            first_entry_name = list(self.rockdic.keys())[0]
+            # read temperature and pressure
+            ts = self.rockdic[first_entry_name].temperature
+            ps = self.rockdic[first_entry_name].pressure
+            # read all porosity values for each rock in the model
+            all_porosity = np.array(self.comprock.all_porosity)
+            all_porosity = all_porosity*100
+            # extraction boolean list
+            all_boolean = np.array(self.comprock.all_extraction_boolean)
+            color_palette = sns.color_palette("viridis", len(all_porosity))
+            # read the applied differential stress and tensile strength
+            applied_diff_stress = np.array(self.comprock.all_diffs)
+            used_tensile_strengths = self.comprock.all_tensile
 
-        color_palette = sns.color_palette("Reds")
+            color_palette = sns.color_palette("Reds")
 
-        # plot the porosity of each rock in the model vs the first rock in the model
-        for item in num_list_of_keys:
+            # plot the porosity of each rock in the model vs the first rock in the model
+            for item in num_list_of_keys:
 
-            plt.figure(101, dpi=100)
-            # figure with aspect ratio of 1:1
-            # plt.gca().set_aspect('equal', adjustable='box')
-            plt.rc('axes', labelsize=16)
-            plt.rc('ytick', labelsize=12)  # fontsize of the y tick labels
-            plt.rc('xtick', labelsize=12)  # fontsize of the x tick labels
+                plt.figure(101, dpi=100)
+                # figure with aspect ratio of 1:1
+                # plt.gca().set_aspect('equal', adjustable='box')
+                plt.rc('axes', labelsize=16)
+                plt.rc('ytick', labelsize=12)  # fontsize of the y tick labels
+                plt.rc('xtick', labelsize=12)  # fontsize of the x tick labels
 
-            x = np.ma.masked_array(all_porosity[item], mask=all_boolean[item])
-            y = np.ma.masked_array(all_porosity[0], mask=all_boolean[item])
+                x = np.ma.masked_array(all_porosity[item], mask=all_boolean[item])
+                y = np.ma.masked_array(all_porosity[0], mask=all_boolean[item])
 
-            # scatter plot with color palette ranging from blue to red depending on the temperature value
-            connect = plt.plot(all_porosity[item], all_porosity[0], '--', c='black')
-            result = plt.scatter(all_porosity[item], all_porosity[0], s= 100, edgecolor='black', c=ts, cmap='Reds')
-            plt.scatter(x, y, marker='x', color='black', s=40)
-            plt.plot(all_porosity[0], all_porosity[0], color="black", linestyle='--', linewidth=1.0, alpha=0.6)
-            plt.xlim([0, np.round(np.max(all_porosity))])
-            plt.ylim([0, np.round(np.max(all_porosity[0]))+1])
-            plt.xlabel("Fluid-filled porosity [Vol.%]")
-            plt.ylabel("Fluid-filled porosity\n continous release")
-            plt.tight_layout()
-            plt.colorbar(result)
+                # scatter plot with color palette ranging from blue to red depending on the temperature value
+                connect = plt.plot(all_porosity[item], all_porosity[0], '--', c='black')
+                result = plt.scatter(all_porosity[item], all_porosity[0], s= 100, edgecolor='black', c=ts, cmap='Reds')
+                plt.scatter(x, y, marker='x', color='black', s=40)
+                plt.plot(all_porosity[0], all_porosity[0], color="black", linestyle='--', linewidth=1.0, alpha=0.6)
+                plt.xlim([0, np.round(np.max(all_porosity))])
+                plt.ylim([0, np.round(np.max(all_porosity[0]))+1])
+                plt.xlabel("Fluid-filled porosity [Vol.%]")
+                plt.ylabel("Fluid-filled porosity\n continous release")
+                plt.tight_layout()
+                plt.colorbar(result)
 
-            subfolder = 'sensitivity'
-            os.makedirs(f'{data.mainfolder}/img_{data.filename}/{subfolder}', exist_ok=True)
-            plt.savefig(f'{data.mainfolder}/img_{data.filename}/{subfolder}/rock_{item}_prosity_sensitivity.png',
-                                transparent=False)
-            plt.close()
+                subfolder = 'sensitivity'
+                os.makedirs(f'{data.mainfolder}/img_{data.filename}/{subfolder}', exist_ok=True)
+                plt.savefig(f'{data.mainfolder}/img_{data.filename}/{subfolder}/rock_{item}_prosity_sensitivity.png',
+                                    transparent=False)
+                plt.close()
 
     def bulk_rock_sensitivity(self, number_of_bulks, number_of_interval):
         """
@@ -3312,6 +3643,73 @@ class ThorPT_plots():
         plt.savefig(f'{data.mainfolder}/img_{data.filename}/{subfolder}/tensile_strength_sensitivity.png',transparent=False)
         plt.close()
 
+    def mohr_coulomb_diagram(self):
+        """
+        Plot the Mohr-Coulomb diagram for the given rock failure model.
+
+        This method calculates and plots the Mohr-Coulomb failure envelope and Mohr circles
+        for the given rock failure model. It uses the mechanical data from the 'rock001'
+        entry in the 'rockdic' dictionary.
+
+        Returns:
+            None
+        """
+        # mechanical data
+        mechanical_data = self.rockdic['rock001'].failure_model
+
+        # basis of the modellign data
+        first_entry_name = list(self.rockdic.keys())[0]
+        ts = self.rockdic[first_entry_name].temperature
+
+        # get unique from cohesion and exclude nan
+        cohesion = mechanical_data['cohesion']
+        cohesion = np.unique(cohesion)
+        cohesion = cohesion[~np.isnan(cohesion)][0]
+        # same for friction
+        internal_friction = mechanical_data['friction coeff']
+        internal_friction = np.unique(internal_friction)
+        internal_friction = internal_friction[~np.isnan(internal_friction)][0]
+
+        # failure envelopes
+        stress_line = np.linspace(-60, 2000, 10000)
+        # t_coulomb = cohesion + internal_friction*stress_line
+        tau_griffith = np.sqrt(4*(cohesion/2)*(stress_line+(cohesion/2)))
+
+        # plotting
+        plt.figure(10001)
+        # plt.plot(stress_line, t_coulomb, 'r-')
+        plt.plot(stress_line, tau_griffith, 'r--')
+
+        for i in range(len(ts)):
+
+            # basic mechanical data
+            sigma1 = mechanical_data["sigma 1"][i]
+            sigma3 = mechanical_data["sigma 3"][i]
+            fluid_pressure = mechanical_data["fluid pressure"][i]
+            center = mechanical_data["center"][i]
+            r = mechanical_data["radius"][i]
+
+            # Mohr circle
+            pos = center - fluid_pressure
+            theta = np.linspace(0, 2*np.pi, 100)
+            x1f = r*np.cos(theta) + pos
+            x2f = r*np.sin(theta)
+            x1f2 = r*np.cos(theta) + center
+
+            plt.plot(x1f, x2f, 'b--', x1f2, x2f, 'g-')
+
+            # label = "{:.2f}".format(self.diff_stress)
+            # plt.annotate(label, (sigma3-sigma1, 0), textcoords="offset points", xytext=(0, 10), ha='center')
+            plt.axvline(color='red', x=-cohesion/2)
+            plt.axvline(color='black', x=0)
+            plt.axhline(color='black', y=0)
+            plt.xlabel(r"$\sigma\ MPa$")
+            plt.ylabel(r"$\tau\ MPa$")
+            plt.ylim(-1, 100)
+            plt.xlim(-60, 200)
+        plt.show()
+
+
 if __name__ == '__main__':
 
     # Read variables from a hdf5 output file from ThorPT
@@ -3322,20 +3720,29 @@ if __name__ == '__main__':
     compPlot = ThorPT_plots(
         data.filename, data.mainfolder, data.rock, data.compiledrock)
 
+    compPlot.mohr_coulomb_diagram()
+
+    ternary_plot = False
+    lawsonite_surface = False
+    standard_plots = True
+    fluid_distribution_sgm23 = False
+    fluid_recycling_single = False
+    plotting_routine_for_sgm23 = False
+    fluid_recycling = False
+    sensitivity_plot = False
+    bulk_rock_sensitivity = True
+    tensile_strength_sensitivity = True
 
     # Protocol for ternary plot
-    ternary_plot = False
     if ternary_plot is True:
         compPlot.ternary_vs_extraction()
 
     # Protocol for lawsonite surface plot
-    lawsonite_surface = False
     if lawsonite_surface is True:
         # Plotting tool to investigate the lawsonite occurence of a grid
         compPlot.lawsonite_surface(True)
 
     # Protocol for standard plotting (Stack, oxygen isotopes, release fluid volume)
-    standard_plots = True
     if standard_plots is True:
             for key in data.rock.keys():
                 print(key)
@@ -3347,24 +3754,20 @@ if __name__ == '__main__':
             # compPlot.pt_path_plot(key, img_save=True, gif_save=True)
 
     # modelling for msg23 - internal redistribution of fluids in an outcrop
-    fluid_distribution_sgm23 = False
     if fluid_distribution_sgm23 is True:
         compPlot.fluid_distribution_sgm23(img_save=True, gif_save=True, x_axis_log=False)
 
-    fluid_recycling_single = False
     if fluid_recycling_single is True:
         # Routine for Fluid recycling plotting
         print("The 'data.rock[key]' keys are:")
         compPlot.fluid_content(img_save=False)
 
-    plotting_routine_for_sgm23 = False
     if plotting_routine_for_sgm23 is True:
         # Routine for Fluid recycling plotting
         compPlot.fluid_content_msg2023(img_save=True)
         # compPlot.fluid_distribution_sgm23(img_save=True, gif_save=True, x_axis_log=False)
 
-    # routine to plot the fluid content of all rocks and internal recycling
-    fluid_recycling = False
+    # routine to plot the fluid contentf all rocks and internal recycling
     if fluid_recycling is True:
         # Routine for Fluid recycling plotting
         compPlot.time_int_flux_summary(img_save=True, rock_colors=['#10e6ad', "#0592c1", "#f74d53"])
@@ -3412,21 +3815,21 @@ if __name__ == '__main__':
             # compPlot.pt_path_plot(key, img_save=True, gif_save=True)
 
     # sensitivity plot function call
-    sensitivity_plot = False
     if sensitivity_plot is True:
         compPlot.sensitivity_compared_porosity_plot(num_list_of_keys=[6, 7, 8, 9, 10])
 
     # bulk rock sensitivity test
-    bulk_rock_sensitivity = True
     if bulk_rock_sensitivity is True:
         compPlot.bulk_rock_sensitivity(number_of_bulks=6, number_of_interval=37)
 
     # tensile strength sensitivity test
-    tensile_strength_sensitivity = True
     if tensile_strength_sensitivity is True:
         compPlot.tensile_strength_sensitivity()
 
     # ################################################################################################
+
+
+
 
     """
     # Basic compilation variables

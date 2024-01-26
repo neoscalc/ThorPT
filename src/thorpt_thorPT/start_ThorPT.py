@@ -32,6 +32,12 @@ from valhalla.tunorrad import run_theriak as test_theriak
 # from thorpt_thorPT.valhalla.tunorrad import run_theriak as test_theriak
 
 def file_opener():
+    """
+    Opens a file dialog to select an initialization file to read.
+
+    Returns:
+        str: The path of the selected file.
+    """
     filein = filedialog.askopenfilename(
         title="Select init file to read",
         filetypes=(
@@ -43,6 +49,12 @@ def file_opener():
 
 
 def file_opener_multi():
+    """
+    Opens a file dialog to select multiple files.
+
+    Returns:
+        filein (tuple): A tuple containing the paths of the selected files.
+    """
     filein = filedialog.askopenfilenames(
         title="Select init file to read",
         filetypes=(
@@ -53,11 +65,23 @@ def file_opener_multi():
     return filein
 
 def set_origin():
+    """
+    Sets the current working directory to the directory of the script.
+
+    This function retrieves the absolute path of the current script file and changes the working directory to that path.
+    """
     dirname = os.path.dirname(os.path.abspath(__file__))
     os.chdir(dirname)
 
 @dataclass
 class rockactivity:
+    """
+    This class represents a rock activity.
+
+    Attributes:
+        function: The function associated with the rock activity.
+        react: The reaction associated with the rock activity.
+    """
     function: any
     react: any
 
