@@ -3,8 +3,9 @@
 Written by
 Thorsten Markmann
 thorsten.markmann@geo.unibe.ch
-status: 17.02.2023
+status: 27.01.2024
 """
+
 # External modules
 import numpy as np
 import pandas as pd
@@ -21,9 +22,9 @@ import time
 # from valhalla.Pathfinder import *
 # from valhalla.routines_ThorPT import *
 # from valhalla.tunorrad import run_theriak as test_theriak
-from valhalla import Pathfinder
-from valhalla import routines_ThorPT
-from valhalla.tunorrad import run_theriak as test_theriak
+# from valhalla import Pathfinder
+# from valhalla import routines_ThorPT
+# from valhalla.tunorrad import run_theriak as test_theriak
 
 
 # NOTE: this is the main file to run the ThorPT routine
@@ -88,6 +89,14 @@ class rockactivity:
 
 
 def run_main_routine():
+    # Test if function is not called by a script
+    if __name__ != '__main__':
+        print("Import the modules of ThorPT during package import")
+        from thorpt_thorPT.valhalla import Pathfinder
+        from thorpt_thorPT.valhalla import routines_ThorPT
+        from thorpt_thorPT.valhalla.tunorrad import run_theriak as test_theriak
+        print("Import finished")
+
     set_origin()
 
     # Starting up and select the init file to model
@@ -604,7 +613,19 @@ def run_main_routine():
 
 if __name__ == '__main__':
     print("File call __name__ is set to: {}" .format(__name__))
+    from valhalla import Pathfinder
+    from valhalla import routines_ThorPT
+    from valhalla.tunorrad import run_theriak as test_theriak
+
     run_main_routine()
+
+else:
+    # The script was imported as a module
+    print("Import the modules of ThorPT during package import")
+    from thorpt_thorPT.valhalla import Pathfinder
+    from thorpt_thorPT.valhalla.routines_ThorPT import *
+    from thorpt_thorPT.valhalla.tunorrad import run_theriak as test_theriak
+    print("Import finished")
 
 
 

@@ -3,7 +3,7 @@
 Written by
 Thorsten Markmann
 thorsten.markmann@geo.unibe.ch
-status: 17.02.2023
+status: 27.01.2024
 """
 
 # from subprocess import check_output
@@ -348,21 +348,17 @@ def mineral_translation():
 
 def decode_lines(line_number, line_file, number=11, one_element_row=True):
     """
-    Decodes the output from theriak from a line into a dictionary.
+    Decode lines from a file and return a dictionary.
 
     Args:
-        line_number (int): Line number of an output or txt file read as a list.
-            Use "keyword search" to find the line for specific keywords.
-        line_file (list): The file (e.g., theriak output) stored as a list.
-        number (int, optional): Variable to handle the lines with less or more
-            than 10 entries. Theriak switches to the next line if more than 10
-            elements are in the system. Defaults to 10.
-        one_element_row (bool, optional): Specifies whether the line contains
-            only one element. If False, the line number is incremented by 1.
-            Defaults to True.
+        line_number (int): The line number to decode.
+        line_file (list): The list of lines from the file.
+        number (int, optional): The number of elements in each line. Defaults to 11.
+        one_element_row (bool, optional): Whether each line has only one element. Defaults to True.
 
     Returns:
         dict: A dictionary containing the decoded line.
+
     """
     if one_element_row is False:
         line_number = line_number + 1
@@ -1112,30 +1108,34 @@ def garnet_bulk_from_dataframe(frame, moles, volumePermole, volume):
 
 class Therm_dyn_ther_looper:
     """
-    Class for thermodynamic minimization for P-T-t steps and includes data
-    reduction scheme. Data can be read after calling different functions.
-    Order to call:
-        1. initialize 'Therm_dyn_ther_looper'
-        2. execute minimization with 'thermodynamic_looping_station'
-        3. data reduction with 'merge_dataframe_dic' to incorporate dataframe into dictionaries
-        4. Checking for volume changes and making variables easy to access via 'step_on_water'
+    A class representing a thermodynamic looping station for the Tunorrad object.
 
-    Args:
-        theriak_path (str): The path to the theriak executable.
-        database (str): The path to the thermodynamic database.
-        bulk_rock (list): A list of values for each element as mol normalized to 1 kg of rock.
-                          Weight percent values are calculated with 'whole_rock_to_weight_normalizer'
-                          to mol per 1kg of rock.
-        temperature (int): One temperature value in °C from list from P-T-t path.
-        pressure (type): One pressure value in bar from list from P-T-t path.
-        df_var_dictionary (dictionary): At start empty. Stores for each stable phase
-                                        its physical properties (density, weight) a dataframe compiled in this dic.
-        df_hydrous_data_dic (dictionary): At start empty. Stores for each hydrous
-                                          stable phase its physical properties (weight, H2O content) a dataframe compiled in this dic.
-        df_all_elements (dataframe): Frame that stores for each phase plus the
-                                      total the respective element amount (O, C, H etc.).
-        num (int): Looping step.
-        fluid_name_tag (str): The fluid name tag based on the database used.
+    Attributes:
+        theriak_path (str): The path to the Theriak software.
+        database (str): The name of the thermodynamic database.
+        bulk_rock (str): The composition of the bulk rock.
+        temperature (float): The temperature in Kelvin.
+        pressure (float): The pressure in bars.
+        df_var_dictionary (DataFrame): The variable dictionary.
+        df_hydrous_data_dic (DataFrame): The hydrous data dictionary.
+        df_all_elements (DataFrame): The dataframe containing all elements.
+        num (int): The looping step.
+        fluid_name_tag (str): The tag for the fluid name based on the database used.
+
+    Methods:
+        __init__(self, theriak_path, database, bulk_rock, temperature, pressure, df_var_dictionary, df_hydrous_data_dic, df_all_elements, num, fluid_name_tag):
+            Initializes the Therm_dyn_ther_looper object.
+
+        thermodynamic_looping_station(self, marco=False):
+            Calls theriak and passes T, P and bulk rock. Resulting data is read and formatted.
+            First check for 'water.fluid' is included.
+            Prints messages and gives Volume, Density, Mol and Weight of present fluid as feedback.
+
+        merge_dataframe_dic(self):
+            Merges the calculated values from theriak output with the existing dataframes.
+
+        step_on_water(self):
+            Collecting data about solids and fluid from t=0 (new calculation) and t=-1 (previous calculation).
     """
 
     def __init__(
@@ -1143,25 +1143,19 @@ class Therm_dyn_ther_looper:
             temperature, pressure, df_var_dictionary,
             df_hydrous_data_dic, df_all_elements, num, fluid_name_tag):
         """
-        Initializes variables for thermodynamic minimization and data formation.
-        -Bulk rock in normalized in mol to 1 kg of rock.
-        -Temperature and pressure as a value from list.
-        -Saving data in dictionaries and dataframe.
+        Initialize the Tunorrad object.
 
         Args:
-            bulk_rock (list): is a list of values for each element as mol normalized to 1 kg of rock.
-                        weight percent values are in the first looping round calculated with
-                        'whole_rock_to_weight_normalizer' to mol per 1kg of rock.
-
-            temperature (int): one temperature value in °C from list from P-T-t path
-            pressure (type):
-                one pressure value in bar from list from P-T-t path
-            df_var_dictionary (dictionary): At start empty. Stores for each stable phase
-            its physical properties (density, weight) a dataframe compiled in this dic
-            df_hydrous_data_dic (dictionary): At start empty. Stores for each hydrous
-            stable phase its physical properties (weight, H2O content) a dataframe compiled in this dic
-            df_all_elements (dataframe): Frame that stores for each phase plus the
-            total the respective element amount (O, C, H etc.)
+            theriak_path (str): The path to the Theriak software.
+            database (str): The name of the thermodynamic database.
+            bulk_rock (str): The composition of the bulk rock.
+            temperature (float): The temperature in Kelvin.
+            pressure (float): The pressure in bars.
+            df_var_dictionary (DataFrame): The variable dictionary.
+            df_hydrous_data_dic (DataFrame): The hydrous data dictionary.
+            df_all_elements (DataFrame): The dataframe containing all elements.
+            num (int): The looping step.
+            fluid_name_tag (str): The tag for the fluid name based on the database used.
         """
         self.theriak_path = theriak_path
         self.database = database

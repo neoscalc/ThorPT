@@ -683,9 +683,8 @@ class Create_new_or_read_txt_pt_path:
 
 
 class call_Pathfinder:
-
     """
-    A class that represents a Pathfinder object.
+    A class representing a Pathfinder object.
 
     Attributes:
         temp (int): The temperature value.
@@ -693,13 +692,70 @@ class call_Pathfinder:
         time_var (int): The time variable.
         depth (int): The depth value.
         dt (int): The time step value.
-        new_or_read (Create_new_or_read_txt_pt_path): An instance of the Create_new_or_read_txt_pt_path class.
+        new_or_read (Create_new_or_read_txt_pt_path): An instance of Create_new_or_read_txt_pt_path class.
 
     Methods:
-        execute_digi_prograde: Executes the digitization process for a prograde P-T path.
-        execute_digi: Executes the digitization process for a P-T path.
-        execute_digi_mod: Executes the modified digitization process for a P-T path.
-        execute_digi_mod2: Executes the second modified digitization process for a P-T path.
+        __init__(self, temp=0, pressure=0, dt=1000): Initializes a Pathfinder object.
+        execute_digi_prograde(self): Executes the digitization process for a prograde P-T path.
+        execute_digi(self): Executes the digitization process for a P-T path.
+        execute_digi_mod(self): Executes the modified digitization process for a P-T path.
+        execute_digi_mod2(self, path_arguments=False, path_increment=False): Executes the second modified digitization process for a P-T path.
+    """
+    def __init__(self, temp=0, pressure=0, dt=1000):
+        """
+        Initializes a Pathfinder object.
+
+        Args:
+            temp (int): The temperature value (default is 0).
+            pressure (int): The pressure value (default is 0).
+            dt (int): The time step value (default is 1000).
+        """
+        self.temp = temp
+        self.pressure = pressure
+        self.time_var = 0
+        self.depth = 0
+        self.dt = dt
+        # Calling digitizing module
+        self.new_or_read = Create_new_or_read_txt_pt_path()
+
+    def execute_digi_prograde(self):
+        """
+        Executes the digitization process for a prograde P-T path.
+        """
+        # Code implementation...
+
+    def execute_digi(self):
+        """
+        Executes the digitization process for a P-T path.
+        """
+        # Code implementation...
+
+    def execute_digi_mod(self):
+        """
+        Executes the modified digitization process for a P-T path.
+        """
+        # Code implementation...
+
+    def execute_digi_mod2(self, path_arguments=False, path_increment=False):
+        """
+        Executes the second modified digitization process for a P-T path.
+
+        Args:
+            path_arguments (bool or list, optional): The path arguments (default is False).
+            path_increment (bool, optional): The path increment value (default is False).
+        """
+        # Code implementation...
+class call_Pathfinder:
+    """
+    A class representing a Pathfinder object.
+
+    Attributes:
+        temp (int): The temperature value.
+        pressure (int): The pressure value.
+        time_var (int): The time variable.
+        depth (int): The depth value.
+        dt (int): The time step value.
+        new_or_read (Create_new_or_read_txt_pt_path): An instance of Create_new_or_read_txt_pt_path class.
     """
 
     # External call to use Pathfinder module
@@ -1243,54 +1299,47 @@ class call_Pathfinder:
         self.pressure = self.PathfinderV2.pressures
 
     def gridding(self, path_arguments, path_increment):
-            """
-            Grids the temperature and pressure arrays based on the given path arguments and increments.
+        """
+        Grids the temperature and pressure arrays based on the given path arguments and increments.
 
-            Args:
-                path_arguments (list): List of path arguments, where the third element represents the pressure unit.
-                path_increment (list): List of path increments, where the first element represents the pressure increment
-                                       and the second element represents the temperature increment.
+        Args:
+            path_arguments (list): List of path arguments, where the third element represents the pressure unit.
+            path_increment (list): List of path increments, where the first element represents the pressure increment
+                                   and the second element represents the temperature increment.
 
-            Returns:
-                None
-            """
-            self.new_or_read.stored_digitization()
+        Returns:
+            None
+        """
 
-            temperatures = self.new_or_read.temperatures
-            pressures = self.new_or_read.pressures
-
-            # transform pressure based on path_arguments to bar
-            if path_arguments[2] == 'GPa':
-                pressures = pressures * 10000
-            if path_arguments[2] == 'kbar':
-                pressures = pressures * 1000
-
-            # round the pressure array based on the increment
-            if np.float32(path_increment[0]) >=10:
-                pressures = np.round(pressures,-1)
-
-            # round the temperature array based on the increment
-            if np.float32(path_increment[1]) >=10:
-                temperatures = np.round(temperatures,-1)
-
-            # Creating arrays for temperature and pressure based on input increments
-            x = np.arange(min(temperatures), max(temperatures), np.int32(path_increment[1]))
-            y = np.arange(min(pressures), max(pressures), np.int32(path_increment[0]))
-
-            # generating mesh array
-            xv, yv = np.meshgrid(x, y)
-
-            # flatten the mesh array for node input
-            temperatures = xv.flatten()
-            pressures = yv.flatten()
-
-            # Write infromation to function variables
-            self.temp = temperatures
-            self.pressure = pressures
-            self.time_var = np.full(len(temperatures),np.nan)
-            self.depth = np.full(len(temperatures),np.nan)
-            self.sub_angle = "Undefined"
-            self.plate_v = "Undefined"
+        self.new_or_read.stored_digitization()
+        temperatures = self.new_or_read.temperatures
+        pressures = self.new_or_read.pressures
+        # transform pressure based on path_arguments to bar
+        if path_arguments[2] == 'GPa':
+            pressures = pressures * 10000
+        if path_arguments[2] == 'kbar':
+            pressures = pressures * 1000
+        # round the pressure array based on the increment
+        if np.float32(path_increment[0]) >=10:
+            pressures = np.round(pressures,-1)
+        # round the temperature array based on the increment
+        if np.float32(path_increment[1]) >=10:
+            temperatures = np.round(temperatures,-1)
+        # Creating arrays for temperature and pressure based on input increments
+        x = np.arange(min(temperatures), max(temperatures), np.int32(path_increment[1]))
+        y = np.arange(min(pressures), max(pressures), np.int32(path_increment[0]))
+        # generating mesh array
+        xv, yv = np.meshgrid(x, y)
+        # flatten the mesh array for node input
+        temperatures = xv.flatten()
+        pressures = yv.flatten()
+        # Write infromation to function variables
+        self.temp = temperatures
+        self.pressure = pressures
+        self.time_var = np.full(len(temperatures),np.nan)
+        self.depth = np.full(len(temperatures),np.nan)
+        self.sub_angle = "Undefined"
+        self.plate_v = "Undefined"
 
 
 
@@ -1479,5 +1528,6 @@ if __name__ == '__main__':
 
     nasa = Pathfinder()
     nasa.connect_extern()
+
 
 

@@ -3,7 +3,7 @@
 Written by
 Thorsten Markmann
 thorsten.markmann@geo.unibe.ch
-status: 17.02.2023
+status: 27.01.2024
 """
 
 import shutil
@@ -784,8 +784,8 @@ class ThorPT_Routines():
                         mü_water = 1e-4
 
                         # water data
-                        v_water = float(master_rock[item]['df_var_dictionary']['df_volume[ccm]'].loc[fluid_name_tag][-1])
-                        d_water = float(master_rock[item]['df_var_dictionary']['df_density[g/ccm]'].loc[fluid_name_tag][-1])
+                        v_water = float(master_rock[item]['df_var_dictionary']['df_volume[ccm]'].loc[fluid_name_tag].iloc[-1])
+                        d_water = float(master_rock[item]['df_var_dictionary']['df_density[g/ccm]'].loc[fluid_name_tag].iloc[-1])
                         weigth_water = master_rock[item]['df_var_dictionary']['df_wt[g]'].iloc[:, -1][fluid_name_tag]
                         # system data
                         master_rock[item]['meta_grt_weight']

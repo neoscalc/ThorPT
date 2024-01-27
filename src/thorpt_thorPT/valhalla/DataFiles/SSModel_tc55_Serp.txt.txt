@@ -1,0 +1,151 @@
+﻿
+I don’t know how many phases are in there
+
+
+*** SOLID SOLUTIONS ***
+
+>> OLIVINE	OLIVINEi 
+FAYALITE	FORSTERITE
+fayalite	forsterite
+4		4
+
+>> CARBONATE	CCDO
+CALCITE		MAGNESITE	DOLOMITE
+calcite2 	magnesite2	dolomite2
+6		6		6
+
+>> FELDSPAR	FSP
+ALBITE		ANORTHITE	KFELDSPAR
+high-albite	anorthiteC1	sanidine
+8		8		8
+
+>> ILMENITE	ILM
+ILMENITE
+Oilmenite
+3
+
+!>> EPIDOTE		EPI
+!ZOISITE		EPIDOTE
+!clinozoisite		Fe-epidote 
+!13			13
+
+>> GARNET	GARNET
+GROSSULAR	ALMANDINE	PYROPE		SPESSARTINE
+grossular	almandine	pyrope		spessartine
+12		12		12		12	
+
+>> CLINOPYROXENE	OMPH_jd
+DIOPSIDE	JADEITE		HEDENBERGITE    OMPHACITE
+diopside	jadeite		hedenbergite    omphacite
+6		6		6       6
+
+>> CLINOPYROXENE	OMPH_om
+DIOPSIDE	JADEITE		HEDENBERGITE	OMPHACITE
+diopside	jadeite		hedenbergite    omphacite
+6		6		6		6
+
+>> CLINOPYROXENE	OMPH_di
+DIOPSIDE	JADEITE		HEDENBERGITE	OMPHACITE
+diopside	jadeite		hedenbergite    omphacite
+6		6		6		6
+
+
+>> ORTHOPYROXENE	OPX 
+ENSTATITE		FERROSILITE		
+enstatite		ferrosilite		
+6			6
+
+>> CHLORITOID	CHTD
+CHLORITOID
+Mg-chloritoid 
+7
+
+>> CHLORITE	CHLR
+CHLORITE		
+Al-free-chlorite	
+18			
+
+>> WHITEMICA	PHNG
+PHENGITE	PARAGONITE	
+muscovite 	paragonite2	
+12		12
+
+>> BIOTITE	BIO
+ANNITE		PHLOGOPITE	BIOTITE
+annite		phlogopite	obiotite
+12		12		12
+
+>> BIOTITE	BIO_phl
+ANNITE		PHLOGOPITE	BIOTITE
+ann		phl		obi
+12		12		12
+
+>> TALC		TALC
+TALC
+Mg-talc
+12
+				
+>> STAUROLITE	STAU
+STAUROLITE	
+Fe-staurolite
+48
+
+>> AMPHIBOLE	ClAMP
+TREMOLITE	PARGASITE	GLAUCOPHANE
+tremolite	pargasite2	glaucophane2
+24		24		24
+
+>> AMPHIBOLE	ClAMP_gl2
+TREMOLITE	PARGASITE	GLAUCOPHANE
+tremolite	pargasite2	glaucophane2
+24		24		24
+
+
+>> SPINEL	SPIN
+SPINEL
+spinel
+4
+
+>> SERPENTINE   SERP
+SERPENTINE  SERPENTINE      SERPENTINE
+antigorite  FeAntigorite    antigoriteTs
+147         147             147
+
+*** MINERAL DATA ***
+CLINOHUMITE		clinohumite		18
+ANDRADITE		andradite		12
+ANDALUSITE		andalusite		5
+KYANITE			kyanite			5
+SILLIMANITE		sillimanite		5
+ZOISITE			zoisite			13
+ZOISITE			clinozoisite		13
+EPIDOTE			Fe-epidote		13
+EPIDOTE			epidote			13
+LAWSONITE		lawsonite 		10
+TITANITE		sphene			5
+ZIRCON			zircon 			4
+WOLLASTONITE		wollastonite		3
+ACTINOLITE		ferroactinolite 	24
+ANTHOPHYLLITE  		anthophyllite  		24
+MARGARITE		margarite		12
+KAOLINITE		kaolinite 		9
+PREHNITE		prehnite		12
+CHRYSOTILE		chrysotile		9
+SERPENTINE		antigorite		48
+QUARTZ			quartz			2
+QUARTZ			coesite			2
+RUTILE			rutile 			2
+HEMATITE		hematite		3
+MAGNETITE		magnetite		4
+BRUCITE			brucite			2
+BRUCITE			BR_br			2
+ARAGONITE		aragonite		3
+ANKERITE		ankerite 		6
+WATER			water.fluid 		1
+WATER			H2O.liq			1
+PYROPHYLLITE		pyrophyllite 		12
+GLAUCOPHANE     	glaucophane   		24
+PARAGONITE  		paragonite  		12
+SIDERITE		siderite		3
+RHODOCHROSITE		rhodochrosite		3
+RIEBECKITE		riebeckite		24

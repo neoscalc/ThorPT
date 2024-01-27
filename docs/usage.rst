@@ -14,9 +14,3 @@ To use ThorPT, first install it using pip:
 
 
 
-Plotting ThorPT results
-------------------------
-
-you can use the ``xorki.ThorPT_plots()`` function:
-
-.. autofunction:: xorki.ThorPT_plots

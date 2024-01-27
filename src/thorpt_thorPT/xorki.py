@@ -2,7 +2,7 @@
 Written by
 Thorsten Markmann
 thorsten.markmann@geo.unibe.ch
-status: 25.01.2024
+status: 27.01.2024
 """
 
 # Plotting module for ThorPT
@@ -64,17 +64,18 @@ def remove_items(test_list, item):
 
 def phases_and_colors_XMT(database, phases):
     """
-    Returns the phase names and corresponding colors for XMapTools based on the given database and phases.
+    Returns a list of phase names and their corresponding colors based on the given database and phases.
 
     Parameters:
-    database (str): The name of the database.
-    phases (list): A list of phase names.
+    - database (str): The name of the database.
+    - phases (list): A list of phase names.
 
     Returns:
-    tuple: A tuple containing two lists - phase_set and color_set.
-        - phase_set (list): A list of phase names.
-        - color_set (list): A list of RGB color values corresponding to each phase.
+    - phase_set (list): A list of phase names.
+    - color_set (list): A list of RGB color tuples corresponding to each phase.
+
     """
+
     # XMapTools mineral names and colors
     script_folder = Path(__file__).parent.absolute()
     file_to_open = script_folder / "DataFiles" / "XMap_MinColors.txt"

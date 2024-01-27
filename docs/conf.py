@@ -1,8 +1,15 @@
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here.
-import pathlib
+import os
 import sys
-sys.path.insert(0, pathlib.Path(__file__).parents[2].resolve().as_posix())
+sys.path.insert(0, os.path.abspath('../src'))
+sys.path.insert(0, os.path.abspath('../src/thorpt_thorPT'))
+sys.path.insert(0, os.path.abspath('../src/thorpt_thorPT/valhalla'))
+sys.path.insert(0, os.path.abspath("."))
+sys.path.insert(0, os.path.abspath("../."))
+sys.path.insert(0, os.path.abspath("../.."))
+
+import thorpt_thorPT
 
 # Configuration file for the Sphinx documentation builder.
 #
@@ -15,12 +22,20 @@ sys.path.insert(0, pathlib.Path(__file__).parents[2].resolve().as_posix())
 project = 'ThorPT'
 copyright = '2024, Thorsten A. Markmann'
 author = 'Thorsten A. Markmann'
-release = '0.0.1'
+release = '0.3.2'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = []
+extensions = [
+    'sphinx.ext.duration',
+    'sphinx.ext.doctest',
+    'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
+    'sphinx_togglebutton',
+]
+
+autosummary_generate = True
 
 templates_path = ['_templates']
 exclude_patterns = []
@@ -33,15 +48,6 @@ exclude_patterns = []
 html_theme = 'alabaster'
 html_static_path = ['_static']
 
-# Add any Sphinx extension module names here, as strings. They can be
-# extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
-# ones.
-extensions = [
-    'sphinx.ext.duration',
-    'sphinx.ext.doctest',
-    'sphinx.ext.autodoc',
-    'sphinx.ext.autosummary',
-]
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
