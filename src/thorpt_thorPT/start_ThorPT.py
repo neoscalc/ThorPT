@@ -89,6 +89,7 @@ class rockactivity:
 
 
 def run_main_routine():
+
     # Test if function is not called by a script
     if __name__ != '__main__':
         print("Import the modules of ThorPT during package import")
@@ -298,6 +299,8 @@ def run_main_routine():
             print("Theriak test run passed. Theriak is ready to use.")
         else:
             print("Theriak test run failed. Please check the theriak path in the init file.")
+            print(test_output)
+            print(init_data['theriak'])
             time.sleep(5)
             quit()
 

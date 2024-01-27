@@ -2521,12 +2521,12 @@ class Isotope_calc():
 
         phase = list(flatten(database_names))[0]
         norm_ABC = np.array(
-            [df_ABC[phase][1], df_ABC[phase][2], df_ABC[phase][3]])
+            [df_ABC[phase].iloc[1], df_ABC[phase].iloc[2], df_ABC[phase].iloc[3]])
 
         for phase in list(flatten(database_names)):
-            a = df_ABC[phase][1] - norm_ABC[0]
-            b = df_ABC[phase][2] - norm_ABC[1]
-            c = df_ABC[phase][3] - norm_ABC[2]
+            a = df_ABC[phase].iloc[1] - norm_ABC[0]
+            b = df_ABC[phase].iloc[2] - norm_ABC[1]
+            c = df_ABC[phase].iloc[3] - norm_ABC[2]
             calc = a*10**6/TK**2 + b*10**3/TK + c
             ma.append(calc)
 
