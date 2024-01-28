@@ -47,7 +47,7 @@ The software will ask you for two input files via a GUI:
 1. init file that defines parameters for the modelling
 2. depending if you want to generate or use a preexisting P-T path
 
-start_ThorPT.run_routine()
+start_ThorPT.run_main_routine()
 
 
 # 1.2.4 Plotting module with ThorPT

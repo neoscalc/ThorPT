@@ -4,20 +4,30 @@ build-backend = "hatchling.build"
 
 [project]
 name = "thorpt-thorPT"
-version = "0.3.3"
+version = "0.3.7"
 authors = [
   { name="Thorsten Markmann", email="thorsten.markmann@unibe.ch" },
 ]
 description = "Petro-geochemical modelling software ThorPT"
 readme = "README.md"
 requires-python = ">=3.9"
+dependencies = [
+    "numpy",
+    "scipy",
+    "pandas",
+    "matplotlib",
+    "seaborn",
+    "h5py",
+    "pygame",
+    "imageio",
+    "PyQt5"
+]
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     "Topic :: Scientific/Engineering",
     "Operating System :: OS Independent",
 ]
-
 
 [project.urls]
 "Homepage" = "https://github.com/neoscalc/ThorPT"

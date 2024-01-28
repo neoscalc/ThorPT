@@ -1237,6 +1237,12 @@ class ThorPT_hdf5_reader():
                     all_td_data,
                     all_starting_bulk)
 
+        progress(100)
+        # Print a line to express hdf5 file reader has finished
+        print("\nThorPT HDF5 file reader finished!")
+
+
+
 
 # Module of plotting functions for reducing the data from modelling with ThorPT
 class ThorPT_plots():
@@ -2260,7 +2266,8 @@ class ThorPT_plots():
 
         # add metastable garnet to the dataframe
         if 'Garnet' in y.index:
-            y.loc['Garnet'][np.isnan(y.loc['Garnet'])] = 0
+            # y.loc['Garnet'][np.isnan(y.loc['Garnet'])] = 0
+            y.loc['Garnet', y.loc['Garnet'].isna()] = 0
             kk = 0
             garnet_in = False
             for k, xval in enumerate(y.loc['Garnet']):
@@ -2272,7 +2279,8 @@ class ThorPT_plots():
                     garnet_in = True
                     y.loc['Garnet',k] = np.cumsum(garnet.volume[:1+kk])[-1]
                     kk += 1
-            y.loc['Garnet'][y.loc['Garnet']==0] = np.nan
+            # y.loc['Garnet'][y.loc['Garnet']==0] = np.nan
+            y.loc['Garnet', y.loc['Garnet'] == 0] = np.nan
 
         # nomrmalize the volume data to starting volume
         y = y/y.sum()[0]
@@ -3445,65 +3453,65 @@ class ThorPT_plots():
         plt.annotate('Na2O', xy=(0.0, 0.0), xytext=(-0.1, -0.05), fontsize=12)
 
         plt.show()
-        plt.close()
+        #plt.close()
 
     def sensitivity_compared_porosity_plot(self, num_list_of_keys):
-            """
-            Plot the porosity of each rock in the model compared to the porosity of the first rock in the model.
-            
-            Parameters:
-            - num_list_of_keys (list): A list of indices representing the rocks to be plotted.
-            
-            Returns:
-            None
-            """
-            # Basic compilation variables
-            first_entry_name = list(self.rockdic.keys())[0]
-            # read temperature and pressure
-            ts = self.rockdic[first_entry_name].temperature
-            ps = self.rockdic[first_entry_name].pressure
-            # read all porosity values for each rock in the model
-            all_porosity = np.array(self.comprock.all_porosity)
-            all_porosity = all_porosity*100
-            # extraction boolean list
-            all_boolean = np.array(self.comprock.all_extraction_boolean)
-            color_palette = sns.color_palette("viridis", len(all_porosity))
-            # read the applied differential stress and tensile strength
-            applied_diff_stress = np.array(self.comprock.all_diffs)
-            used_tensile_strengths = self.comprock.all_tensile
+        """
+        Plot the porosity of each rock in the model compared to the porosity of the first rock in the model.
 
-            color_palette = sns.color_palette("Reds")
+        Parameters:
+        - num_list_of_keys (list): A list of indices representing the rocks to be plotted.
 
-            # plot the porosity of each rock in the model vs the first rock in the model
-            for item in num_list_of_keys:
+        Returns:
+        None
+        """
+        # Basic compilation variables
+        first_entry_name = list(self.rockdic.keys())[0]
+        # read temperature and pressure
+        ts = self.rockdic[first_entry_name].temperature
+        ps = self.rockdic[first_entry_name].pressure
+        # read all porosity values for each rock in the model
+        all_porosity = np.array(self.comprock.all_porosity)
+        all_porosity = all_porosity*100
+        # extraction boolean list
+        all_boolean = np.array(self.comprock.all_extraction_boolean)
+        color_palette = sns.color_palette("viridis", len(all_porosity))
+        # read the applied differential stress and tensile strength
+        applied_diff_stress = np.array(self.comprock.all_diffs)
+        used_tensile_strengths = self.comprock.all_tensile
 
-                plt.figure(101, dpi=100)
-                # figure with aspect ratio of 1:1
-                # plt.gca().set_aspect('equal', adjustable='box')
-                plt.rc('axes', labelsize=16)
-                plt.rc('ytick', labelsize=12)  # fontsize of the y tick labels
-                plt.rc('xtick', labelsize=12)  # fontsize of the x tick labels
+        color_palette = sns.color_palette("Reds")
 
-                x = np.ma.masked_array(all_porosity[item], mask=all_boolean[item])
-                y = np.ma.masked_array(all_porosity[0], mask=all_boolean[item])
+        # plot the porosity of each rock in the model vs the first rock in the model
+        for item in num_list_of_keys:
 
-                # scatter plot with color palette ranging from blue to red depending on the temperature value
-                connect = plt.plot(all_porosity[item], all_porosity[0], '--', c='black')
-                result = plt.scatter(all_porosity[item], all_porosity[0], s= 100, edgecolor='black', c=ts, cmap='Reds')
-                plt.scatter(x, y, marker='x', color='black', s=40)
-                plt.plot(all_porosity[0], all_porosity[0], color="black", linestyle='--', linewidth=1.0, alpha=0.6)
-                plt.xlim([0, np.round(np.max(all_porosity))])
-                plt.ylim([0, np.round(np.max(all_porosity[0]))+1])
-                plt.xlabel("Fluid-filled porosity [Vol.%]")
-                plt.ylabel("Fluid-filled porosity\n continous release")
-                plt.tight_layout()
-                plt.colorbar(result)
+            plt.figure(101, dpi=100)
+            # figure with aspect ratio of 1:1
+            # plt.gca().set_aspect('equal', adjustable='box')
+            plt.rc('axes', labelsize=16)
+            plt.rc('ytick', labelsize=12)  # fontsize of the y tick labels
+            plt.rc('xtick', labelsize=12)  # fontsize of the x tick labels
 
-                subfolder = 'sensitivity'
-                os.makedirs(f'{data.mainfolder}/img_{data.filename}/{subfolder}', exist_ok=True)
-                plt.savefig(f'{data.mainfolder}/img_{data.filename}/{subfolder}/rock_{item}_prosity_sensitivity.png',
-                                    transparent=False)
-                plt.close()
+            x = np.ma.masked_array(all_porosity[item], mask=all_boolean[item])
+            y = np.ma.masked_array(all_porosity[0], mask=all_boolean[item])
+
+            # scatter plot with color palette ranging from blue to red depending on the temperature value
+            connect = plt.plot(all_porosity[item], all_porosity[0], '--', c='black')
+            result = plt.scatter(all_porosity[item], all_porosity[0], s= 100, edgecolor='black', c=ts, cmap='Reds')
+            plt.scatter(x, y, marker='x', color='black', s=40)
+            plt.plot(all_porosity[0], all_porosity[0], color="black", linestyle='--', linewidth=1.0, alpha=0.6)
+            plt.xlim([0, np.round(np.max(all_porosity))])
+            plt.ylim([0, np.round(np.max(all_porosity[0]))+1])
+            plt.xlabel("Fluid-filled porosity [Vol.%]")
+            plt.ylabel("Fluid-filled porosity\n continous release")
+            plt.tight_layout()
+            plt.colorbar(result)
+
+            subfolder = 'sensitivity'
+            os.makedirs(f'{self.mainfolder}/img_{self.filename}/{subfolder}', exist_ok=True)
+            plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/rock_{item}_prosity_sensitivity.png',
+                                transparent=False)
+            plt.close()
 
     def bulk_rock_sensitivity(self, number_of_bulks, number_of_interval):
         """
@@ -3576,8 +3584,8 @@ class ThorPT_plots():
         plt.legend(track_legend, title="Rock bulk")
 
         subfolder = 'sensitivity'
-        os.makedirs(f'{data.mainfolder}/img_{data.filename}/{subfolder}', exist_ok=True)
-        plt.savefig(f'{data.mainfolder}/img_{data.filename}/{subfolder}/bulk_rock_sensitivity.png',transparent=False)
+        os.makedirs(f'{self.mainfolder}/img_{self.filename}/{subfolder}', exist_ok=True)
+        plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/bulk_rock_sensitivity.png',transparent=False)
         plt.close()
 
     def tensile_strength_sensitivity(self):
@@ -3640,8 +3648,8 @@ class ThorPT_plots():
 
         # saving image
         subfolder = 'sensitivity'
-        os.makedirs(f'{data.mainfolder}/img_{data.filename}/{subfolder}', exist_ok=True)
-        plt.savefig(f'{data.mainfolder}/img_{data.filename}/{subfolder}/tensile_strength_sensitivity.png',transparent=False)
+        os.makedirs(f'{self.mainfolder}/img_{self.filename}/{subfolder}', exist_ok=True)
+        plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/tensile_strength_sensitivity.png',transparent=False)
         plt.close()
 
     def mohr_coulomb_diagram(self):
@@ -3713,6 +3721,8 @@ class ThorPT_plots():
 
 if __name__ == '__main__':
 
+    # In script testing - moved to jupyter notebook
+    """
     # Read variables from a hdf5 output file from ThorPT
     data = ThorPT_hdf5_reader()
     data.open_ThorPT_hdf5()
@@ -3826,7 +3836,7 @@ if __name__ == '__main__':
     # tensile strength sensitivity test
     if tensile_strength_sensitivity is True:
         compPlot.tensile_strength_sensitivity()
-
+    """
     # ################################################################################################
 
 
