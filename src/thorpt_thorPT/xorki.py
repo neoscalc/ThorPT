@@ -871,6 +871,7 @@ class CompiledData:
     all_fluid_pressure: any
     all_td_data: any
     all_starting_bulk: any
+    all_fluid_pressure_mode: any
 
 
 # HDF5 reader
@@ -926,6 +927,7 @@ class ThorPT_hdf5_reader():
         all_extraction_boolean = []
         all_fluid_pressure = []
         all_starting_bulk = []
+        all_fluid_pressure_mode = []
         garnets = {}
         sysv = {}
         sysv_post = {}
@@ -970,6 +972,10 @@ class ThorPT_hdf5_reader():
                     failure_module_data.columns = failure_module_data_col
                 except KeyError:
                     failure_module_data = pd.DataFrame()
+
+                # read the string fluid pressure mode used in the modelling from Mechanics Data
+                byte_string = f[group_key]['MechanicsData']['fluid_pressure_mode'][()]
+                fluid_pressure_mode = byte_string.decode('utf-8')
 
                 depth = np.array(f[group_key]['Parameters']['depth'])
                 geometry = list(f[group_key]['Parameters']['geometry'].asstr())
@@ -1210,6 +1216,7 @@ class ThorPT_hdf5_reader():
                 all_porosity.append(unfiltered_porosity)
                 all_extraction_boolean.append(extraction_boolean)
                 all_fluid_pressure.append(fluid_pressure)
+                all_fluid_pressure_mode.append(fluid_pressure_mode)
 
                 self.compiledrock = CompiledData(
                     all_ps,
@@ -1235,7 +1242,8 @@ class ThorPT_hdf5_reader():
                     all_extraction_boolean,
                     all_fluid_pressure,
                     all_td_data,
-                    all_starting_bulk)
+                    all_starting_bulk,
+                    all_fluid_pressure_mode)
 
         progress(100)
         # Print a line to express hdf5 file reader has finished
@@ -3652,6 +3660,74 @@ class ThorPT_plots():
         plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/tensile_strength_sensitivity.png',transparent=False)
         plt.close()
 
+    def tested_fluid_pressure_modes(self):
+        # Basic compilation variables
+        first_entry_name = list(self.rockdic.keys())[0]
+        # read temperature and pressure
+        ts = self.rockdic[first_entry_name].temperature
+        ps = self.rockdic[first_entry_name].pressure
+        # read all porosity values for each rock in the model
+        all_porosity = np.array(self.comprock.all_porosity)
+        all_porosity = all_porosity*100
+        # extraction boolean list
+        all_boolean = np.array(self.comprock.all_extraction_boolean)
+        color_palette = sns.color_palette("viridis", len(all_porosity))
+        # read the applied differential stress and tensile strength
+        applied_diff_stress = np.array(self.comprock.all_diffs)
+        used_tensile_strengths = self.comprock.all_tensile
+
+        # number of extraction vs differential stress
+        # plotting for multiple rock of different tensile strength with changing diff.stress
+        track_diff = []
+        track_shear = []
+        track_num_ext = []
+        track_tensile = self.comprock.all_tensile
+        color_palette = ['black', '#bb4430', '#7ebdc2', '#f3dfa2', '#c7d66d', '#ffabc8', '#003049', '#ee6c4d']
+        track_legend = []
+
+        # collecting differential stress, extraction number and tensile strength for all rocks
+        for i, item in enumerate(self.comprock.all_diffs):
+            diff = np.unique(item)[-1]
+            fracture_bool = self.comprock.all_frac_bool[i]
+            num_ext = len(fracture_bool[fracture_bool>0])
+            track_diff.append(diff)
+            # track_shear.append()
+            track_num_ext.append(num_ext)
+
+        fluid_mode_list = self.comprock.all_fluid_pressure_mode
+        # split strings in fluid_mode_list by "-"
+        fluid_mode_list = [item.split("mean stress") for item in fluid_mode_list]
+        # test last entry of each list in fluid_mode_list
+        # if last entry is euqal to "mean stress" append 1 to filtered_fluid_mode_list and if not, do a float from string and append this value to filtered_fluid_mode_list
+        filtered_fluid_mode_list = []
+        for item in fluid_mode_list:
+            if item[-1] == "":
+                filtered_fluid_mode_list.append(1)
+            else:
+                filtered_fluid_mode_list.append(float(item[-1]))
+
+        # plot number of track_num_ext vs filtered_fluid_mode_list if both entries have the same tensile strength
+        plt.figure(104, dpi=150)
+        for i, item in enumerate(np.unique(track_tensile)):
+            # select boolean array for tensile value and invert
+            bool_mask = np.array(track_tensile) == item
+            bool_mask = np.invert(bool_mask)
+            x = np.ma.masked_array(filtered_fluid_mode_list, mask=bool_mask)
+            y = np.ma.masked_array(track_num_ext, mask=bool_mask)
+            plt.plot(x, y, 'd--', color = color_palette[i], markeredgecolor='black', markersize=10)
+            track_legend.append(item)
+
+        plt.ylabel("# of extractions")
+        plt.xlabel("Fluid pressure mode\n (1 = mean stress)\n deviation in MPa")
+        # add legend of tensile strength
+        plt.legend(track_legend, title="Tensile strength [MPa]")
+        # plt.plot(filtered_fluid_mode_list, track_num_ext, 'd--', color = 'black', markeredgecolor='black', markersize=10)
+        # get tight layout
+        plt.tight_layout()
+        plt.show()
+
+
+
     def mohr_coulomb_diagram(self):
         """
         Plot the Mohr-Coulomb diagram for the given rock failure model.
@@ -3720,6 +3796,14 @@ class ThorPT_plots():
 
 
 if __name__ == '__main__':
+
+    data = ThorPT_hdf5_reader()
+    data.open_ThorPT_hdf5()
+
+    compPlot = ThorPT_plots(
+        data.filename, data.mainfolder, data.rock, data.compiledrock)
+
+    compPlot.tested_fluid_pressure_modes()
 
     # In script testing - moved to jupyter notebook
     """
