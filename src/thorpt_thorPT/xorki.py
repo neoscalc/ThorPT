@@ -31,7 +31,7 @@ from scipy.interpolate import griddata
 import matplotlib.animation as animation
 
 import julia
-julia.install()
+# julia.install()
 from julia import Main
 
 def file_opener():
@@ -4283,10 +4283,10 @@ class ThorPT_plots():
         print(MgO[0:10])
 
         # save to txt
-        np.savetxt('MgO.txt', MgO)
-        np.savetxt('FeO.txt', FeO)
-        np.savetxt('MnO.txt', MnO)
-        np.savetxt('CaO.txt', CaO)
+        # np.savetxt('MgO.txt', MgO)
+        # np.savetxt('FeO.txt', FeO)
+        # np.savetxt('MnO.txt', MnO)
+        # np.savetxt('CaO.txt', CaO)
 
         #!Julia diffusion
         # Plot the diffusion profiles of the four garnet endmembers
@@ -4324,7 +4324,7 @@ class ThorPT_plots():
         sol_sph = Main.eval(f"simulate(DomainSph)")
         tfinal_ad = sol_sph.t[-1]
         # save sol_sph.t to txt
-        np.savetxt('sol_sph_t.txt', sol_sph.t)
+        # np.savetxt('sol_sph_t.txt', sol_sph.t)
 
         diffused_garnet_arrays = [
             sol_sph(tfinal_ad)[:,1],
@@ -4365,6 +4365,16 @@ class ThorPT_plots():
             # cbar = plt.colorbar(img, ax=ax)
             fig.colorbar(img, ax=ax, label='Mole fraction')
 
+        # save image or show plot
+        if img_save is True:
+            os.makedirs(
+                f'{self.mainfolder}/img_{self.filename}/garnet_sphere', exist_ok=True)
+            plt.savefig(f'{self.mainfolder}/img_{self.filename}/garnet_sphere/garnet_diffused{rock_tag}.png',
+                        transparent=False)
+        else:
+            plt.show()
+        plt.clf()
+        plt.close()
 
         # Plot the diffusion process
         distance = np.linspace(0, Lr_magnitude, len(FeO))
@@ -4377,11 +4387,11 @@ class ThorPT_plots():
         output_string = output_string.encode('utf-8')
 
         # write output_string to txt
-        with open('output_string.txt', 'wb') as f:
+        with open(f'{self.mainfolder}/output_string.txt', 'wb') as f:
             f.write(output_string)
 
         # search for t_charact: in output_string.txt
-        with open('output_string.txt', 'r') as f:
+        with open(f'{self.mainfolder}/output_string.txt', 'r') as f:
             for line in f:
                 if 't_charact' in line:
                     t_charact = line
@@ -4434,9 +4444,9 @@ class ThorPT_plots():
             ax1.set_title(f"Total Time = {format(float(i*t_charact), '.3f')} Ma")
             return line2, line7, line9, line11, line12
 
+        os.makedirs(f'{self.mainfolder}/img_{self.filename}/garnet_sphere', exist_ok=True)
         ani = animation.FuncAnimation(fig, update, frames=np.linspace(0, tfinal_ad, 100), blit=True)
-
-        ani.save('Grt_Spherical+1D.gif', writer='imagemagick', fps=7)
+        ani.save(f'{self.mainfolder}/img_{self.filename}/garnet_sphere/Grt_Spherical+1D.gif', writer='pillow', fps=7)
 
 
     def mohr_coulomb_diagram(self):
@@ -4514,10 +4524,16 @@ if __name__ == '__main__':
     compPlot = ThorPT_plots(
         data.filename, data.mainfolder, data.rock, data.compiledrock)
 
+
+    compPlot.garnet_visualization_diffusion(
+        'rock001', garnet_size=2000, diffusion_time=15,
+        input_temperature=700, input_pressure=2.2,
+        img_save=True
+        )
+    """
     compPlot.garnet_visualization('rock001', img_save=False)
     compPlot.garnet_visualization_diffusion('rock001', img_save=False)
-
-
+    """
     # compPlot.diff_stress_vs_mean_stress_vs_total_volume_fluid_extracted()
 
     # compPlot.diff_stress_vs_mean_stress_vs_extraction()
