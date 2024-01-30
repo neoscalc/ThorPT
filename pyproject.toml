@@ -20,7 +20,9 @@ dependencies = [
     "h5py",
     "pygame",
     "imageio",
-    "PyQt5"
+    "PyQt5",
+    "scipy",
+    "julia"
 ]
 classifiers = [
     "Programming Language :: Python :: 3",

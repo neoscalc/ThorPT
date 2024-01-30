@@ -21,18 +21,11 @@ from mpl_toolkits.axes_grid1 import host_subplot
 from matplotlib.ticker import (MultipleLocator, AutoMinorLocator)
 from tkinter import *
 from tkinter import filedialog
-import imageio
-from imageio import imread
+import imageio.v2
+from imageio.v2 import imread
 import copy
 from dataclasses import dataclass, field
 from dataclasses import fields
-from scipy import interpolate
-from scipy.interpolate import griddata
-import matplotlib.animation as animation
-
-import julia
-julia.install()
-from julia import Main
 
 def file_opener():
     """
@@ -242,6 +235,7 @@ def calc_moles_to_weightpercent(moles):
     bulk_wpercent = ((moles_arr * oxide_molar_weight).T / (sum((moles_arr * oxide_molar_weight).T)) * 100).T
 
     return bulk_wpercent
+
 
 
 def Merge_phase_group(data):
@@ -476,7 +470,7 @@ def create_gif(phase_data, mainfolder, filename, group_key, subfolder='default')
 
 
 # Progressbar init
-def progress(percent=0, width=20):
+def progress(percent=0, width=40):
     """
     Display a progress bar with a given percentage.
 
@@ -486,12 +480,10 @@ def progress(percent=0, width=20):
     """
     left = width * percent // 100
     right = width - left
-    tags = "\N{GEM STONE}" * int(left)
+    tags = "\N{BLACK DROPLET}" * int(left)
     spaces = " " * int(right)
     percents = f"{percent:.1f}%"
     print("\r[", tags, spaces, "]", percents, sep="", end="", flush=True)
-    print("\n")
-
 
 def clean_frame(dataframe_to_clean, legend_phases, color_set):
     """
@@ -574,7 +566,6 @@ def depth_porosity(data_box, num_rocks=3, rock_colors=["#0592c1", "#f74d53", '#1
     plt.xlim(10e-4,10e2)
     plt.show()
 
-
 def density_porosity(data_box, num_rocks=3, rock_colors=["#0592c1", "#f74d53", '#10e6ad'], rock_symbol = ['d', 's']):
     """
     Plot the change in density as a function of fluid-filled porosity at extraction for different rocks.
@@ -609,7 +600,6 @@ def density_porosity(data_box, num_rocks=3, rock_colors=["#0592c1", "#f74d53", '
     plt.ylim(0,0.5)
     plt.xlim(0,25)
     plt.show()
-
 
 def extraction_stress(data_box, num_rocks=3, rock_colors=["#0592c1", "#f74d53", '#10e6ad'], rock_symbol = ['d', 's'], rock_names=False):
     """
@@ -670,177 +660,6 @@ def resort_frame(y, legend_phases, color_set):
     # reindex the dataframe and move "Water" to the end of the dataframe
     y = y.reindex(legend_phases)
     return y, legend_phases, color_set
-
-def garnet_sphere(moles, element_intensity, n=1000, res=1):
-
-    # dimension
-    xlim = n
-    ylim = xlim
-
-    # map array
-    xi_map = np.arange(0, xlim, res)
-    yi_map = np.arange(0, ylim, res)
-    arr = np.zeros((xlim, ylim))
-
-    # radius of sphere maatched to dimension
-    r = (xlim/2)*1/res
-
-    xi = np.arange(0, r, res)
-    ci = np.zeros(len(xi))
-
-    # fraction from moles
-    grt_total = np.sum(moles)
-    frac = moles/grt_total
-
-    # moles to array position
-    iloc = frac*len(ci)
-    iloc = np.cumsum(iloc)
-    iloc = np.array(iloc, int)
-
-    # inverse zones from outside to inside now
-    loc = np.flip(iloc)
-    c_grt = np.flip(np.array(element_intensity))
-
-    # set progress bar
-    # k = 0
-    # kk = len(loc)
-    # progress(int(k/kk)*100, 10)
-
-    # create circle mask for every sphere diameter from rim to core
-    for i, slice in enumerate(loc):
-        mask = (xi_map[np.newaxis, :]-r)**2 + \
-            (yi_map[:, np.newaxis]-r)**2 < slice**2
-        arr[mask] = c_grt[i]
-
-        # k += 1
-        # print(k/kk*100)
-        # ic = int(np.ceil(k/kk*100))
-        # progress(ic)
-
-    # replace the zeros which are no value
-    arr[arr == 0] = 'nan'
-
-    return arr, xi_map, yi_map, r, iloc, c_grt
-
-def garnet_circle_diffused(diffused_garnet_arrays):
-
-    diffused_garnet_circles = []
-    garnet_names = ['Pyrope\nMgO', 'Almandine\nFeO', 'Spessartine\nMnO', 'Grossular\nCaO']
-
-    for i in range(len(garnet_names)):
-        result = np.array(diffused_garnet_arrays[i])
-        # invert results
-        result = result[::-1]
-        # Define the size of the array
-        size = len(result) * 2
-        # Define the radius of the circle
-        radius = size / 2
-        # Create a 2D array of zeros
-        arr = np.zeros((size, size))
-        # Create a grid of indices
-        y, x = np.ogrid[-radius: radius, -radius: radius]
-        # Create a mask for the points inside the circle
-        mask = x**2 + y**2 <= radius**2
-        # Set the values of the points inside the circle
-        for i, intensity in reversed(list(enumerate(result))):
-            # Create a mask for the points inside the circle with radius i+1
-            mask = x**2 + y**2 < i**2
-            # Only update the points that are True in the mask and are still zero in the array
-            arr[(mask)] = intensity
-
-        #replace zeros by nan
-        arr[arr == 0] = np.nan
-
-        diffused_garnet_circles.append(arr)
-
-    return diffused_garnet_circles
-
-def garnet_sphere_diffused_backup(element_intensity, shell_tickness, res=1):
-
-    element_intensity = np.array(element_intensity)
-
-    # save element_intensity to txt file
-    """print(element_intensity)
-    n= len(element_intensity) * 2
-    # line2 = Fe sph, line7 = Mg sph, line9 = Mn sph
-    # dimension
-    xlim = n
-    ylim = xlim
-
-    # map array
-    xi_map = np.arange(0, xlim, res)
-    yi_map = np.arange(0, ylim, res)
-    arr = np.zeros((xlim, ylim))
-
-    # element_intensity has to be flipped
-    element_intensity = np.flip(element_intensity)
-
-    # radius of sphere matched to dimension
-    r = (xlim/2)*1/res
-
-    # set progress bar
-    k = 0
-    kk = len(element_intensity)
-    progress(int(k/kk)*100)
-
-    # create circle mask for every sphere diameter from rim to core
-    for i, slice in enumerate(element_intensity):
-        mask = (xi_map[np.newaxis, :]-r)**2 + \
-            (yi_map[:, np.newaxis]-r)**2 < slice**2
-        arr[mask] = element_intensity[i]
-
-        k += 1
-        # print(k/kk*100)
-        ic = int(np.ceil(k/kk*100))
-        progress(ic)
-
-    # replace the zeros which are no value
-    arr[arr == 0] = 'nan'
-    """
-    # Define the size of the array
-    size = len(element_intensity) * 2
-
-    # Define the radius of the circle
-    radius = size / 2
-
-    # Create a 2D array of zeros
-    arr = np.zeros((size, size))
-
-    # Create a grid of indices
-    y, x = np.ogrid[-radius: radius, -radius: radius]
-
-    # Create a mask for the points inside the circle
-    mask = x**2 + y**2 <= radius**2
-
-    # Set the values of the points inside the circle
-    for i, intensity in reversed(list(enumerate(element_intensity))):
-        # Create a mask for the points inside the circle with radius i+1
-        mask = x**2 + y**2 < i**2
-        # Only update the points that are True in the mask and are still zero in the array
-        arr[(mask)] = intensity
-
-    # plot surface of arr
-    plt.imshow(arr, cmap='coolwarm')
-    plt.show()
-
-    # test if other items than nan are in arr
-    print(np.unique(arr))
-    print(arr)
-
-    # dimension
-    xlim = size
-    ylim = xlim
-
-    # map array
-    xi_map = np.arange(0, xlim, res)
-    yi_map = np.arange(0, ylim, res)
-
-    fig, ax = plt.subplots(figsize=(8, 8), constrained_layout=True)
-    ax1_plot = ax.pcolormesh(xi_map, yi_map, arr, shading='auto', cmap='coolwarm')
-    plt.show()
-
-    return arr, xi_map, yi_map
-
 
 class Simple_binary_plot():
     """
@@ -1053,7 +872,6 @@ class CompiledData:
     all_td_data: any
     all_starting_bulk: any
     all_fluid_pressure_mode: any
-    all_extracted_fluid_volume: any
 
 
 # HDF5 reader
@@ -1110,7 +928,6 @@ class ThorPT_hdf5_reader():
         all_fluid_pressure = []
         all_starting_bulk = []
         all_fluid_pressure_mode = []
-        all_extracted_fluid_volume = []
         garnets = {}
         sysv = {}
         sysv_post = {}
@@ -1400,7 +1217,6 @@ class ThorPT_hdf5_reader():
                 all_extraction_boolean.append(extraction_boolean)
                 all_fluid_pressure.append(fluid_pressure)
                 all_fluid_pressure_mode.append(fluid_pressure_mode)
-                all_extracted_fluid_volume.append(v_fluid_extr)
 
                 self.compiledrock = CompiledData(
                     all_ps,
@@ -1427,11 +1243,9 @@ class ThorPT_hdf5_reader():
                     all_fluid_pressure,
                     all_td_data,
                     all_starting_bulk,
-                    all_fluid_pressure_mode,
-                    all_extracted_fluid_volume)
+                    all_fluid_pressure_mode)
 
         progress(100)
-        progress(len(all_database)/len(all_database)*100)
         # Print a line to express hdf5 file reader has finished
         print("\nThorPT HDF5 file reader finished!")
 
@@ -3904,7 +3718,7 @@ class ThorPT_plots():
             track_legend.append(item)
 
         plt.ylabel("# of extractions")
-        plt.xlabel("Fluid pressure mode\n (1 = mean stress)\nDeviation in MPa")
+        plt.xlabel("Fluid pressure mode\n (1 = mean stress)\n deviation in MPa")
         # add legend of tensile strength
         plt.legend(track_legend, title="Tensile strength [MPa]")
         # plt.plot(filtered_fluid_mode_list, track_num_ext, 'd--', color = 'black', markeredgecolor='black', markersize=10)
@@ -3912,531 +3726,6 @@ class ThorPT_plots():
         plt.tight_layout()
         plt.show()
 
-    def diff_stress_vs_mean_stress_vs_extraction(self, color_map_input='viridis'):
-
-        # Basic compilation variables
-        first_entry_name = list(self.rockdic.keys())[0]
-        # read temperature and pressure
-        ts = self.rockdic[first_entry_name].temperature
-        ps = self.rockdic[first_entry_name].pressure
-        # read all porosity values for each rock in the model
-        all_porosity = np.array(self.comprock.all_porosity)
-        all_porosity = all_porosity*100
-        # extraction boolean list
-        all_boolean = np.array(self.comprock.all_extraction_boolean)
-        color_palette = sns.color_palette("viridis", len(all_porosity))
-        # read the applied differential stress and tensile strength
-        applied_diff_stress = np.array(self.comprock.all_diffs)
-        used_tensile_strengths = self.comprock.all_tensile
-
-        # number of extraction vs differential stress
-        # plotting for multiple rock of different tensile strength with changing diff.stress
-        track_diff = []
-        track_shear = []
-        track_num_ext = []
-        track_tensile = self.comprock.all_tensile
-        color_palette = ['black', '#bb4430', '#7ebdc2', '#f3dfa2', '#c7d66d', '#ffabc8', '#003049', '#ee6c4d']
-        track_legend = []
-
-        # collecting differential stress, extraction number and tensile strength for all rocks
-        for i, item in enumerate(self.comprock.all_diffs):
-            diff = np.unique(item)[-1]
-            fracture_bool = self.comprock.all_frac_bool[i]
-            num_ext = len(fracture_bool[fracture_bool>0])
-            track_diff.append(diff)
-            # track_shear.append()
-            track_num_ext.append(num_ext)
-
-        fluid_mode_list = self.comprock.all_fluid_pressure_mode
-        # split strings in fluid_mode_list by "-"
-        fluid_mode_list = [item.split("mean stress") for item in fluid_mode_list]
-        # test last entry of each list in fluid_mode_list
-        # if last entry is euqal to "mean stress" append 1 to filtered_fluid_mode_list and if not, do a float from string and append this value to filtered_fluid_mode_list
-        filtered_fluid_mode_list = []
-        for item in fluid_mode_list:
-            if item[-1] == "":
-                filtered_fluid_mode_list.append(1)
-            else:
-                filtered_fluid_mode_list.append(float(item[-1]))
-
-        # do a surface plot excluding the first entry of filtered_fluid_mode_list, track_diff and track_num_ext
-        # interpolate the data to increase resolution
-        # create a meshgrid for the data
-        
-
-        # Create a grid of points where you want to interpolate
-        grid_x, grid_y = np.mgrid[min(track_diff[1:]):max(track_diff[1:]):100j, min(filtered_fluid_mode_list[1:]):max(filtered_fluid_mode_list[1:]):100j]
-
-        # Perform the interpolation but values below 0 are ot possible
-        grid_z_linear = griddata((track_diff[1:], filtered_fluid_mode_list[1:]), track_num_ext[1:], (grid_x, grid_y), method='linear')
-        grid_z_cubic = griddata((track_diff[1:], filtered_fluid_mode_list[1:]), track_num_ext[1:], (grid_x, grid_y), method='cubic')
-        grid_z_nearest = griddata((track_diff[1:], filtered_fluid_mode_list[1:]), track_num_ext[1:], (grid_x, grid_y), method='nearest')
-
-        # filter negative values in grid_z_cubic and set them to 0
-        grid_z_cubic[grid_z_cubic < 0] = 0
-
-        # Plot the interpolated surface
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-        ax.plot_surface(grid_x, grid_y, grid_z_linear, cmap=color_map_input, edgecolor='none')
-        # ax.plot_surface(grid_x, grid_y, grid_z_cubic, cmap='magma', edgecolor='none')
-        # ax.plot_surface(grid_x, grid_y, grid_z_nearest, cmap='plasma', edgecolor='none')
-        ax.scatter(track_diff[1:], filtered_fluid_mode_list[1:], track_num_ext[1:], c='black', marker='o', s=10)
-        ax.set_xlabel('Differential stress [MPa]')
-        ax.set_ylabel("Fluid pressure mode\n (1 = mean stress)\nDeviation in MPa")
-        ax.set_zlabel('# of extractions')
-        plt.show()
-
-
-    def diff_stress_vs_mean_stress_vs_total_volume_fluid_extracted(self, color_map_input='viridis'):
-
-        # Basic compilation variables
-        first_entry_name = list(self.rockdic.keys())[0]
-        # read temperature and pressure
-        ts = self.rockdic[first_entry_name].temperature
-        ps = self.rockdic[first_entry_name].pressure
-        # read all porosity values for each rock in the model
-        all_porosity = np.array(self.comprock.all_porosity)
-        all_porosity = all_porosity*100
-        extracted_fluid_volume = self.comprock.all_extracted_fluid_volume
-
-        # get sum of each extracted_fluid_volume array
-        sum_extracted_fluid_volume = []
-        for item in extracted_fluid_volume:
-            sum_extracted_fluid_volume.append(np.sum(item))
-
-        # number of extraction vs differential stress
-        # plotting for multiple rock of different tensile strength with changing diff.stress
-        track_diff = []
-        track_num_ext = []
-
-        # collecting differential stress, extraction number and tensile strength for all rocks
-        for i, item in enumerate(self.comprock.all_diffs):
-            diff = np.unique(item)[-1]
-            fracture_bool = self.comprock.all_frac_bool[i]
-            num_ext = len(fracture_bool[fracture_bool>0])
-            track_diff.append(diff)
-            # track_shear.append()
-            track_num_ext.append(num_ext)
-
-        fluid_mode_list = self.comprock.all_fluid_pressure_mode
-        # split strings in fluid_mode_list by "-"
-        fluid_mode_list = [item.split("mean stress") for item in fluid_mode_list]
-        # test last entry of each list in fluid_mode_list
-        # if last entry is euqal to "mean stress" append 1 to filtered_fluid_mode_list and if not, do a float from string and append this value to filtered_fluid_mode_list
-        filtered_fluid_mode_list = []
-        for item in fluid_mode_list:
-            if item[-1] == "":
-                filtered_fluid_mode_list.append(1)
-            else:
-                filtered_fluid_mode_list.append(float(item[-1]))
-
-        # create a 3d plot with diff stress on the x axis, the filtered fluid mode list on the y axis and sum_extracted_fluid_volume on the z axis
-        """fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-        ax.scatter(track_diff, filtered_fluid_mode_list, track_num_ext, c='r', marker='o')
-        plt.show()"""
-
-        # do a surface plot excluding the first entry of filtered_fluid_mode_list, track_diff and sum_extracted_fluid_volume
-        # interpolate the data to increase resolution
-        # create a meshgrid for the data
-
-        from scipy.interpolate import griddata
-
-        # Create a grid of points where you want to interpolate
-        grid_x, grid_y = np.mgrid[min(track_diff[1:]):max(track_diff[1:]):100j, min(filtered_fluid_mode_list[1:]):max(filtered_fluid_mode_list[1:]):100j]
-
-        # Perform the interpolation but values below 0 are ot possible
-        grid_z_linear = griddata((track_diff[1:], filtered_fluid_mode_list[1:]), sum_extracted_fluid_volume[1:], (grid_x, grid_y), method='linear')
-        grid_z_cubic = griddata((track_diff[1:], filtered_fluid_mode_list[1:]), sum_extracted_fluid_volume[1:], (grid_x, grid_y), method='cubic')
-        grid_z_nearest = griddata((track_diff[1:], filtered_fluid_mode_list[1:]), sum_extracted_fluid_volume[1:], (grid_x, grid_y), method='nearest')
-
-        # filter negative values in grid_z_cubic and set them to 0
-        grid_z_cubic[grid_z_cubic < 0] = 0
-
-        # Plot the interpolated surface
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-        ax.plot_surface(grid_x, grid_y, grid_z_linear, cmap=color_map_input, edgecolor='none')
-        # ax.plot_surface(grid_x, grid_y, grid_z_cubic, cmap='magma', edgecolor='none')
-        # ax.plot_surface(grid_x, grid_y, grid_z_nearest, cmap='plasma', edgecolor='none')
-        ax.scatter(track_diff[1:], filtered_fluid_mode_list[1:], sum_extracted_fluid_volume[1:], c='black', marker='o', s=10 )
-        ax.set_xlabel('Differential stress [MPa]')
-        ax.set_ylabel("Fluid pressure mode\n (1 = mean stress)\nDeviation in MPa")
-        ax.set_zlabel('Cumulative fluid extraction [cm$^3$]')
-        plt.show()
-
-
-    def garnet_visualization(self, rock_tag, img_save=False):
-        """
-        Plot the garnet distribution in the model.
-
-        This method plots the garnet distribution in the model. It uses the
-        'garnet_content' array from the 'element_record' dictionary entry of the
-        'rockdic' dictionary.
-
-        Parameters:
-            rock_tag (str): The tag of the rock to be plotted.
-            img_save (bool): If True, the plot will be saved to the 'img' folder.
-
-        Returns:
-            None
-        """
-
-        # garnet content
-        garnet_content = self.rockdic[rock_tag].garnet[rock_tag]
-        garnet_bool = self.rockdic[rock_tag].garnets_bools[rock_tag]
-
-        # garnet arrays
-        moles = garnet_content.moles
-        element_mole_int = garnet_content.elements.loc['CA',:]
-
-        # Xalm for almandine defined as molar Fe/(Fe + Mg + Ca + Mn)
-        # Xsps for spessartine as Mn/(Fe + Mg + Ca + Mn)
-        # Xprp for pyrope as Mg/(Fe + Mg + Ca + Mn)
-        # Xgrs for grossular as Ca/(Fe + Mg + Ca + Mn))
-        if 'MN' in garnet_content.elements.index:
-            grt_Mn = garnet_content.elements.loc['MN']
-        else:
-            grt_Mn = np.zeros(len(garnet_content.elements.columns))
-        grt_Fe = garnet_content.elements.loc['FE']
-        grt_Mg = garnet_content.elements.loc['MG']
-        grt_Ca = garnet_content.elements.loc['CA']
-        # calculate the mole fraction of almandine, spessartine, pyrope and grossular
-        grt_Xalm = grt_Fe/(grt_Fe + grt_Mg + grt_Ca + grt_Mn)
-        grt_Xsps = grt_Mn/(grt_Fe + grt_Mg + grt_Ca + grt_Mn)
-        grt_Xprp = grt_Mg/(grt_Fe + grt_Mg + grt_Ca + grt_Mn)
-        grt_Xgrs = grt_Ca/(grt_Fe + grt_Mg + grt_Ca + grt_Mn)
-
-        # garnet endmember mole fractions in list
-        garnet_endmembers = [grt_Xalm, grt_Xsps, grt_Xprp, grt_Xgrs]
-        garnet_endmember_names = ['Almandine', 'Spessartine', 'Pyrope', 'Grossular']
-        garnet_endmember_diffusion_arrays = []
-
-        # Create a new array with the same shape as garnet_bool, filled with zeros
-        # get new_array of zeros with length of garnet_bool
-        new_array = np.zeros(len(garnet_bool))
-        new_array[garnet_bool == 1] = moles
-
-        # Fill array with length of garnet bool with values of moles where garnet_bool == 1
-        # moles = np.array([moles]*len(garnet_bool))
-        # moles = np.ma.masked_array(moles, mask=~garnet_bool)
-
-        # basic compilation variables
-        first_entry_name = list(self.rockdic.keys())[0]
-        # read temperature and pressure
-        ts = self.rockdic[first_entry_name].temperature
-        ps = self.rockdic[first_entry_name].pressure
-
-        """plt.plot(ts[:-1],new_array,'d')
-        plt.show()"""
-
-        # plot data for the four garnet endmembers
-        for j in range(len(garnet_endmembers)):
-            # call a garnet sphere
-            sphere = garnet_sphere(
-                moles,
-                element_intensity=garnet_endmembers[j],
-                n=1000, res=1)
-
-            arr, xi_map, yi_map, r, iloc, c_grt = sphere
-
-            garnet_endmember_diffusion_arrays.append(arr[500][0:500])
-
-        #!Julia diffusion
-        # Plot the diffusion profiles of the four garnet endmembers
-        print("Starting Garnet Diffusion from Julia package DiffusionGarnet")
-
-
-        # almandine, spessartine, pyrope and grossular
-        # grt_Fe, grt_Mn, grt_Mg, grt_Ca
-        # garnet_endmember_diffusion_arrays
-        FeO = garnet_endmember_diffusion_arrays[0]
-        MnO = garnet_endmember_diffusion_arrays[1]
-        MgO = garnet_endmember_diffusion_arrays[2]
-        CaO = garnet_endmember_diffusion_arrays[3]
-        # Main.eval("using DiffusionGarnet")  # Use the Julia package DiffusioinGarnet
-
-
-        # !Sphere plottingsection
-        # normal sphere plot
-        cvol = np.sum(garnet_content.volume)
-
-        # plot data for the four garnet endmembers
-        fig, axs = plt.subplots(2, 2, figsize=(10, 8), constrained_layout=True)
-        # fig.subplots_adjust(top=0.88, bottom=0.11, left=0.125, right=0.9, hspace=0.2, wspace=0.2)
-        for j, ax in enumerate(axs.flatten()):
-            # call a garnet sphere
-            sphere = garnet_sphere(
-                moles,
-                element_intensity=garnet_endmembers[j],
-                n=1000, res=1)
-
-            arr, xi_map, yi_map, r, iloc, c_grt = sphere
-
-            # add a endmember plot to the figure
-            ax1_plot = ax.pcolormesh(xi_map, yi_map, arr, shading='auto', cmap='coolwarm', vmin=0)
-            # add a black line as arrow from the center to the edge basedon the iloc value
-            for i in iloc:
-                ax.arrow(0, 500, xi_map[i], 0, color='black', width=0.01, head_width=0.05, length_includes_head=True)
-            # add dots along x for iloc and y at 500
-            ax.plot(r-iloc, np.ones(len(iloc))*500, 'ko')
-            fig.colorbar(ax1_plot, ax=ax, label='Mole fraction')
-            ax.set_title(garnet_endmember_names[j])
-            ax.axis('off')
-
-        # save image or show plot
-        if img_save is True:
-            os.makedirs(
-                f'{self.mainfolder}/img_{self.filename}/garnet_sphere', exist_ok=True)
-            plt.savefig(f'{self.mainfolder}/img_{self.filename}/garnet_sphere/garnet_sphere{rock_tag}.png',
-                        transparent=False)
-        else:
-            plt.show()
-        plt.clf()
-        plt.close()
-
-    def garnet_visualization_diffusion(self, rock_tag, garnet_size=1000, diffusion_time=15, input_temperature=500, input_pressure=2.0, img_save=False):
-        """
-        Plot the garnet distribution in the model.
-
-        This method plots the garnet distribution in the model. It uses the
-        'garnet_content' array from the 'element_record' dictionary entry of the
-        'rockdic' dictionary.
-
-        Parameters:
-            rock_tag (str): The tag of the rock to be plotted.
-            img_save (bool): If True, the plot will be saved to the 'img' folder.
-
-        Returns:
-            None
-        """
-
-        # garnet content
-        garnet_content = self.rockdic[rock_tag].garnet[rock_tag]
-        garnet_bool = self.rockdic[rock_tag].garnets_bools[rock_tag]
-
-        # garnet arrays
-        moles = garnet_content.moles
-        element_mole_int = garnet_content.elements.loc['CA',:]
-
-        # Xalm for almandine defined as molar Fe/(Fe + Mg + Ca + Mn)
-        # Xsps for spessartine as Mn/(Fe + Mg + Ca + Mn)
-        # Xprp for pyrope as Mg/(Fe + Mg + Ca + Mn)
-        # Xgrs for grossular as Ca/(Fe + Mg + Ca + Mn))
-        if 'MN' in garnet_content.elements.index:
-            grt_Mn = garnet_content.elements.loc['MN']
-        else:
-            grt_Mn = np.zeros(len(garnet_content.elements.columns))
-        grt_Fe = garnet_content.elements.loc['FE']
-        grt_Mg = garnet_content.elements.loc['MG']
-        grt_Ca = garnet_content.elements.loc['CA']
-        # calculate the mole fraction of almandine, spessartine, pyrope and grossular
-        grt_Xalm = grt_Fe/(grt_Fe + grt_Mg + grt_Ca + grt_Mn)
-        grt_Xsps = grt_Mn/(grt_Fe + grt_Mg + grt_Ca + grt_Mn)
-        grt_Xprp = grt_Mg/(grt_Fe + grt_Mg + grt_Ca + grt_Mn)
-        grt_Xgrs = grt_Ca/(grt_Fe + grt_Mg + grt_Ca + grt_Mn)
-
-        # garnet endmember mole fractions in list
-        garnet_endmembers = [grt_Xalm, grt_Xsps, grt_Xprp, grt_Xgrs]
-        garnet_endmember_names = ['Almandine', 'Spessartine', 'Pyrope', 'Grossular']
-        garnet_endmember_diffusion_arrays = []
-
-        # Create a new array with the same shape as garnet_bool, filled with zeros
-        # get new_array of zeros with length of garnet_bool
-        new_array = np.zeros(len(garnet_bool))
-        new_array[garnet_bool == 1] = moles
-
-        # basic compilation variables
-        first_entry_name = list(self.rockdic.keys())[0]
-        # read temperature and pressure
-        ts = self.rockdic[first_entry_name].temperature
-        ps = self.rockdic[first_entry_name].pressure
-
-        """plt.plot(ts[:-1],new_array,'d')
-        plt.show()"""
-
-        # plot data for the four garnet endmembers
-        for j in range(len(garnet_endmembers)):
-            # call a garnet sphere
-            arr, xi_map, yi_map, r, iloc, c_grt = garnet_sphere(
-                moles,
-                element_intensity=garnet_endmembers[j],
-                n=1000, res=1)
-
-            garnet_endmember_diffusion_arrays.append(arr[500][0:500])
-
-        # almandine, spessartine, pyrope and grossular
-        # grt_Fe, grt_Mn, grt_Mg, grt_Ca
-        # garnet_endmember_diffusion_arrays
-        FeO = garnet_endmember_diffusion_arrays[0]
-        MnO = garnet_endmember_diffusion_arrays[1]
-        MgO = garnet_endmember_diffusion_arrays[2]
-        CaO = garnet_endmember_diffusion_arrays[3]
-
-        # replace all nan values with 0
-        FeO = np.nan_to_num(FeO[1:])
-        MnO = np.nan_to_num(MnO[1:])
-        MgO = np.nan_to_num(MgO[1:])
-        CaO = np.nan_to_num(CaO[1:])
-
-        print(MgO[0:10])
-
-        # save to txt
-        np.savetxt('MgO.txt', MgO)
-        np.savetxt('FeO.txt', FeO)
-        np.savetxt('MnO.txt', MnO)
-        np.savetxt('CaO.txt', CaO)
-
-        #!Julia diffusion
-        # Plot the diffusion profiles of the four garnet endmembers
-        print("\nStarting Garnet Diffusion from Julia package DiffusionGarnet")
-        Main.eval("using DiffusionGarnet")  # Use the Julia package DiffusioinGarnet
-        print("Imported DiffusionGarnet")
-
-        # Define the units in Julia
-        Lr_magnitude = garnet_size
-        Lr_unit = 'µm'
-        tfinal_magnitude = diffusion_time
-        tfinal_unit = 'Myr'
-        T_unit = "°C"
-        P_unit = "GPa"
-        T_input = input_temperature
-        P_input = input_pressure
-        # Construct a valid Julia expression for each value
-        Lr_expr = f"{Lr_magnitude}u\"{Lr_unit}\""
-        tfinal_expr = f"{tfinal_magnitude}u\"{tfinal_unit}\""
-        T = f"{T_input}u\"{T_unit}\""
-        P = f"{P_input}u\"{P_unit}\""
-
-        # Get the values for vector
-        Main.FeO = Main.vec(Main.Array(FeO))
-        Main.MnO = Main.vec(Main.Array(MnO))
-        Main.MgO = Main.vec(Main.Array(MgO))
-        Main.CaO = Main.vec(Main.Array(CaO))
-
-        # ICSph = Main.eval(f"InitialConditionsSpherical({Main.MgO}, {Main.FeO}, {Main.MnO}, {Main.Lr}, {Main.tfinal})")
-        Main.ICSph = Main.eval(f"InitialConditionsSpherical({Main.MgO.tolist()}, {Main.FeO.tolist()}, {Main.MnO.tolist()}, {Lr_expr}, {tfinal_expr})")
-        # define the domain
-        Main.DomainSph = Main.eval(f"Domain(ICSph, {T}, {P})")
-        # Main.sol_sph = Main.eval(f"simulate(DomainSph)")
-        print("Start simulation: \N{FILM PROJECTOR} ===> \N{FILM FRAMES}")
-        sol_sph = Main.eval(f"simulate(DomainSph)")
-        tfinal_ad = sol_sph.t[-1]
-        # save sol_sph.t to txt
-        np.savetxt('sol_sph_t.txt', sol_sph.t)
-
-        diffused_garnet_arrays = [
-            sol_sph(tfinal_ad)[:,1],
-            sol_sph(tfinal_ad)[:,2],
-            sol_sph(tfinal_ad)[:,0],
-            1 - sol_sph(tfinal_ad)[:,0] - sol_sph(tfinal_ad)[:,1] - sol_sph(tfinal_ad)[:,2]
-            ]
-        garnet_names = [
-            'Almandine\nFeO',
-            'Spessartine\nMnO',
-            'Pyrope\nMgO',
-            'Grossular\nCaO'
-            ]
-
-        raw_garnet_arrays = [FeO, MnO, MgO, CaO]
-
-        # Calling the circle converter
-        diffused_garnet_circles = garnet_circle_diffused(diffused_garnet_arrays)
-        # prepare meshgrid
-        m, n = diffused_garnet_circles[0].shape
-        x = np.linspace(0, 1, n)  # adjust as needed
-        y = np.linspace(0, 1, m)  # adjust as needed
-        xi_map, yi_map = np.meshgrid(x, y)
-        # Plot the 4 arrays from diffused_garnet_spheres
-        fig, axs = plt.subplots(2, 2, figsize=(10, 8), constrained_layout=True)
-        for j, ax in enumerate(axs.flatten()):
-            # print(garnet_names[j])
-            # img = ax.imshow(diffused_garnet_circles[j], cmap='coolwarm', vmin=0, vmax=np.max(raw_garnet_arrays[j]))
-            img = ax.pcolormesh(
-                xi_map, yi_map, diffused_garnet_circles[j],
-                shading='auto', cmap='coolwarm',
-                vmin=0, vmax=np.max(raw_garnet_arrays[j])
-                )
-            ax.axis('off')
-            # add a title
-            ax.set_title(garnet_names[j], fontsize=14)
-            # create a colorbar
-            # cbar = plt.colorbar(img, ax=ax)
-            fig.colorbar(img, ax=ax, label='Mole fraction')
-
-
-        # Plot the diffusion process
-        distance = np.linspace(0, Lr_magnitude, len(FeO))
-
-        # to get the character it is a bit complex...
-        # save str of sol_sph to txt
-        output_string = str(sol_sph)
-
-        # output_string to utf-8
-        output_string = output_string.encode('utf-8')
-
-        # write output_string to txt
-        with open('output_string.txt', 'wb') as f:
-            f.write(output_string)
-
-        # search for t_charact: in output_string.txt
-        with open('output_string.txt', 'r') as f:
-            for line in f:
-                if 't_charact' in line:
-                    t_charact = line
-                    break
-
-        # split t_charact to list
-        t_charact = t_charact.split()
-        # read last entry to float
-        t_charact = float(t_charact[-1])
-
-        print("The final time is: ", tfinal_ad*t_charact)
-        fig, (ax1, ax2) = plt.subplots(2, 1)
-
-        line1, = ax1.plot(distance, FeO, label="Fe initial", linestyle='dashed', linewidth=3)
-        line2, = ax1.plot(distance, sol_sph(0)[:,1], label="Fe Sph", linewidth=3)
-        line4, = ax2.plot(distance, MgO, label="Mg initial", linestyle='dashed', linewidth=3)
-        line5, = ax2.plot(distance, MnO, label="Mn initial", linestyle='dashed', linewidth=3)
-        line6, = ax2.plot(distance, CaO, label="Ca initial", linestyle='dashed', linewidth=3)
-        line7, = ax2.plot(distance, sol_sph(0)[:,0], label="Mg Sph", linewidth=3)
-        line9, = ax2.plot(distance, sol_sph(0)[:,2], label="Mn Sph", linewidth=3)
-        line11, = ax2.plot(distance, 1 - sol_sph(0)[:,0] - sol_sph(0)[:,1] - sol_sph(0)[:,2], label="Ca Sph", linewidth=3)
-        line12, = ax2.plot(distance, 1 - sol_sph(0)[:,0] - sol_sph(0)[:,1] - sol_sph(0)[:,2], label="Ca 1D", linewidth=3)
-
-        # show the labels
-        ax1.legend()
-        ax2.legend()
-
-        # set the labels
-        ax1.set_ylabel("Mole fraction")
-        ax2.set_xlabel("Distance [µm]")
-        ax2.set_ylabel("Mole fraction")
-
-        # set the limits
-        ax1.set_xlim(0, Lr_magnitude)
-        ax2.set_xlim(0, Lr_magnitude)
-        ax1.set_ylim(0, 1)
-        ax2.set_ylim(0, 1)
-
-        # set the grid
-        ax1.grid()
-        ax2.grid()
-
-        def update(i):
-            # print("The iteration is: ", i)
-            line2.set_ydata(sol_sph(i)[:,1])
-            line7.set_ydata(sol_sph(i)[:,0])
-            line9.set_ydata(sol_sph(i)[:,2])
-            line11.set_ydata(1 - sol_sph(i)[:,0] - sol_sph(i)[:,1] - sol_sph(i)[:,2])
-            line12.set_ydata(1 - sol_sph(i)[:,0] - sol_sph(i)[:,1] - sol_sph(i)[:,2])
-            ax1.set_title(f"Total Time = {format(float(i*t_charact), '.3f')} Ma")
-            return line2, line7, line9, line11, line12
-
-        ani = animation.FuncAnimation(fig, update, frames=np.linspace(0, tfinal_ad, 100), blit=True)
-
-        ani.save('Grt_Spherical+1D.gif', writer='imagemagick', fps=7)
 
 
     def mohr_coulomb_diagram(self):
@@ -4514,15 +3803,7 @@ if __name__ == '__main__':
     compPlot = ThorPT_plots(
         data.filename, data.mainfolder, data.rock, data.compiledrock)
 
-    compPlot.garnet_visualization('rock001', img_save=False)
-    compPlot.garnet_visualization_diffusion('rock001', img_save=False)
-
-
-    # compPlot.diff_stress_vs_mean_stress_vs_total_volume_fluid_extracted()
-
-    # compPlot.diff_stress_vs_mean_stress_vs_extraction()
-
-    # compPlot.tested_fluid_pressure_modes()
+    compPlot.tested_fluid_pressure_modes()
 
     # In script testing - moved to jupyter notebook
     """
