@@ -4,11 +4,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = "thorpt-thorPT"
-version = "0.3.9"
+version = "0.4.1"
 authors = [
-  { name="Thorsten Markmann", email="thorsten.markmann@unibe.ch" },
+  { name="Thorsten A. Markmann", email="thorsten.markmann@unibe.ch" },
 ]
-description = "Petro-geochemical modelling software ThorPT"
+description = "Petrochemical modelling software ThorPT"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
