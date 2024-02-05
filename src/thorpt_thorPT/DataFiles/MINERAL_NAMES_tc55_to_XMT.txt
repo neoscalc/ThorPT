@@ -5,10 +5,10 @@ Amphibole	ferroactinolite
 Andalusite	andalusite
 Anorthite	anorthiteC1
 Apatite	apatite
+Aragonite aragonite
 Biotite	BIO
 Brucite	brucite
 Calcite	CCDO
-Calcite	aragonite
 Chlorite	CHLR
 Chloritoid	CHTD
 Clinopyroxene	OMPH_jd

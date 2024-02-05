@@ -1863,14 +1863,15 @@ class ThorPT_Routines():
             master_rock[rock]["el_col"] = ["fluid" if x==master_rock[rock]["database_fluid_name"] else x for x in master_rock[rock]["el_col"]]
             master_rock[rock]["oxy_data_phases"] = ["fluid" if x==master_rock[rock]["database_fluid_name"] else x for x in master_rock[rock]["oxy_data_phases"]]
 
-
+        for rock in master_rock:
+            master_rock[rock]['st_elements_index'] = list(master_rock[rock]['st_elements'].index)
 
         # //////////////////////////////////////////////////////////////////////////
         # ------------------- Data storing in hdf5----------------------
         no_go = ['minimization', 'model_oxygen',
                 'fluid_calculation', 'fluid_extraction', 'reactivity']
         meta_h5 = ['bulk', 'new_bulk', 'database',
-                'phase_order', 'el_index', 'el_col', 'pot_tag', 'oxy_data_phases', 'database_fluid_name']
+                'phase_order', 'el_index', 'el_col', 'pot_tag', 'oxy_data_phases', 'database_fluid_name', 'st_elements_index']
         h5_parameters = ['time_frame', 'cohesion', 'temperatures', 'pressures', 'convergence_speed', 'subuction_angle', 'geometry',
                          'shear', 'friction', 'tensile strength', 'Extraction scheme', 'depth', 'diff. stress', 'line', 'theriak_input_record']
         h5_oxygenisotope = ['all_oxy', 'save_oxygen', 'save_bulk_oxygen_pre', 'save_bulk_oxygen_post', 'bulk_oxygen',
@@ -1946,6 +1947,8 @@ class ThorPT_Routines():
                         if item == 'oxy_data_phases':
                             hf[rock].attrs.create(item, master_rock[rock][item])
                         if item == 'line':
+                            hf[rock].attrs.create(item, master_rock[rock][item])
+                        if item == 'st_elements_index':
                             hf[rock].attrs.create(item, master_rock[rock][item])
 
                     elif item == 'failure module':

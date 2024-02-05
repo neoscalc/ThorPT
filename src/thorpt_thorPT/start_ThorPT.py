@@ -293,6 +293,11 @@ def run_main_routine():
             time.sleep(5)
             quit()"""
 
+        if __name__ is '__main__':
+            print("File call __name__ is set to: {}" .format(__name__))
+            from valhalla import Pathfinder
+            from valhalla import routines_ThorPT
+            from valhalla.tunorrad import run_theriak as test_theriak
         # test run for theriak
         test_output = test_theriak(init_data['theriak'], database[0], 500.0, 20000.0, whole_rock="SI(7.9)AL(2.9)FE(0.8)MN(0.0)MG(1.7)CA(1.8)NA(0.7)TI(0.1)K(0.03)H(100.0)C(0.0)O(?)O(0.0)    * CalculatedBulk")
         if len(test_output) > 200:
