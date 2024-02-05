@@ -31,8 +31,9 @@ from scipy.interpolate import griddata
 import matplotlib.animation as animation
 
 import julia
-# julia.install()
+julia.install()
 from julia import Main
+import keyboard
 
 def file_opener():
     """
@@ -3983,7 +3984,70 @@ class ThorPT_plots():
         # ax.plot_surface(grid_x, grid_y, grid_z_nearest, cmap='plasma', edgecolor='none')
         ax.scatter(track_diff[1:], filtered_fluid_mode_list[1:], track_num_ext[1:], c='black', marker='o', s=10)
         ax.set_xlabel('Differential stress [MPa]')
-        ax.set_ylabel("Fluid pressure mode\n (1 = mean stress)\nDeviation in MPa")
+        ax.set_ylabel("Deviation [MPa] (1 = mean stress)")
+        ax.set_zlabel('# of extractions')
+        plt.show()
+
+    def diff_stress_vs_tensile_vs_extraction(self, color_map_input='viridis'):
+
+        # Basic compilation variables
+        first_entry_name = list(self.rockdic.keys())[0]
+        # read temperature and pressure
+        ts = self.rockdic[first_entry_name].temperature
+        ps = self.rockdic[first_entry_name].pressure
+        # read all porosity values for each rock in the model
+        all_porosity = np.array(self.comprock.all_porosity)
+        all_porosity = all_porosity*100
+        # extraction boolean list
+        all_boolean = np.array(self.comprock.all_extraction_boolean)
+        color_palette = sns.color_palette("viridis", len(all_porosity))
+        # read the applied differential stress and tensile strength
+        applied_diff_stress = np.array(self.comprock.all_diffs)
+        used_tensile_strengths = self.comprock.all_tensile
+
+        # number of extraction vs differential stress
+        # plotting for multiple rock of different tensile strength with changing diff.stress
+        track_diff = []
+        track_shear = []
+        track_num_ext = []
+        track_tensile = self.comprock.all_tensile
+        color_palette = ['black', '#bb4430', '#7ebdc2', '#f3dfa2', '#c7d66d', '#ffabc8', '#003049', '#ee6c4d']
+        track_legend = []
+
+        # collecting differential stress, extraction number and tensile strength for all rocks
+        for i, item in enumerate(self.comprock.all_diffs):
+            diff = np.unique(item)[-1]
+            fracture_bool = self.comprock.all_frac_bool[i]
+            num_ext = len(fracture_bool[fracture_bool>0])
+            track_diff.append(diff)
+            # track_shear.append()
+            track_num_ext.append(num_ext)
+
+
+        # do a surface plot excluding the first entry of tensile strength, track_diff and track_num_ext
+        # interpolate the data to increase resolution
+        # create a meshgrid for the data
+
+        # Create a grid of points where you want to interpolate
+        grid_x, grid_y = np.mgrid[min(track_diff[1:]):max(track_diff[1:]):100j, min(track_tensile[1:]):max(track_tensile[1:]):100j]
+
+        # Perform the interpolation but values below 0 are ot possible
+        grid_z_linear = griddata((track_diff[1:], track_tensile[1:]), track_num_ext[1:], (grid_x, grid_y), method='linear')
+        grid_z_cubic = griddata((track_diff[1:], track_tensile[1:]), track_num_ext[1:], (grid_x, grid_y), method='cubic')
+        grid_z_nearest = griddata((track_diff[1:], track_tensile[1:]), track_num_ext[1:], (grid_x, grid_y), method='nearest')
+
+        # filter negative values in grid_z_cubic and set them to 0
+        grid_z_cubic[grid_z_cubic < 0] = 0
+
+        # Plot the interpolated surface
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.plot_surface(grid_x, grid_y, grid_z_linear, cmap=color_map_input, edgecolor='none')
+        # ax.plot_surface(grid_x, grid_y, grid_z_cubic, cmap=color_map_input, edgecolor='none')
+        # ax.plot_surface(grid_x, grid_y, grid_z_nearest, cmap=color_map_input, edgecolor='none')
+        ax.scatter(track_diff[1:], track_tensile[1:], track_num_ext[1:], c='black', marker='o', s=10)
+        ax.set_xlabel('Differential stress [MPa]')
+        ax.set_ylabel("Tensile strenght [MPa]")
         ax.set_zlabel('# of extractions')
         plt.show()
 
@@ -4062,7 +4126,7 @@ class ThorPT_plots():
         # ax.plot_surface(grid_x, grid_y, grid_z_nearest, cmap='plasma', edgecolor='none')
         ax.scatter(track_diff[1:], filtered_fluid_mode_list[1:], sum_extracted_fluid_volume[1:], c='black', marker='o', s=10 )
         ax.set_xlabel('Differential stress [MPa]')
-        ax.set_ylabel("Fluid pressure mode\n (1 = mean stress)\nDeviation in MPa")
+        ax.set_ylabel("Deviation [MPa] (1 = mean stress)")
         ax.set_zlabel('Cumulative fluid extraction [cm$^3$]')
         plt.show()
 
@@ -4283,10 +4347,10 @@ class ThorPT_plots():
         print(MgO[0:10])
 
         # save to txt
-        # np.savetxt('MgO.txt', MgO)
-        # np.savetxt('FeO.txt', FeO)
-        # np.savetxt('MnO.txt', MnO)
-        # np.savetxt('CaO.txt', CaO)
+        np.savetxt('MgO.txt', MgO)
+        np.savetxt('FeO.txt', FeO)
+        np.savetxt('MnO.txt', MnO)
+        np.savetxt('CaO.txt', CaO)
 
         #!Julia diffusion
         # Plot the diffusion profiles of the four garnet endmembers
@@ -4324,7 +4388,7 @@ class ThorPT_plots():
         sol_sph = Main.eval(f"simulate(DomainSph)")
         tfinal_ad = sol_sph.t[-1]
         # save sol_sph.t to txt
-        # np.savetxt('sol_sph_t.txt', sol_sph.t)
+        np.savetxt('sol_sph_t.txt', sol_sph.t)
 
         diffused_garnet_arrays = [
             sol_sph(tfinal_ad)[:,1],
@@ -4365,16 +4429,6 @@ class ThorPT_plots():
             # cbar = plt.colorbar(img, ax=ax)
             fig.colorbar(img, ax=ax, label='Mole fraction')
 
-        # save image or show plot
-        if img_save is True:
-            os.makedirs(
-                f'{self.mainfolder}/img_{self.filename}/garnet_sphere', exist_ok=True)
-            plt.savefig(f'{self.mainfolder}/img_{self.filename}/garnet_sphere/garnet_diffused{rock_tag}.png',
-                        transparent=False)
-        else:
-            plt.show()
-        plt.clf()
-        plt.close()
 
         # Plot the diffusion process
         distance = np.linspace(0, Lr_magnitude, len(FeO))
@@ -4387,11 +4441,11 @@ class ThorPT_plots():
         output_string = output_string.encode('utf-8')
 
         # write output_string to txt
-        with open(f'{self.mainfolder}/output_string.txt', 'wb') as f:
+        with open('output_string.txt', 'wb') as f:
             f.write(output_string)
 
         # search for t_charact: in output_string.txt
-        with open(f'{self.mainfolder}/output_string.txt', 'r') as f:
+        with open('output_string.txt', 'r') as f:
             for line in f:
                 if 't_charact' in line:
                     t_charact = line
@@ -4444,9 +4498,9 @@ class ThorPT_plots():
             ax1.set_title(f"Total Time = {format(float(i*t_charact), '.3f')} Ma")
             return line2, line7, line9, line11, line12
 
-        os.makedirs(f'{self.mainfolder}/img_{self.filename}/garnet_sphere', exist_ok=True)
         ani = animation.FuncAnimation(fig, update, frames=np.linspace(0, tfinal_ad, 100), blit=True)
-        ani.save(f'{self.mainfolder}/img_{self.filename}/garnet_sphere/Grt_Spherical+1D.gif', writer='pillow', fps=7)
+
+        ani.save('Grt_Spherical+1D.gif', writer='imagemagick', fps=7)
 
 
     def mohr_coulomb_diagram(self):
@@ -4524,16 +4578,10 @@ if __name__ == '__main__':
     compPlot = ThorPT_plots(
         data.filename, data.mainfolder, data.rock, data.compiledrock)
 
-
-    compPlot.garnet_visualization_diffusion(
-        'rock001', garnet_size=2000, diffusion_time=15,
-        input_temperature=700, input_pressure=2.2,
-        img_save=True
-        )
-    """
     compPlot.garnet_visualization('rock001', img_save=False)
     compPlot.garnet_visualization_diffusion('rock001', img_save=False)
-    """
+
+
     # compPlot.diff_stress_vs_mean_stress_vs_total_volume_fluid_extracted()
 
     # compPlot.diff_stress_vs_mean_stress_vs_extraction()
