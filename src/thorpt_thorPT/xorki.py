@@ -33,7 +33,6 @@ import matplotlib.animation as animation
 import julia
 julia.install()
 from julia import Main
-import keyboard
 
 def file_opener():
     """
@@ -4347,10 +4346,10 @@ class ThorPT_plots():
         print(MgO[0:10])
 
         # save to txt
-        np.savetxt('MgO.txt', MgO)
-        np.savetxt('FeO.txt', FeO)
-        np.savetxt('MnO.txt', MnO)
-        np.savetxt('CaO.txt', CaO)
+        # np.savetxt('MgO.txt', MgO)
+        # np.savetxt('FeO.txt', FeO)
+        # np.savetxt('MnO.txt', MnO)
+        # np.savetxt('CaO.txt', CaO)
 
         #!Julia diffusion
         # Plot the diffusion profiles of the four garnet endmembers
@@ -4388,7 +4387,7 @@ class ThorPT_plots():
         sol_sph = Main.eval(f"simulate(DomainSph)")
         tfinal_ad = sol_sph.t[-1]
         # save sol_sph.t to txt
-        np.savetxt('sol_sph_t.txt', sol_sph.t)
+        # np.savetxt('sol_sph_t.txt', sol_sph.t)
 
         diffused_garnet_arrays = [
             sol_sph(tfinal_ad)[:,1],
@@ -4428,7 +4427,6 @@ class ThorPT_plots():
             # create a colorbar
             # cbar = plt.colorbar(img, ax=ax)
             fig.colorbar(img, ax=ax, label='Mole fraction')
-
 
         # Plot the diffusion process
         distance = np.linspace(0, Lr_magnitude, len(FeO))
