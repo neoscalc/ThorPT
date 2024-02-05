@@ -599,6 +599,7 @@ def run_main_routine():
     print("Script is ending...\u03BA\u03B1\u03BB\u03B7\u03BD\u03C5\u03C7\u03C4\u03B1!")
     time.sleep(1)
 
+    """
     import pygame
     # Directing to sounds - play at end
     dirname = os.path.dirname(os.path.abspath(__file__))
@@ -611,6 +612,7 @@ def run_main_routine():
     pygame.mixer.music.play()
     while pygame.mixer.music.get_busy():
         pygame.time.Clock().tick(10)
+    """
 
 
 
