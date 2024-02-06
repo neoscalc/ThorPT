@@ -293,7 +293,7 @@ def run_main_routine():
             time.sleep(5)
             quit()"""
 
-        if __name__ is '__main__':
+        if __name__ == '__main__':
             print("File call __name__ is set to: {}" .format(__name__))
             from valhalla import Pathfinder
             from valhalla import routines_ThorPT

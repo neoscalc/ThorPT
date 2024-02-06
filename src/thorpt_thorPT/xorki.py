@@ -1330,7 +1330,10 @@ class ThorPT_hdf5_reader():
                 garnets_bools[group_key] = np.array(f[group_key]['GarnetData']['garnet_check'])
 
                 # read the st_elements
-                td_data_tag02 = list(f[group_key].attrs['st_elements_index'])
+                try:
+                    td_data_tag02 = list(f[group_key].attrs['st_elements_index'])
+                except KeyError:
+                    td_data_tag02 = list(f[group_key].attrs['el_index'])
                 element_record[group_key] = pd.DataFrame(f[group_key]['SystemData']['st_elements'])
                 element_record[group_key].index = td_data_tag02
 
@@ -4581,7 +4584,7 @@ if __name__ == '__main__':
         print(key)
         compPlot.phases_stack_plot(rock_tag=key, img_save=True,
                     val_tag='volume', transparent=False, fluid_porosity=True)
-        compPlot.oxygen_isotopes(rock_tag=key, img_save=True)
+        # compPlot.oxygen_isotopes(rock_tag=key, img_save=True)
 
     # compPlot.garnet_visualization('rock001', img_save=False)
     # compPlot.garnet_visualization_diffusion('rock001', img_save=False)
