@@ -2536,6 +2536,7 @@ class ThorPT_plots():
             fluid_porosity_color = "#4750d4"
             # fluid content as vol% of total system volume
             y2 = (st_fluid_before)/system_vol_pre*100
+
             # extraction steps
             # NOTE extraction marker boolean
             mark_extr = extraction_boolean = self.rockdic[rock_tag].extraction_boolean
@@ -2633,12 +2634,24 @@ class ThorPT_plots():
             fluid_porosity_color = "#4750d4"
             # fluid content as vol% of total system volume
             y2 = (st_fluid_before)/system_vol_pre*100
-            y2 = np.round(y2,1)
+
+            # NOTE testing cumulative fluid volume
+            y2 = st_fluid_before/system_vol_pre
+            mark_extr = np.array(system_vol_pre-system_vol_post, dtype='bool')
+            mark_extr = np.logical_not(mark_extr)
+            # masked array of system_vol_pre using mark_extr
+            y2 = np.ma.masked_array(y2, mark_extr)
+            # y2 = np.cumsum(y2)*100
+            # get array from masked array with False values be zero
+            y2 = np.ma.filled(y2, 0)
+            y2 = np.cumsum(y2)*100
+
             # extraction steps
             if fluid_porosity is True:
                 twin1 = ax2.twinx()
                 twin1.plot(temperatures, y2, 'o--', c=fluid_porosity_color, linewidth=2, markeredgecolor='black')
-                twin1.set_ylabel("Vol% of fluid-filled porosity", color=fluid_porosity_color, fontsize=15, weight='bold')
+                # twin1.set_ylabel("Vol% of fluid-filled porosity", color=fluid_porosity_color, fontsize=15, weight='bold')
+                twin1.set_ylabel("Vol% of extracted fluid", color=fluid_porosity_color, fontsize=15, weight='bold')
                 twin1.set_ymargin(0)
 
                 if len(frac_bool) > 0:
@@ -2697,10 +2710,10 @@ class ThorPT_plots():
             os.makedirs(
                     f'{self.mainfolder}/img_{self.filename}/{subfolder}', exist_ok=True)
             if transparent is True:
-                plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}_stack_plot_transparent.png',
+                plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}_stack_plot_transparent.pdf',
                                                 transparent=True)
             else:
-                plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}_stack_plot.png',
+                plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}_stack_plot.pdf',
                                 transparent=False)
 
         else:
