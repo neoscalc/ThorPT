@@ -3584,6 +3584,144 @@ class ThorPT_plots():
                     frames.append(image)
             imageio.mimsave(f'{self.mainfolder}/img_{self.filename}/msg_redistribution/output.gif', frames, duration=400)
 
+    def ternary_vs_extraction_cumVol(self):
+        """
+        Plot the data in a ternary diagram.
+
+        This method plots the data in a ternary diagram using matplotlib.
+        It calculates the normalized values for the elements Na2O, MgO, and CaO,
+        and plots the data points on the ternary diagram based on these values.
+        The temperature values are used to color the data points.
+
+        Returns:
+            None
+        """
+
+        # Basic compilation variables
+        first_entry_name = list(self.rockdic.keys())[0]
+        # read temperature and pressure
+        ts = self.rockdic[first_entry_name].temperature
+        ps = self.rockdic[first_entry_name].pressure
+        # read all porosity values for each rock in the model
+        all_porosity = np.array(self.comprock.all_porosity)
+        # extraction boolean list
+        all_boolean = np.array(self.comprock.all_extraction_boolean)
+        color_palette = sns.color_palette("viridis", len(all_porosity))
+        # read the applied differential stress and tensile strength
+        applied_diff_stress = np.array(self.comprock.all_diffs)
+        used_tensile_strengths = self.comprock.all_tensile
+
+        # number of extraction vs differential stress
+        # plotting for multiple rock of different tensile strength with changing diff.stress
+        track_diff = []
+        track_shear = []
+        track_num_ext = []
+        track_tensile = []
+        track_fracture_bool = []
+        color_palette = ['black', '#bb4430', '#7ebdc2', '#f3dfa2', '#c7d66d', '#ffabc8', '#003049', '#ee6c4d']
+        track_legend = []
+        extraction_volumes = []
+
+        # collecting differential stress, extraction number and tensile strength for all rocks
+        for i, item in enumerate(self.comprock.all_diffs):
+            diff = np.unique(item)[-1]
+            fracture_bool = self.comprock.all_frac_bool[i]
+            num_ext = len(fracture_bool[fracture_bool>0])
+            track_diff.append(diff)
+            # track_shear.append()
+            track_num_ext.append(num_ext)
+            # tracking used tensile strength
+            track_tensile.append(used_tensile_strengths[i])
+
+            # create the cumulative volume of extracted fluid
+            extractionVol = np.ma.masked_array(all_porosity[i], all_boolean[i])
+            extractionVol = np.ma.filled(extractionVol, 0)
+            extractionVol = np.cumsum(extractionVol)*100
+            extraction_volumes.append(extractionVol)
+
+        extraction_volumes = np.array(extraction_volumes)
+        final_extraction_values = extraction_volumes.T[-1]
+
+        # looping for bulk rocks to mask array for plotting
+        unique_bulks = np.unique(self.comprock.all_starting_bulk)
+        boolean_bulk = []
+        bulk_mapping = {bulk: index + 1 for index, bulk in enumerate(unique_bulks)}
+        for item in self.comprock.all_starting_bulk:
+            boolean_bulk.append(bulk_mapping[item])
+
+        # looping over bulk rock to plot the arrays
+        for i, item in enumerate(np.unique(boolean_bulk)):
+            print(item)
+            # get boolean array where boolean_bul equals item
+            bool_mask = np.array(boolean_bulk) == item
+            bool_mask = np.invert(bool_mask)
+            y = np.ma.masked_array(final_extraction_values, mask=bool_mask)
+            track_legend.append("rock0" + str(i+1))
+
+        # Plot in a ternary diagram
+        plt.figure(101, dpi=100)
+        # figure with aspect ratio of 1:1
+        # plt.gca().set_aspect('equal', adjustable='box')
+        plt.rc('axes', labelsize=16)
+        plt.rc('ytick', labelsize=12)  # fontsize of the y tick labels
+        plt.rc('xtick', labelsize=12)  # fontsize of the x tick labels
+        # plot the ternary diagram
+        # create the grid
+        corners = np.array([[0, 0], [1, 0], [0.5,  np.sqrt(3)*0.5]])
+        triangle = tri.Triangulation(corners[:, 0], corners[:, 1])
+        # creating the grid
+        refiner = tri.UniformTriRefiner(triangle)
+        trimesh = refiner.refine_triangulation(subdiv=4)
+        #plotting the mesh
+        plt.triplot(trimesh,'k--', alpha=0.3)
+        # create the triangle frame
+        frame = plt.plot([0, 1, 0.5, 0], [0, 0, np.sqrt(1-0.5**2), 0],
+                         c='black', linewidth=1.0, alpha=0.6)
+
+        # loop to plot the data for each rock
+        for i, rockname in enumerate(self.rockdic.keys()):
+            if track_diff[i] == 60.0:
+                element_data = self.rockdic[rockname].element_record[rockname]
+
+                # [SIO2, TIO2, AL2O3, FEO, MNO, MGO, CAO, NA2O, K2O, H2O]
+                # if no MN in index add a row with zeros
+                if 'MN' not in element_data.index:
+                    element_data.loc['MN'] = np.zeros(len(element_data.columns))
+                # reorder the element data index to SI, TI, AL, FE, MN, MG, CA, NA, K, H
+                moles = element_data.reindex(['SI', 'TI', 'AL', 'FE', 'MN', 'MG', 'CA', 'NA', 'K', 'H'])
+                moles = moles.iloc[:,0]
+                # calculate the bulk in weight percent from the moles
+                bulk_wt = calc_moles_to_weightpercent(moles)
+
+                na2o = bulk_wt.T[8]
+                mgo = bulk_wt.T[5]
+                cao = bulk_wt.T[6]
+
+                # normalize for ternary plot
+                na2o_norm = na2o/(na2o+mgo+cao)
+                mgo_norm = mgo/(na2o+mgo+cao)
+                cao_norm = cao/(na2o+mgo+cao)
+
+                x = mgo_norm + (1 - (mgo_norm + na2o_norm))/2
+                y = cao_norm*np.sqrt(1-0.5**2)
+
+
+                # plot the data
+                result = plt.scatter(x, y, s=final_extraction_values[i]*10, edgecolor='black', c=color_palette[boolean_bulk[i]])
+
+        # hide the ticks
+        plt.tick_params(axis='both', which='both', bottom=False, top=False,
+                        labelbottom=False, right=False, left=False, labelleft=False)
+        # hide the frame
+        plt.box(False)
+        # annotate the plot
+        plt.annotate('MgO', xy=(1.0, 0.0), xytext=(1.0, -0.05), fontsize=12)
+        plt.annotate('CaO', xy=(0.5, 0.88), xytext=(0.45, 0.88), fontsize=12)
+        plt.annotate('Na2O', xy=(0.0, 0.0), xytext=(-0.1, -0.05), fontsize=12)
+
+        plt.show()
+        #plt.close()
+
     def ternary_vs_extraction(self):
         """
         Plot the data in a ternary diagram.
@@ -3757,6 +3895,7 @@ class ThorPT_plots():
         track_fracture_bool = []
         color_palette = ['black', '#bb4430', '#7ebdc2', '#f3dfa2', '#c7d66d', '#ffabc8', '#003049', '#ee6c4d']
         track_legend = []
+        extraction_volumes = []
 
         # collecting differential stress, extraction number and tensile strength for all rocks
         for i, item in enumerate(self.comprock.all_diffs):
@@ -3768,6 +3907,15 @@ class ThorPT_plots():
             track_num_ext.append(num_ext)
             # tracking used tensile strength
             track_tensile.append(used_tensile_strengths[i])
+
+            # create the cumulative volume of extracted fluid
+            extractionVol = np.ma.masked_array(all_porosity[i], all_boolean[i])
+            extractionVol = np.ma.filled(extractionVol, 0)
+            extractionVol = np.cumsum(extractionVol)*100
+            extraction_volumes.append(extractionVol)
+        
+        extraction_volumes = np.array(extraction_volumes)
+        final_extraction_values = extraction_volumes.T[-1]
 
         # looping for bulk rocks to mask array for plotting
         unique_bulks = np.unique(self.comprock.all_starting_bulk)
@@ -3797,6 +3945,90 @@ class ThorPT_plots():
         subfolder = 'sensitivity'
         os.makedirs(f'{self.mainfolder}/img_{self.filename}/{subfolder}', exist_ok=True)
         plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/bulk_rock_sensitivity.png',transparent=False)
+        plt.close()
+
+    def bulk_rock_sensitivity_cumVol(self):
+        """
+        Calculates and plots the sensitivity of the number of extractions to the differential stress
+        for different rocks with varying bulk rock composition.
+
+        Returns:
+            None
+        """
+
+        # Basic compilation variables
+        first_entry_name = list(self.rockdic.keys())[0]
+        # read temperature and pressure
+        ts = self.rockdic[first_entry_name].temperature
+        ps = self.rockdic[first_entry_name].pressure
+        # read all porosity values for each rock in the model
+        all_porosity = np.array(self.comprock.all_porosity)
+        # extraction boolean list
+        all_boolean = np.array(self.comprock.all_extraction_boolean)
+        color_palette = sns.color_palette("viridis", len(all_porosity))
+        # read the applied differential stress and tensile strength
+        applied_diff_stress = np.array(self.comprock.all_diffs)
+        used_tensile_strengths = self.comprock.all_tensile
+
+        # number of extraction vs differential stress
+        # plotting for multiple rock of different tensile strength with changing diff.stress
+        track_diff = []
+        track_shear = []
+        track_num_ext = []
+        track_tensile = []
+        track_fracture_bool = []
+        color_palette = ['black', '#bb4430', '#7ebdc2', '#f3dfa2', '#c7d66d', '#ffabc8', '#003049', '#ee6c4d']
+        track_legend = []
+        extraction_volumes = []
+
+        # collecting differential stress, extraction number and tensile strength for all rocks
+        for i, item in enumerate(self.comprock.all_diffs):
+            diff = np.unique(item)[-1]
+            fracture_bool = self.comprock.all_frac_bool[i]
+            num_ext = len(fracture_bool[fracture_bool>0])
+            track_diff.append(diff)
+            # track_shear.append()
+            track_num_ext.append(num_ext)
+            # tracking used tensile strength
+            track_tensile.append(used_tensile_strengths[i])
+
+            # create the cumulative volume of extracted fluid
+            extractionVol = np.ma.masked_array(all_porosity[i], all_boolean[i])
+            extractionVol = np.ma.filled(extractionVol, 0)
+            extractionVol = np.cumsum(extractionVol)*100
+            extraction_volumes.append(extractionVol)
+        
+        extraction_volumes = np.array(extraction_volumes)
+        final_extraction_values = extraction_volumes.T[-1]
+
+        # looping for bulk rocks to mask array for plotting
+        unique_bulks = np.unique(self.comprock.all_starting_bulk)
+        boolean_bulk = []
+        bulk_mapping = {bulk: index + 1 for index, bulk in enumerate(unique_bulks)}
+
+        for item in self.comprock.all_starting_bulk:
+            boolean_bulk.append(bulk_mapping[item])
+
+        # prepare plot
+        fig = plt.figure(104, dpi=150)
+        # looping over bulk rock to plot the arrays
+        for i, item in enumerate(np.unique(boolean_bulk)):
+            print(item)
+            # get boolean array where boolean_bul equals item
+            bool_mask = np.array(boolean_bulk) == item
+            bool_mask = np.invert(bool_mask)
+            x = np.ma.masked_array(track_diff, mask=bool_mask)
+            y = np.ma.masked_array(final_extraction_values, mask=bool_mask)
+            plt.plot(x, y, 'd--', color=color_palette[item], markeredgecolor='black', markersize=10)
+            track_legend.append("rock0" + str(i+1))
+
+        plt.ylabel("Cumulative extracted fluid [Vol%]")
+        plt.xlabel("Differential stress [$\it{MPa}$]")
+        plt.legend(track_legend, title="Rock bulk")
+
+        subfolder = 'sensitivity'
+        os.makedirs(f'{self.mainfolder}/img_{self.filename}/{subfolder}', exist_ok=True)
+        plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/bulk_rock_sensitivity.pdf',transparent=False)
         plt.close()
 
     def tensile_strength_sensitivity(self):
@@ -3860,7 +4092,80 @@ class ThorPT_plots():
         # saving image
         subfolder = 'sensitivity'
         os.makedirs(f'{self.mainfolder}/img_{self.filename}/{subfolder}', exist_ok=True)
-        plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/tensile_strength_sensitivity.png',transparent=False)
+        plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/tensile_strength_sensitivity.pdf',transparent=False)
+        plt.close()
+
+    def tensile_strength_sensitivity_cumVol(self):
+        """
+        Calculates and plots the sensitivity of the number of extractions to the differential stress
+        for different rocks with varying tensile strength.
+
+        Returns:
+            None
+        """
+        # Basic compilation variables
+        first_entry_name = list(self.rockdic.keys())[0]
+        # read temperature and pressure
+        ts = self.rockdic[first_entry_name].temperature
+        ps = self.rockdic[first_entry_name].pressure
+        # read all porosity values for each rock in the model
+        all_porosity = np.array(self.comprock.all_porosity)
+        # extraction boolean list
+        all_boolean = np.array(self.comprock.all_extraction_boolean)
+        color_palette = sns.color_palette("viridis", len(all_porosity))
+        # read the applied differential stress and tensile strength
+        applied_diff_stress = np.array(self.comprock.all_diffs)
+        used_tensile_strengths = self.comprock.all_tensile
+
+        # number of extraction vs differential stress
+        # plotting for multiple rock of different tensile strength with changing diff.stress
+        track_diff = []
+        track_shear = []
+        track_num_ext = []
+        track_tensile = []
+        color_palette = ['black', '#bb4430', '#7ebdc2', '#f3dfa2', '#c7d66d', '#ffabc8', '#003049', '#ee6c4d']
+        track_legend = []
+        extraction_volumes = []
+
+        # collecting differential stress, extraction number and tensile strength for all rocks
+        for i, item in enumerate(self.comprock.all_diffs):
+            diff = np.unique(item)[-1]
+            fracture_bool = self.comprock.all_frac_bool[i]
+            num_ext = len(fracture_bool[fracture_bool>0])
+            track_diff.append(diff)
+            # track_shear.append()
+            track_num_ext.append(num_ext)
+            # tracking used tensile strength
+            track_tensile.append(used_tensile_strengths[i])
+
+            # create the cumulative volume of extracted fluid
+            extractionVol = np.ma.masked_array(all_porosity[i], all_boolean[i])
+            extractionVol = np.ma.filled(extractionVol, 0)
+            extractionVol = np.cumsum(extractionVol)*100
+            extraction_volumes.append(extractionVol)
+        
+        extraction_volumes = np.array(extraction_volumes)
+        final_extraction_values = extraction_volumes.T[-1]
+
+        # prepare plot
+        plt.figure(104, dpi=150)
+        for i, item in enumerate(np.unique(track_tensile)):
+            # select boolean array for tensile value and invert
+            bool_mask = np.array(track_tensile) == item
+            bool_mask = np.invert(bool_mask)
+            x = np.ma.masked_array(track_diff[1:], mask=bool_mask[1:])
+            y = np.ma.masked_array(final_extraction_values[1:], mask=bool_mask[1:])
+            plt.plot(x, y, 'd--', color = color_palette[i], markeredgecolor='black', markersize=10)
+            track_legend.append(item)
+
+        plt.ylabel("Cumulative extracted fluid [Vol%]")
+        plt.xlabel("Differential stress [$\it{MPa}$]")
+        plt.legend(track_legend, title="Tensile strength [MPa]")
+
+        # saving image
+        subfolder = 'sensitivity'
+        os.makedirs(f'{self.mainfolder}/img_{self.filename}/{subfolder}', exist_ok=True)
+        plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/tensile_strength_sensitivity_cumVol.pdf',transparent=False)
         plt.close()
 
     def tested_fluid_pressure_modes(self):
@@ -4067,6 +4372,103 @@ class ThorPT_plots():
         ax.set_zlabel('# of extractions')
         plt.show()
 
+    def diff_stress_vs_tensile_vs_extractedCumVol(self, color_map_input='viridis'):
+
+        # Basic compilation variables
+        first_entry_name = list(self.rockdic.keys())[0]
+        # read temperature and pressure
+        ts = self.rockdic[first_entry_name].temperature
+        ps = self.rockdic[first_entry_name].pressure
+        # read all porosity values for each rock in the model
+        all_porosity = np.array(self.comprock.all_porosity)
+        # extraction boolean list
+        all_boolean = np.array(self.comprock.all_extraction_boolean)
+        color_palette = sns.color_palette("viridis", len(all_porosity))
+        # read the applied differential stress and tensile strength
+        applied_diff_stress = np.array(self.comprock.all_diffs)
+        used_tensile_strengths = self.comprock.all_tensile
+
+        # number of extraction vs differential stress
+        # plotting for multiple rock of different tensile strength with changing diff.stress
+        track_diff = []
+        track_shear = []
+        track_num_ext = []
+        track_tensile = self.comprock.all_tensile
+        color_palette = ['black', '#bb4430', '#7ebdc2', '#f3dfa2', '#c7d66d', '#ffabc8', '#003049', '#ee6c4d']
+        track_legend = []
+        extraction_volumes = []
+
+        # collecting differential stress, extraction number and tensile strength for all rocks
+        for i, item in enumerate(self.comprock.all_diffs):
+            diff = np.unique(item)[-1]
+            fracture_bool = self.comprock.all_frac_bool[i]
+            num_ext = len(fracture_bool[fracture_bool>0])
+            track_diff.append(diff)
+            # track_shear.append()
+            track_num_ext.append(num_ext)
+
+            # create the cumulative volume of extracted fluid
+            extractionVol = np.ma.masked_array(all_porosity[i], all_boolean[i])
+            extractionVol = np.ma.filled(extractionVol, 0)
+            extractionVol = np.cumsum(extractionVol)*100
+            extraction_volumes.append(extractionVol)
+
+        extraction_volumes = np.array(extraction_volumes)
+        final_extraction_values = extraction_volumes.T[-1]
+
+        # 3D line plot of final_extraction_values
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        # plot line for each unique in track_tensile
+        for i, item in enumerate(np.unique(track_tensile[1:])):
+            # select boolean array for tensile value and invert
+            bool_mask = np.array(track_tensile[1:]) == item
+            bool_mask = np.invert(bool_mask)
+            x = np.ma.masked_array(track_diff[1:], mask=bool_mask)
+            x = np.ma.filled(x, np.nan)
+            y = np.ma.masked_array(track_tensile[1:], mask=bool_mask)
+            y = np.ma.filled(y, np.nan)
+            z = np.ma.masked_array(final_extraction_values[1:], mask=bool_mask)
+            z = np.ma.filled(z, np.nan)
+
+            ax.plot(x, y, z, 'd--', color = color_palette[i+1], markeredgecolor='black', markersize=10)
+            track_legend.append(item)
+
+        ax.set_xlabel('Differential stress [MPa]')
+        ax.set_ylabel("Tensile strenght [MPa]")
+        ax.set_zlabel('Cumulative extracted fluid volume [%]')
+        ax.zaxis.set_major_formatter('{x:.01f}')
+        plt.show()
+
+        # do a surface plot excluding the first entry of tensile strength, track_diff and track_num_ext
+        # interpolate the data to increase resolution
+        # create a meshgrid for the data
+        # Create a grid of points where you want to interpolate
+        grid_x, grid_y = np.mgrid[min(track_diff[1:]):max(track_diff[1:]):100j, min(track_tensile[1:]):max(track_tensile[1:]):100j]
+
+        # Perform the interpolation but values below 0 are ot possible
+        grid_z_linear = griddata((track_diff[1:], track_tensile[1:]), list(final_extraction_values[1:]), (grid_x, grid_y), method='linear')
+        grid_z_cubic = griddata((track_diff[1:], track_tensile[1:]), final_extraction_values[1:], (grid_x, grid_y), method='cubic')
+        grid_z_nearest = griddata((track_diff[1:], track_tensile[1:]), final_extraction_values[1:], (grid_x, grid_y), method='nearest')
+
+        # filter negative values in grid_z_cubic and set them to 0
+        grid_z_cubic[grid_z_cubic < 0] = 0
+        grid_z_linear[grid_z_linear < 0] = 0
+        grid_z_nearest[grid_z_nearest < 0] = 0
+
+        # Plot the interpolated surface
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        # ax.plot_surface(grid_x, grid_y, grid_z_linear, cmap=color_map_input, edgecolor='none')
+        # ax.plot_surface(grid_x, grid_y, grid_z_cubic, cmap=color_map_input, edgecolor='none')
+        ax.plot_surface(grid_x, grid_y, grid_z_nearest, cmap=color_map_input, edgecolor='none')
+        ax.scatter(track_diff[1:], track_tensile[1:], final_extraction_values[1:], c='black', marker='o', s=10)
+        ax.set_xlabel('Differential stress [MPa]')
+        ax.set_ylabel("Tensile strenght [MPa]")
+        ax.set_zlabel('cumulative extracted fluid volume [%]')
+        ax.zaxis.set_major_formatter('{x:.01f}')
+        plt.show()
+
 
     def diff_stress_vs_mean_stress_vs_total_volume_fluid_extracted(self, color_map_input='viridis'):
 
@@ -4222,11 +4624,6 @@ class ThorPT_plots():
             arr, xi_map, yi_map, r, iloc, c_grt = sphere
 
             garnet_endmember_diffusion_arrays.append(arr[500][0:500])
-
-        #!Julia diffusion
-        # Plot the diffusion profiles of the four garnet endmembers
-        print("Starting Garnet Diffusion from Julia package DiffusionGarnet")
-
 
         # almandine, spessartine, pyrope and grossular
         # grt_Fe, grt_Mn, grt_Mg, grt_Ca
@@ -4593,6 +4990,13 @@ if __name__ == '__main__':
     compPlot = ThorPT_plots(
         data.filename, data.mainfolder, data.rock, data.compiledrock)
     
+    # compPlot.ternary_vs_extraction_cumVol()
+
+    # compPlot.bulk_rock_sensitivity_cumVol()
+    compPlot.tensile_strength_sensitivity_cumVol()
+
+    # compPlot.diff_stress_vs_tensile_vs_extractedCumVol(color_map_input='coolwarm')
+    
     for key in data.rock.keys():
         print(key)
         compPlot.phases_stack_plot(rock_tag=key, img_save=True,
@@ -4610,6 +5014,9 @@ if __name__ == '__main__':
     # compPlot.tested_fluid_pressure_modes()
 
     # In script testing - moved to jupyter notebook
+
+
+
     """
     # Read variables from a hdf5 output file from ThorPT
     data = ThorPT_hdf5_reader()
