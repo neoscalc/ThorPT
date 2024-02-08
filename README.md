@@ -5,7 +5,7 @@ ThorPT is a modelling package for fluid coupled geolgical processes in the crust
     2. Mechanical testing of the rock based on the Mohr-Coulomb theory
     3. Quantification of the production of fluid masses
 
-- Multi rock modelling (*Work in progress):
+- Multi rock modelling (Work in progress):
     1. Stacks of rock sequences involving fluid transfer
     2. Outcrop modelling
     3. *Contact zones and fluid-rock ratios
@@ -15,26 +15,26 @@ Information and requirements:
 There are currently two ways to use the package. Prerequisite in both cases is to get and install a working version of theriak-domino, because we need access to its executables. Check the software at
 https://github.com/Theriak-Domino/theriak-domino
 
-Getting started:
+Further, you need the ThorPT input files to pass informations to the software. This is a simple text file and can be found in the latest release of ThorPT jupyter.
 
 1.1 Recommended for all users
 
-Quick start: Get the jupyter working directory that includes all instructions and direct connection to ThorPT.
+Quick start: Get the jupyter working directory that includes all instructions and installs ThorPT with its dependencies. You can find it in the latest release of ThorPT jupyter.
 
 1.2 Recommended to users familair with Python
 
 Install the package manually into your python environment and develop your own script.
 
 # 1.1 Use the package with the jupyter environment
-Download the jupyter working directory that includes:
-- Jupyter notebook script to install all dependencies
+Download the jupyter release that includes:
+- Jupyter notebook script to install ThorPT and all dependencies
 - Jupyter script to run ThorPT and containing functions
 - Datafiles directory with
     - initial file
-    - examples to model
+    - examples for modelling
 
-Before starting make sure you executed the cell in the "install_ThorPT" juopyter notebook!
-Before getting started with ThorPT you have to declare your theriak working directory. To do so, use and open the "_init_.txt" file contained in the released package you downloaded from the github. In the text file edit the first line behind "Theriak:". Here you have to write the path of the directory of the working "theriak" version you posses. (It is the path to the folder where the theriak executable of theriak-domino is located. In the version from 06.06.2023 this is usually the "programs" folder from the software.)
+Before starting, make sure you have executed all cells in the "install_ThorPT" Jupyter notebook!
+Now, before running ThorPT, you have to declare the working directory of the theriak executable in your theriak-domino directory. To do this, use and open the file "_init_.txt" which is included in the released package you downloaded from github (in the folder DataFiles). Edit the first line after "Theriak:". Here you have to write the path to the directory of the working "theriak" version you have. It is located in the folder where the theriak executable of theriak-domino is located. For the version from 06.06.2023 this is usually the "programs" folder of the software.
 
 # 1.2 Manual installation to your python environment
 # 1.2.1 Install the package
@@ -47,19 +47,19 @@ from thorpt_thorPT import start_ThorPT
 
 
 # 1.2.3 Run the main module
-The software will ask you for two input files via a GUI:
+The software will prompt you for two input files:
 1. init file that defines parameters for the modelling
-2. depending if you want to generate or use a preexisting P-T path
+2. usage of a P-T path (pressure unit has to be defined in the init file, using "kbar" or "GPa")
 
 start_ThorPT.run_main_routine()
 
 
 # 1.2.4 Plotting module with ThorPT
-Plotting is based on the taufrir module. This module comprises pre defined plots for phase assemblages, oxygen isotopes and several plots for visualising the fluid production and transfer. Options are possible to save the image files and generate a gif.
+Plotting is based on the ξόρκι module. This module comprises pre defined plots for phase assemblages, oxygen isotopes and several plots for visualising the fluid production and transfer. Options are possible to save the image files and generate a gif.
 
 
 First steps:
-Import taufrir module
+from thorpt_thorPT.xorki import *
 Read variables from a hdf5 with the function
 ```python
 from thorpt_thorPT.xorki import *
