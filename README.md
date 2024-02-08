@@ -10,16 +10,20 @@ ThorPT is a modelling package for fluid coupled geolgical processes in the crust
     2. Outcrop modelling
     3. *Contact zones and fluid-rock ratios
 
-# 1. Getting started and use the package
-Information and prerequisits:
-There are two ways to use the package at the moment. Prerequisit is in both cases to get and install a working theriak-domino version from
+# 1. Getting started with the package
+Information and requirements:
+There are currently two ways to use the package. Prerequisite in both cases is to get and install a working version of theriak-domino, because we need access to its executables. Check the software at
 https://github.com/Theriak-Domino/theriak-domino
 
 Getting started:
 
-1.1 (Recommended for all users) Quick start: Get the jupyter working directory that includes all instructions and direct connection to ThorPT.
+1.1 Recommended for all users
 
-1.2 (Recommended to users familair with coding) Install the package manually into your python environment and develop your own script.
+Quick start: Get the jupyter working directory that includes all instructions and direct connection to ThorPT.
+
+1.2 Recommended to users familair with Python
+
+Install the package manually into your python environment and develop your own script.
 
 # 1.1 Use the package with the jupyter environment
 Download the jupyter working directory that includes:
