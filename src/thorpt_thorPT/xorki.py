@@ -232,16 +232,24 @@ def calc_moles_to_weightpercent(moles):
     """
 
     # oxide_list = [SIO2, TIO2, AL2O3, FEO, MNO, MGO, CAO, NA2O, K2O, H2O]
-    oxide_molar_weight = [60.08, 79.87, 101.96, 71.85, 70.94, 40.30, 56.08, 61.98, 94.20, 18.02]
-    cation_molar_weight = [28.08, 47.87, 26.98, 55.85, 54.94, 24.30, 40.08, 22.98, 39.09, 1.01]
+    oxide_molar_weight = [60.09, 79.866, 101.96, 71.85, 70.94, 40.3, 56.08, 61.98, 94.2, 18.02]
+    cation_molar_weight = [28.08550, 47.88000, 26.98154, 55.84700, 54.93085, 24.30500, 40.07800, 22.98977, 39.09830, 1.00794]
     oxide_number_cations = [1, 1, 2, 1, 1, 1, 1, 2, 2, 2]
     oxide_number_oxygen = [2, 2, 3, 1, 1, 1, 1, 1, 1, 1]
 
-    # calculate weight percent of cations
+    # calculate weight percent of from moles - wrong because not normalisation taken in account
+    # NOTE wrong
     moles_arr = np.array(moles).T
     bulk_wpercent = ((moles_arr * oxide_molar_weight).T / (sum((moles_arr * oxide_molar_weight).T)) * 100).T
 
-    return bulk_wpercent
+    # calculate weight percent of from moles - with normalisation
+    # NOTE RIGHT
+    norm_mass = np.sum(moles_arr * cation_molar_weight/1e3)
+    moles_arr = moles_arr * norm_mass
+    moles_arr = moles_arr * np.sum(moles_arr * cation_molar_weight/1e3)
+    bulk_wpercent2 = moles_arr / oxide_number_cations * oxide_molar_weight
+
+    return bulk_wpercent2
 
 
 def Merge_phase_group(data):

@@ -1476,8 +1476,8 @@ class ThorPT_Routines():
                         # Hypothetically momentary fluid flux and permeabiltiy test
                         mü_water = 1e-4
                         # water data
-                        v_water = float(master_rock[item]['df_var_dictionary']['df_volume[ccm]'].loc['water.fluid'][-1])
-                        d_water = float(master_rock[item]['df_var_dictionary']['df_density[g/ccm]'].loc['water.fluid'][-1])
+                        v_water = float(master_rock[item]['df_var_dictionary']['df_volume[ccm]'].loc['water.fluid'].iloc[-1])
+                        d_water = float(master_rock[item]['df_var_dictionary']['df_density[g/ccm]'].loc['water.fluid'].iloc[-1])
                         weigth_water = master_rock[item]['df_var_dictionary']['df_wt[g]'].iloc[:, -1]['water.fluid']
                         # system data
                         master_rock[item]['meta_grt_weight']
