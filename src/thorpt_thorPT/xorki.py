@@ -219,6 +219,7 @@ def mineral_translation(database):
     return translation_dic
 
 
+
 def calc_moles_to_weightpercent(moles):
     """
     Calculate the weight percent of cations based on the given moles.
@@ -3388,7 +3389,10 @@ class ThorPT_plots():
             amphibole_content.append(amphibole_val)
             glaucophane_content.append(glaucophane_val)
             omphacite_content.append(omphacite_val)
-            hydrous_content.append(hydrous_val)
+            try:
+                hydrous_content.append(hydrous_val)
+            except:
+                hydrous_content.append(np.zeros(len(ts)))
             lawsonite_content.append(lawsonite_val)
             garnet_content.append(garnet_val)
             water_content.append(fluid_val)
@@ -3450,12 +3454,15 @@ class ThorPT_plots():
                     label="Garnet")
 
             # plot the lawsonite content
-            """color_position = legend_phases.index('Lawsonite')
-            box_ax.bar(x,lawsonite_content[pt_position],
-                    bottom=omphacite_content[pt_position]+glaucophane_content[pt_position]+garnet_content[pt_position],
-                    edgecolor='black', linewidth=0.5,
-                    color=color_set[color_position],
-                    label="Lawsonite")"""
+            try:
+                color_position = legend_phases.index('Lawsonite')
+                box_ax.bar(x,lawsonite_content[pt_position],
+                        bottom=omphacite_content[pt_position]+glaucophane_content[pt_position]+garnet_content[pt_position],
+                        edgecolor='black', linewidth=0.5,
+                        color=color_set[color_position],
+                        label="Lawsonite")
+            except:
+                pass
 
             box_ax.set_aspect(aspect=0.2)
             # define x label
@@ -3497,6 +3504,8 @@ class ThorPT_plots():
             np.savetxt(f"{self.mainfolder}/garnet_matrix.txt", garnet_content)
             # save glaucophane content to matrix txt file
             np.savetxt(f"{self.mainfolder}/glaucophane_matrix.txt", glaucophane_content)
+            # save lawsonite content to matrix txt file
+            np.savetxt(f"{self.mainfolder}/lawsonite_matrix.txt", lawsonite_content)
             # save omphacity content to matrix txt file
             np.savetxt(f"{self.mainfolder}/omphacite_matrix.txt", omphacite_content)
             # save d18O content to matrix txt file
