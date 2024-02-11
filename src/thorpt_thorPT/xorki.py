@@ -4608,6 +4608,14 @@ class ThorPT_plots():
         ts = self.rockdic[first_entry_name].temperature
         ps = self.rockdic[first_entry_name].pressure
 
+        # masked array of ts using garnet_bool
+        ts = np.ma.masked_array(ts[0:-1], garnet_bool-1)
+        # only get masekd values as array
+        ts = ts.compressed()
+        # multiply garnet_bool with grt_Xsps where it equals 1
+
+
+
         # !Sphere plottingsection
         # normal sphere plot
         cvol = np.sum(garnet_content.volume)
@@ -4635,7 +4643,7 @@ class ThorPT_plots():
                 ax.add_artist(circle)
             circle = plt.Circle((500, 500), 500, color='black', fill=False, linestyle='-', linewidth=0.8)
             ax.add_artist(circle)
-            
+            # add a colorbar to the plot
             fig.colorbar(ax1_plot, ax=ax, label='Mole fraction')
             ax.set_title(garnet_endmember_names[j])
             ax.axis('off')
