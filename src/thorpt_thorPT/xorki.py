@@ -710,21 +710,11 @@ def garnet_sphere(moles, element_intensity, n=1000, res=1):
     loc = np.flip(iloc)
     c_grt = np.flip(np.array(element_intensity))
 
-    # set progress bar
-    # k = 0
-    # kk = len(loc)
-    # progress(int(k/kk)*100, 10)
-
     # create circle mask for every sphere diameter from rim to core
     for i, slice in enumerate(loc):
         mask = (xi_map[np.newaxis, :]-r)**2 + \
             (yi_map[:, np.newaxis]-r)**2 < slice**2
         arr[mask] = c_grt[i]
-
-        # k += 1
-        # print(k/kk*100)
-        # ic = int(np.ceil(k/kk*100))
-        # progress(ic)
 
     # replace the zeros which are no value
     arr[arr == 0] = 'nan'
@@ -4588,7 +4578,6 @@ class ThorPT_plots():
 
         # garnet arrays
         moles = garnet_content.moles
-        element_mole_int = garnet_content.elements.loc['CA',:]
 
         # Xalm for almandine defined as molar Fe/(Fe + Mg + Ca + Mn)
         # Xsps for spessartine as Mn/(Fe + Mg + Ca + Mn)
@@ -4596,6 +4585,8 @@ class ThorPT_plots():
         # Xgrs for grossular as Ca/(Fe + Mg + Ca + Mn))
         if 'MN' in garnet_content.elements.index:
             grt_Mn = garnet_content.elements.loc['MN']
+            # replace NaN in dataframe with 0
+            grt_Mn = np.nan_to_num(grt_Mn)
         else:
             grt_Mn = np.zeros(len(garnet_content.elements.columns))
         grt_Fe = garnet_content.elements.loc['FE']
@@ -4610,47 +4601,12 @@ class ThorPT_plots():
         # garnet endmember mole fractions in list
         garnet_endmembers = [grt_Xalm, grt_Xsps, grt_Xprp, grt_Xgrs]
         garnet_endmember_names = ['Almandine', 'Spessartine', 'Pyrope', 'Grossular']
-        garnet_endmember_diffusion_arrays = []
-
-        # Create a new array with the same shape as garnet_bool, filled with zeros
-        # get new_array of zeros with length of garnet_bool
-        new_array = np.zeros(len(garnet_bool))
-        new_array[garnet_bool == 1] = moles
-
-        # Fill array with length of garnet bool with values of moles where garnet_bool == 1
-        # moles = np.array([moles]*len(garnet_bool))
-        # moles = np.ma.masked_array(moles, mask=~garnet_bool)
 
         # basic compilation variables
         first_entry_name = list(self.rockdic.keys())[0]
         # read temperature and pressure
         ts = self.rockdic[first_entry_name].temperature
         ps = self.rockdic[first_entry_name].pressure
-
-        """plt.plot(ts[:-1],new_array,'d')
-        plt.show()"""
-
-        # plot data for the four garnet endmembers
-        for j in range(len(garnet_endmembers)):
-            # call a garnet sphere
-            sphere = garnet_sphere(
-                moles,
-                element_intensity=garnet_endmembers[j],
-                n=1000, res=1)
-
-            arr, xi_map, yi_map, r, iloc, c_grt = sphere
-
-            garnet_endmember_diffusion_arrays.append(arr[500][0:500])
-
-        # almandine, spessartine, pyrope and grossular
-        # grt_Fe, grt_Mn, grt_Mg, grt_Ca
-        # garnet_endmember_diffusion_arrays
-        FeO = garnet_endmember_diffusion_arrays[0]
-        MnO = garnet_endmember_diffusion_arrays[1]
-        MgO = garnet_endmember_diffusion_arrays[2]
-        CaO = garnet_endmember_diffusion_arrays[3]
-        # Main.eval("using DiffusionGarnet")  # Use the Julia package DiffusioinGarnet
-
 
         # !Sphere plottingsection
         # normal sphere plot
@@ -4661,20 +4617,25 @@ class ThorPT_plots():
         # fig.subplots_adjust(top=0.88, bottom=0.11, left=0.125, right=0.9, hspace=0.2, wspace=0.2)
         for j, ax in enumerate(axs.flatten()):
             # call a garnet sphere
-            sphere = garnet_sphere(
+            arr, xi_map, yi_map, r, iloc, c_grt = garnet_sphere(
                 moles,
                 element_intensity=garnet_endmembers[j],
                 n=1000, res=1)
 
-            arr, xi_map, yi_map, r, iloc, c_grt = sphere
-
             # add a endmember plot to the figure
             ax1_plot = ax.pcolormesh(xi_map, yi_map, arr, shading='auto', cmap='coolwarm', vmin=0)
             # add a black line as arrow from the center to the edge basedon the iloc value
-            for i in iloc:
-                ax.arrow(0, 500, xi_map[i], 0, color='black', width=0.01, head_width=0.05, length_includes_head=True)
+            # for i in iloc:
+            #     ax.arrow(0, 500, xi_map[i], 0, color='black', width=0.01, head_width=0.05, length_includes_head=True)
             # add dots along x for iloc and y at 500
-            ax.plot(r-iloc, np.ones(len(iloc))*500, 'ko')
+            # ax.plot(r-iloc, np.ones(len(iloc))*500, 'ko')
+            # plot black circle at with radius = r-iloc
+            for radius in (iloc):
+                circle = plt.Circle((500, 500), radius, color='black', fill=False, linestyle='--', linewidth=0.2)
+                ax.add_artist(circle)
+            circle = plt.Circle((500, 500), 500, color='black', fill=False, linestyle='-', linewidth=0.8)
+            ax.add_artist(circle)
+            
             fig.colorbar(ax1_plot, ax=ax, label='Mole fraction')
             ax.set_title(garnet_endmember_names[j])
             ax.axis('off')
@@ -4720,6 +4681,8 @@ class ThorPT_plots():
         # Xgrs for grossular as Ca/(Fe + Mg + Ca + Mn))
         if 'MN' in garnet_content.elements.index:
             grt_Mn = garnet_content.elements.loc['MN']
+            # replace NaN in dataframe with 0
+            grt_Mn = np.nan_to_num(grt_Mn)
         else:
             grt_Mn = np.zeros(len(garnet_content.elements.columns))
         grt_Fe = garnet_content.elements.loc['FE']
@@ -4773,8 +4736,6 @@ class ThorPT_plots():
         MnO = np.nan_to_num(MnO[1:])
         MgO = np.nan_to_num(MgO[1:])
         CaO = np.nan_to_num(CaO[1:])
-
-        print(MgO[0:10])
 
         # save to txt
         # np.savetxt('MgO.txt', MgO)
@@ -4859,6 +4820,15 @@ class ThorPT_plots():
             # cbar = plt.colorbar(img, ax=ax)
             fig.colorbar(img, ax=ax, label='Mole fraction')
 
+        # save image or show plot
+        if img_save is True:
+            os.makedirs(
+                f'{self.mainfolder}/img_{self.filename}/garnet_sphere', exist_ok=True)
+            plt.savefig(f'{self.mainfolder}/img_{self.filename}/garnet_sphere/garnet_sphere_diffused{rock_tag}.png',
+                        transparent=False)
+        else:
+            plt.show()
+
         # Plot the diffusion process
         distance = np.linspace(0, Lr_magnitude, len(FeO))
 
@@ -4929,7 +4899,7 @@ class ThorPT_plots():
 
         ani = animation.FuncAnimation(fig, update, frames=np.linspace(0, tfinal_ad, 100), blit=True)
 
-        ani.save('Grt_Spherical+1D.gif', writer='imagemagick', fps=7)
+        ani.save(f'Grt_Spherical+1D_{rock_tag}.gif', writer='imagemagick', fps=7)
 
 
     def mohr_coulomb_diagram(self):
@@ -5006,19 +4976,33 @@ if __name__ == '__main__':
 
     compPlot = ThorPT_plots(
         data.filename, data.mainfolder, data.rock, data.compiledrock)
-    
+
+    compPlot.garnet_visualization('rock001', img_save=True)
+    for key in data.rock.keys():
+        print(key)
+        compPlot.garnet_visualization(key, img_save=True)
+        print(f"Garnet visualization {key} done")
+
+    for key in data.rock.keys():
+        print(key)
+        compPlot.garnet_visualization_diffusion(
+        key, garnet_size=1000, diffusion_time=20,
+        input_temperature=510, input_pressure=2.0,
+        img_save=True
+        )
+
     # compPlot.ternary_vs_extraction_cumVol()
 
     # compPlot.bulk_rock_sensitivity_cumVol()
-    compPlot.tensile_strength_sensitivity_cumVol()
+    # compPlot.tensile_strength_sensitivity_cumVol()
 
     # compPlot.diff_stress_vs_tensile_vs_extractedCumVol(color_map_input='coolwarm')
-    
-    for key in data.rock.keys():
-        print(key)
-        compPlot.phases_stack_plot(rock_tag=key, img_save=True,
-                    val_tag='volume', transparent=False, fluid_porosity=True)
-        # compPlot.oxygen_isotopes(rock_tag=key, img_save=True)
+
+    # for key in data.rock.keys():
+    #     print(key)
+    #     compPlot.phases_stack_plot(rock_tag=key, img_save=True,
+    #                 val_tag='volume', transparent=False, fluid_porosity=True)
+    #     # compPlot.oxygen_isotopes(rock_tag=key, img_save=True)
 
     # compPlot.garnet_visualization('rock001', img_save=False)
     # compPlot.garnet_visualization_diffusion('rock001', img_save=False)
