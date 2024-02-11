@@ -4921,7 +4921,7 @@ class ThorPT_plots():
 
         ani = animation.FuncAnimation(fig, update, frames=np.linspace(0, tfinal_ad, 100), blit=True)
 
-        ani.save(f'Grt_Spherical+1D_{rock_tag}.gif', writer='imagemagick', fps=7)
+        ani.save(f'{self.mainfolder}/img_{self.filename}/Grt_Spherical+1D_{rock_tag}.gif', writer='imagemagick', fps=7)
 
 
     def mohr_coulomb_diagram(self):
