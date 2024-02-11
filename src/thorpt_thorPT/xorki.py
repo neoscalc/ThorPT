@@ -4608,11 +4608,11 @@ class ThorPT_plots():
         ts = self.rockdic[first_entry_name].temperature
         ps = self.rockdic[first_entry_name].pressure
 
-        # masked array of ts using garnet_bool
+        """# masked array of ts using garnet_bool
         ts = np.ma.masked_array(ts[0:-1], garnet_bool-1)
         # only get masekd values as array
         ts = ts.compressed()
-        # multiply garnet_bool with grt_Xsps where it equals 1
+        # multiply garnet_bool with grt_Xsps where it equals 1"""
 
 
 
@@ -4812,6 +4812,7 @@ class ThorPT_plots():
         y = np.linspace(0, 1, m)  # adjust as needed
         xi_map, yi_map = np.meshgrid(x, y)
         # Plot the 4 arrays from diffused_garnet_spheres
+        print(iloc)
         fig, axs = plt.subplots(2, 2, figsize=(10, 8), constrained_layout=True)
         for j, ax in enumerate(axs.flatten()):
             # print(garnet_names[j])
@@ -4821,6 +4822,11 @@ class ThorPT_plots():
                 shading='auto', cmap='coolwarm',
                 vmin=0, vmax=np.max(raw_garnet_arrays[j])
                 )
+            for radius in (iloc):
+                circle = plt.Circle((500, 500), radius, color='black', fill=False, linestyle='--', linewidth=0.2)
+                ax.add_artist(circle)
+            circle = plt.Circle((500, 500), 500, color='black', fill=False, linestyle='-', linewidth=0.8)
+            ax.add_artist(circle)
             ax.axis('off')
             # add a title
             ax.set_title(garnet_names[j], fontsize=14)
@@ -4864,36 +4870,45 @@ class ThorPT_plots():
         t_charact = float(t_charact[-1])
 
         print("The final time is: ", tfinal_ad*t_charact)
-        fig, (ax1, ax2) = plt.subplots(2, 1)
-
-        line1, = ax1.plot(distance, FeO, label="Fe initial", linestyle='dashed', linewidth=3)
-        line2, = ax1.plot(distance, sol_sph(0)[:,1], label="Fe Sph", linewidth=3)
-        line4, = ax2.plot(distance, MgO, label="Mg initial", linestyle='dashed', linewidth=3)
-        line5, = ax2.plot(distance, MnO, label="Mn initial", linestyle='dashed', linewidth=3)
-        line6, = ax2.plot(distance, CaO, label="Ca initial", linestyle='dashed', linewidth=3)
-        line7, = ax2.plot(distance, sol_sph(0)[:,0], label="Mg Sph", linewidth=3)
-        line9, = ax2.plot(distance, sol_sph(0)[:,2], label="Mn Sph", linewidth=3)
-        line11, = ax2.plot(distance, 1 - sol_sph(0)[:,0] - sol_sph(0)[:,1] - sol_sph(0)[:,2], label="Ca Sph", linewidth=3)
-        line12, = ax2.plot(distance, 1 - sol_sph(0)[:,0] - sol_sph(0)[:,1] - sol_sph(0)[:,2], label="Ca 1D", linewidth=3)
+        fig, axs = plt.subplots(2,2)
+        line1, = axs[0,0].plot(distance, FeO, label="Fe initial", linestyle='dashed', linewidth=3)
+        line2, = axs[0,0].plot(distance, sol_sph(0)[:,1], label="Fe Sph", linewidth=3)
+        line4, = axs[0,1].plot(distance, MgO, label="Mg initial", linestyle='dashed', linewidth=3)
+        line5, = axs[1,0].plot(distance, MnO, label="Mn initial", linestyle='dashed', linewidth=3)
+        line6, = axs[1,1].plot(distance, CaO, label="Ca initial", linestyle='dashed', linewidth=3)
+        line7, = axs[0,1].plot(distance, sol_sph(0)[:,0], label="Mg Sph", linewidth=3)
+        line9, = axs[1,0].plot(distance, sol_sph(0)[:,2], label="Mn Sph", linewidth=3)
+        line11, = axs[1,1].plot(distance, 1 - sol_sph(0)[:,0] - sol_sph(0)[:,1] - sol_sph(0)[:,2], label="Ca Sph", linewidth=3)
 
         # show the labels
-        ax1.legend()
-        ax2.legend()
+        axs[0,0].legend()
+        axs[1,0].legend()
+        axs[0,1].legend()
+        axs[1,1].legend()
 
         # set the labels
-        ax1.set_ylabel("Mole fraction")
-        ax2.set_xlabel("Distance [µm]")
-        ax2.set_ylabel("Mole fraction")
+        axs[0,0].set_ylabel("Mole fraction")
+        axs[0,1].set_xlabel("Distance [µm]")
+        axs[0,1].set_xlabel("Distance [µm]")
+        axs[1,0].set_ylabel("Mole fraction")
+        axs[1,1].set_ylabel("Mole fraction")
+        axs[0,1].set_ylabel("Mole fraction")
 
         # set the limits
-        ax1.set_xlim(0, Lr_magnitude)
-        ax2.set_xlim(0, Lr_magnitude)
-        ax1.set_ylim(0, 1)
-        ax2.set_ylim(0, 1)
+        axs[0,0].set_xlim(0, Lr_magnitude)
+        axs[1,0].set_xlim(0, Lr_magnitude)
+        axs[0,1].set_xlim(0, Lr_magnitude)
+        axs[1,1].set_xlim(0, Lr_magnitude)
+        axs[0,0].set_ylim(0, 1)
+        axs[1,0].set_ylim(0, 1)
+        axs[0,1].set_ylim(0, 1)
+        axs[1,1].set_ylim(0, 1)
 
         # set the grid
-        ax1.grid()
-        ax2.grid()
+        axs[0,0].grid()
+        axs[1,0].grid()
+        axs[0,1].grid()
+        axs[1,1].grid()
 
         def update(i):
             # print("The iteration is: ", i)
@@ -4901,9 +4916,8 @@ class ThorPT_plots():
             line7.set_ydata(sol_sph(i)[:,0])
             line9.set_ydata(sol_sph(i)[:,2])
             line11.set_ydata(1 - sol_sph(i)[:,0] - sol_sph(i)[:,1] - sol_sph(i)[:,2])
-            line12.set_ydata(1 - sol_sph(i)[:,0] - sol_sph(i)[:,1] - sol_sph(i)[:,2])
-            ax1.set_title(f"Total Time = {format(float(i*t_charact), '.3f')} Ma")
-            return line2, line7, line9, line11, line12
+            axs[0,0].set_title(f"Total Time = {format(float(i*t_charact), '.3f')} Ma")
+            return line2, line7, line9, line11
 
         ani = animation.FuncAnimation(fig, update, frames=np.linspace(0, tfinal_ad, 100), blit=True)
 
