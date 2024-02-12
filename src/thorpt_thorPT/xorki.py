@@ -4652,7 +4652,7 @@ class ThorPT_plots():
         if img_save is True:
             os.makedirs(
                 f'{self.mainfolder}/img_{self.filename}/garnet_sphere', exist_ok=True)
-            plt.savefig(f'{self.mainfolder}/img_{self.filename}/garnet_sphere/garnet_sphere{rock_tag}.png',
+            plt.savefig(f'{self.mainfolder}/img_{self.filename}/garnet_sphere/garnet_sphere_{rock_tag}.png',
                         transparent=False)
         else:
             plt.show()
@@ -4802,6 +4802,9 @@ class ThorPT_plots():
             'Grossular\nCaO'
             ]
 
+        # filter values below 0.001 for diffused_garnet_arrays[1]
+
+
         raw_garnet_arrays = [FeO, MnO, MgO, CaO]
 
         # Calling the circle converter
@@ -4822,10 +4825,10 @@ class ThorPT_plots():
                 shading='auto', cmap='coolwarm',
                 vmin=0, vmax=np.max(raw_garnet_arrays[j])
                 )
-            for radius in (iloc):
-                circle = plt.Circle((500, 500), radius, color='black', fill=False, linestyle='--', linewidth=0.2)
+            for radius in iloc:
+                circle = plt.Circle((0.5, 0.5), radius/1000, color='black', fill=False, linestyle='--', linewidth=0.2)
                 ax.add_artist(circle)
-            circle = plt.Circle((500, 500), 500, color='black', fill=False, linestyle='-', linewidth=0.8)
+            circle = plt.Circle((0.5, 0.5), 500/1000, color='black', fill=False, linestyle='-', linewidth=0.8)
             ax.add_artist(circle)
             ax.axis('off')
             # add a title
@@ -4838,7 +4841,7 @@ class ThorPT_plots():
         if img_save is True:
             os.makedirs(
                 f'{self.mainfolder}/img_{self.filename}/garnet_sphere', exist_ok=True)
-            plt.savefig(f'{self.mainfolder}/img_{self.filename}/garnet_sphere/garnet_sphere_diffused{rock_tag}.png',
+            plt.savefig(f'{self.mainfolder}/img_{self.filename}/garnet_sphere/garnet_sphere_diffused_{rock_tag}.png',
                         transparent=False)
         else:
             plt.show()
@@ -4999,16 +5002,8 @@ if __name__ == '__main__':
     compPlot = ThorPT_plots(
         data.filename, data.mainfolder, data.rock, data.compiledrock)
 
-    compPlot.garnet_visualization('rock001', img_save=True)
-    for key in data.rock.keys():
-        print(key)
-        compPlot.garnet_visualization(key, img_save=True)
-        print(f"Garnet visualization {key} done")
-
-    for key in data.rock.keys():
-        print(key)
-        compPlot.garnet_visualization_diffusion(
-        key, garnet_size=1000, diffusion_time=20,
+    compPlot.garnet_visualization_diffusion(
+        'rock004', garnet_size=1000, diffusion_time=20,
         input_temperature=510, input_pressure=2.0,
         img_save=True
         )
