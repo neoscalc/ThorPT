@@ -4802,8 +4802,11 @@ class ThorPT_plots():
             'Grossular\nCaO'
             ]
 
-        # filter values below 0.001 for diffused_garnet_arrays[1]
-
+        # get the position of shells with fluid extraction
+        frac_boolean = self.rockdic[rock_tag].extraction_boolean
+        fracture_shell = np.ma.masked_array(iloc, frac_boolean)
+        fracture_shell = fracture_shell.compressed()
+        fracture_shell = fracture_shell/1000
 
         raw_garnet_arrays = [FeO, MnO, MgO, CaO]
 
@@ -4815,8 +4818,8 @@ class ThorPT_plots():
         y = np.linspace(0, 1, m)  # adjust as needed
         xi_map, yi_map = np.meshgrid(x, y)
         # Plot the 4 arrays from diffused_garnet_spheres
-        print(iloc)
-        fig, axs = plt.subplots(2, 2, figsize=(10, 8), constrained_layout=True)
+        # print(iloc)
+        fig, axs = plt.subplots(2, 2, dpi=200, constrained_layout=True)
         for j, ax in enumerate(axs.flatten()):
             # print(garnet_names[j])
             # img = ax.imshow(diffused_garnet_circles[j], cmap='coolwarm', vmin=0, vmax=np.max(raw_garnet_arrays[j]))
@@ -4826,11 +4829,23 @@ class ThorPT_plots():
                 vmin=0, vmax=np.max(raw_garnet_arrays[j])
                 )
             for radius in iloc:
-                circle = plt.Circle((0.5, 0.5), radius/1000, color='black', fill=False, linestyle='--', linewidth=0.2)
+                circle = plt.Circle(
+                    (0.5, 0.5), radius/1000, color='black', fill=False, linestyle='--', linewidth=0.2
+                    )
                 ax.add_artist(circle)
-            circle = plt.Circle((0.5, 0.5), 500/1000, color='black', fill=False, linestyle='-', linewidth=0.8)
+            for radius in fracture_shell:
+                # plot arrow at the edge of the circle pointing upwards
+                ax.arrow(0.5-radius, 0.4, 0, 0.1, color='black', width=0.01, head_width=0.02,
+                         length_includes_head=True, alpha=0.5, fc='#D3D3D3')
+
+            circle = plt.Circle(
+                (0.5, 0.5), 500/1000, color='black', fill=False, linestyle='-', linewidth=0.8
+                )
             ax.add_artist(circle)
             ax.axis('off')
+            # set axis limits
+            ax.set_xlim(0, 0.5)
+            ax.set_ylim(0.45, 1)
             # add a title
             ax.set_title(garnet_names[j], fontsize=14)
             # create a colorbar
@@ -4842,7 +4857,8 @@ class ThorPT_plots():
             os.makedirs(
                 f'{self.mainfolder}/img_{self.filename}/garnet_sphere', exist_ok=True)
             plt.savefig(f'{self.mainfolder}/img_{self.filename}/garnet_sphere/garnet_sphere_diffused_{rock_tag}.png',
-                        transparent=False)
+                        transparent=True)
+            print("Diffused garnet shells saved to file")
         else:
             plt.show()
 
@@ -5005,7 +5021,7 @@ if __name__ == '__main__':
     compPlot.garnet_visualization_diffusion(
         'rock004', garnet_size=1000, diffusion_time=20,
         input_temperature=510, input_pressure=2.0,
-        img_save=True
+        img_save=False
         )
 
     # compPlot.ternary_vs_extraction_cumVol()
