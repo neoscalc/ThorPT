@@ -262,10 +262,12 @@ class Pathfinder_Theoule:
                 # NOTE "pro pressure steps?"
                 if step_p >= self.p_increment:
                 # if step_p >= 100 and step_t >= 1:
-                    new_y.append(val)
-                    new_x.append(yinterp[i])
-                    new_d.append(self.depth[i])
-                    new_t.append(self.time[i])
+                    # FIXME - did not use the t increment and was lower than 15°C - now tested
+                    if step_t >= self.t_increment:
+                        new_y.append(val)
+                        new_x.append(yinterp[i])
+                        new_d.append(self.depth[i])
+                        new_t.append(self.time[i])
                 # define minimum temperature difference for step
                 # NOTE "pro temperature steps?"
                 elif step_t >= self.t_increment:
@@ -682,61 +684,7 @@ class Create_new_or_read_txt_pt_path:
         self.pressures = np.array(pressures)
 
 
-class call_Pathfinder:
-    """
-    A class representing a Pathfinder object.
 
-    Attributes:
-        temp (int): The temperature value.
-        pressure (int): The pressure value.
-        time_var (int): The time variable.
-        depth (int): The depth value.
-        dt (int): The time step value.
-        new_or_read (Create_new_or_read_txt_pt_path): An instance of Create_new_or_read_txt_pt_path class.
-
-    Methods:
-        __init__(self, temp=0, pressure=0, dt=1000): Initializes a Pathfinder object.
-        execute_digi_prograde(self): Executes the digitization process for a prograde P-T path.
-        execute_digi(self): Executes the digitization process for a P-T path.
-        execute_digi_mod(self): Executes the modified digitization process for a P-T path.
-        execute_digi_mod2(self, path_arguments=False, path_increment=False): Executes the second modified digitization process for a P-T path.
-    """
-    def __init__(self, temp=0, pressure=0, dt=1000):
-        """
-        Initializes a Pathfinder object.
-
-        Args:
-            temp (int): The temperature value (default is 0).
-            pressure (int): The pressure value (default is 0).
-            dt (int): The time step value (default is 1000).
-        """
-        self.temp = temp
-        self.pressure = pressure
-        self.time_var = 0
-        self.depth = 0
-        self.dt = dt
-        # Calling digitizing module
-        self.new_or_read = Create_new_or_read_txt_pt_path()
-
-    def execute_digi_prograde(self):
-        """
-        Executes the digitization process for a prograde P-T path.
-        """
-        # Code implementation...
-
-    def execute_digi(self):
-        """
-        Executes the digitization process for a P-T path.
-        """
-        # Code implementation...
-
-    def execute_digi_mod(self):
-        """
-        Executes the modified digitization process for a P-T path.
-        """
-        # Code implementation...
-
-    def execute_digi_mod2(self, path_arguments=False, path_increment=False):
         """
         Executes the second modified digitization process for a P-T path.
 
@@ -745,6 +693,8 @@ class call_Pathfinder:
             path_increment (bool, optional): The path increment value (default is False).
         """
         # Code implementation...
+
+
 class call_Pathfinder:
     """
     A class representing a Pathfinder object.
@@ -1118,6 +1068,7 @@ class call_Pathfinder:
         if path_arguments is False:
             nasa = Pathfinder_Theoule(
                 temperatures, pressures,
+                path_increment=[500, 15, 350],
                 dt=self.dt
                 )
         else:
@@ -1358,7 +1309,7 @@ class Pathfinder:
     Methods:
     - connect_extern: Connects to external modules and performs calculations based on the selected mode.
     """
-    
+
     def __init__(self):
         self.temperature = 0
         self.pressure = 0
