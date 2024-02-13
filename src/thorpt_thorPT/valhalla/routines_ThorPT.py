@@ -106,6 +106,8 @@ def whole_rock_convert_3(ready_mol_bulk=0):
         else:
             scan_element.append(el)
             val = bulk.loc[el]
+            if val < 0.0 or val < 1e-06:
+                val = 0
             scan_val.append(np.round(val, 6))
             new_bulk1.append(scan_element[-1]+'('+str(scan_val[-1])+')')
     new_bulk = ''.join(new_bulk1) + "    " + "*theriak-out preprocessed bulk"

@@ -703,7 +703,7 @@ def read_theriak(theriak_path, database, temperature, pressure, whole_rock):
             'wt/mol', 'wt[g]', 'wt%', 'density[g/ccm]'
         ]
     except ValueError:
-        print("---ERROR:---Value Error with Volume and Desity index")
+        print("---ERROR:---Value Error with Volume and Density index")
 
     try:
         TIL[volume_density_values_fluids] == fluid_check
