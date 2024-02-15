@@ -3398,6 +3398,9 @@ class ThorPT_plots():
         water_content = np.array(water_content).T
         bulk_d18O = np.array(bulk_d18O).T
 
+        all_boolean = np.array(self.comprock.all_extraction_boolean)
+        all_boolean = all_boolean.T
+
         # creating a bar plot for the glaucophane, omphacite and garnet content at step 22 of the arrays with the rock slice on x axis
         m = glaucophane_content + omphacite_content + garnet_content + lawsonite_content
         m_max = np.max(m)
@@ -3500,6 +3503,10 @@ class ThorPT_plots():
             np.savetxt(f"{self.mainfolder}/omphacite_matrix.txt", omphacite_content)
             # save d18O content to matrix txt file
             np.savetxt(f"{self.mainfolder}/d18O_matrix.txt", bulk_d18O)
+            # save the temperature to a txt file
+            np.savetxt(f"{self.mainfolder}/temperature.txt", ts)
+            # save the boolean matrix to txt file
+            np.savetxt(f"{self.mainfolder}/boolean_matrix.txt", all_boolean)
             # run julia script to plot the fluid distribution - not working yet
             """
             import julia
@@ -5025,11 +5032,19 @@ if __name__ == '__main__':
     compPlot = ThorPT_plots(
         data.filename, data.mainfolder, data.rock, data.compiledrock)
 
-    compPlot.garnet_visualization_diffusion(
-        'rock004', garnet_size=1000, diffusion_time=20,
-        input_temperature=510, input_pressure=2.0,
-        img_save=True
-        )
+
+    compPlot.fluid_distribution_sgm23(img_save=True, gif_save=True, x_axis_log=False)
+
+    for key in data.rock.keys():
+        print(key)
+        compPlot.phases_stack_plot(rock_tag=key, img_save=True,
+                    val_tag='volume', transparent=False, fluid_porosity=True)
+
+    # compPlot.garnet_visualization_diffusion(
+    #     'rock004', garnet_size=1000, diffusion_time=20,
+    #     input_temperature=510, input_pressure=2.0,
+    #     img_save=True
+    #     )
 
     # compPlot.ternary_vs_extraction_cumVol()
 
