@@ -87,6 +87,9 @@ compPlot.porosity_plot(rock_tag='NAME')
 compPlot.release_fluid_volume_plot(rock_tag='NAME')
 ```
 
+
+# Funding and author
+
 The development of this package was supported by the European Research Council (ERC) under the European Union's Horizon 2020 research and innovation programme (grant agreement No 850530).
 
 Author: Thorsten A. Markmann (thorsten.markmann@unibe.ch)
