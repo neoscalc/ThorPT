@@ -5033,18 +5033,19 @@ if __name__ == '__main__':
         data.filename, data.mainfolder, data.rock, data.compiledrock)
 
 
-    compPlot.fluid_distribution_sgm23(img_save=True, gif_save=True, x_axis_log=False)
+
+    compPlot.garnet_visualization_diffusion(
+        'rock004', garnet_size=1000, diffusion_time=20,
+        input_temperature=520, input_pressure=2.4,
+        img_save=False
+        )
+
+    """compPlot.fluid_distribution_sgm23(img_save=True, gif_save=True, x_axis_log=False)
 
     for key in data.rock.keys():
         print(key)
         compPlot.phases_stack_plot(rock_tag=key, img_save=True,
-                    val_tag='volume', transparent=False, fluid_porosity=True)
-
-    # compPlot.garnet_visualization_diffusion(
-    #     'rock004', garnet_size=1000, diffusion_time=20,
-    #     input_temperature=510, input_pressure=2.0,
-    #     img_save=True
-    #     )
+                    val_tag='volume', transparent=False, fluid_porosity=True)"""
 
     # compPlot.ternary_vs_extraction_cumVol()
 
