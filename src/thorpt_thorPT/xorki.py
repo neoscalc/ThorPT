@@ -1439,8 +1439,6 @@ class ThorPT_hdf5_reader():
         print("\nThorPT HDF5 file reader finished!")
 
 
-
-
 # Module of plotting functions for reducing the data from modelling with ThorPT
 class ThorPT_plots():
     """
@@ -4045,6 +4043,87 @@ class ThorPT_plots():
         plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/bulk_rock_sensitivity.pdf',transparent=False)
         plt.close()
 
+    def bulk_rock_sensitivity_twin(self):
+        """
+        Calculates and plots the sensitivity of the number of extractions to the differential stress
+        for different rocks with varying bulk rock composition.
+
+        Returns:
+            None
+        """
+
+        # Basic compilation variables
+        first_entry_name = list(self.rockdic.keys())[0]
+        # read temperature and pressure
+        ts = self.rockdic[first_entry_name].temperature
+        ps = self.rockdic[first_entry_name].pressure
+        # read all porosity values for each rock in the model
+        all_porosity = np.array(self.comprock.all_porosity)
+        # extraction boolean list
+        all_boolean = np.array(self.comprock.all_extraction_boolean)
+        color_palette = sns.color_palette("viridis", len(all_porosity))
+        # read the applied differential stress and tensile strength
+        applied_diff_stress = np.array(self.comprock.all_diffs)
+        used_tensile_strengths = self.comprock.all_tensile
+
+        # number of extraction vs differential stress
+        # plotting for multiple rock of different tensile strength with changing diff.stress
+        track_diff = []
+        track_shear = []
+        track_num_ext = []
+        track_tensile = []
+        track_fracture_bool = []
+        color_palette = ['black', '#bb4430', '#7ebdc2', '#f3dfa2', '#c7d66d', '#ffabc8', '#003049', '#ee6c4d']
+        track_legend = []
+        extraction_volumes = []
+
+        # collecting differential stress, extraction number and tensile strength for all rocks
+        for i, item in enumerate(self.comprock.all_diffs):
+            diff = np.unique(item)[-1]
+            fracture_bool = self.comprock.all_frac_bool[i]
+            num_ext = len(fracture_bool[fracture_bool>0])
+            track_diff.append(diff)
+            # track_shear.append()
+            track_num_ext.append(num_ext)
+            # tracking used tensile strength
+            track_tensile.append(used_tensile_strengths[i])
+
+            # create the cumulative volume of extracted fluid
+            extractionVol = np.ma.masked_array(all_porosity[i], all_boolean[i])
+            extractionVol = np.ma.filled(extractionVol, 0)
+            extractionVol = np.cumsum(extractionVol)*100
+            extraction_volumes.append(extractionVol)
+
+        extraction_volumes = np.array(extraction_volumes)
+        final_extraction_values = extraction_volumes.T[-1]
+
+        # looping for bulk rocks to mask array for plotting
+        unique_bulks = np.unique(self.comprock.all_starting_bulk)
+        boolean_bulk = []
+        bulk_mapping = {bulk: index + 1 for index, bulk in enumerate(unique_bulks)}
+
+        for item in self.comprock.all_starting_bulk:
+            boolean_bulk.append(bulk_mapping[item])
+
+        # prepare plot
+        fig, ax1 = plt.subplots(dpi=150)
+        # two y axes
+        ax2 = plt.twinx()  # instantiate a second axes that shares the same x-axis
+        x = np.array(track_diff[1:])
+        ax1.plot(x, final_extraction_values[1:], 'd--', color=color_palette[1], markeredgecolor='black', markersize=10)
+        ax2.plot(x, np.array(track_num_ext[1:]), 'd--', color=color_palette[2], markeredgecolor='black', markersize=10)
+
+        # labels
+        ax1.set_ylabel("Cumulative extracted fluid [Vol%]")
+        ax2.set_ylabel("Number of extractions")
+        ax1.set_xlabel("Differential stress [$\it{MPa}$]")
+        plt.legend(["Cumulative", "Number"], title="Legend")
+
+        subfolder = 'sensitivity'
+        os.makedirs(f'{self.mainfolder}/img_{self.filename}/{subfolder}', exist_ok=True)
+        plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/bulk_rock_sensitivity_twin.pdf',transparent=False)
+        plt.close()
+
     def tensile_strength_sensitivity(self, img_save=False):
         """
         Calculates and plots the sensitivity of the number of extractions to the differential stress
@@ -4569,6 +4648,92 @@ class ThorPT_plots():
         plt.show()
 
 
+    def diff_stress_vs_tensile_vs_numberofextraction(self, color_map_input='coolwarm'):
+
+        # Basic compilation variables
+        first_entry_name = list(self.rockdic.keys())[0]
+        # read temperature and pressure
+        ts = self.rockdic[first_entry_name].temperature
+        ps = self.rockdic[first_entry_name].pressure
+        # read all porosity values for each rock in the model
+        all_porosity = np.array(self.comprock.all_porosity)
+        all_porosity = all_porosity*100
+        extracted_fluid_volume = self.comprock.all_extracted_fluid_volume
+
+        # get sum of each extracted_fluid_volume array
+        sum_extracted_fluid_volume = []
+        for item in extracted_fluid_volume:
+            sum_extracted_fluid_volume.append(np.sum(item))
+
+        # number of extraction vs differential stress
+        # plotting for multiple rock of different tensile strength with changing diff.stress
+        track_diff = []
+        track_num_ext = []
+
+        # collecting differential stress, extraction number and tensile strength for all rocks
+        for i, item in enumerate(self.comprock.all_diffs):
+            diff = np.unique(item)[-1]
+            fracture_bool = self.comprock.all_frac_bool[i]
+            num_ext = len(fracture_bool[fracture_bool>0])
+            track_diff.append(diff)
+            # track_shear.append()
+            track_num_ext.append(num_ext)
+
+        fluid_mode_list = self.comprock.all_fluid_pressure_mode
+        # split strings in fluid_mode_list by "-"
+        fluid_mode_list = [item.split("mean stress") for item in fluid_mode_list]
+        # test last entry of each list in fluid_mode_list
+        # if last entry is euqal to "mean stress" append 1 to filtered_fluid_mode_list and if not, do a float from string and append this value to filtered_fluid_mode_list
+        filtered_fluid_mode_list = []
+        for item in fluid_mode_list:
+            if item[-1] == "":
+                filtered_fluid_mode_list.append(1)
+            else:
+                filtered_fluid_mode_list.append(float(item[-1]))
+
+        # create a 3d plot with diff stress on the x axis, the filtered fluid mode list on the y axis and sum_extracted_fluid_volume on the z axis
+        """fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.scatter(track_diff, filtered_fluid_mode_list, track_num_ext, c='r', marker='o')
+        plt.show()"""
+
+        # do a surface plot excluding the first entry of filtered_fluid_mode_list, track_diff and sum_extracted_fluid_volume
+        # interpolate the data to increase resolution
+        # create a meshgrid for the data
+
+        from scipy.interpolate import griddata
+
+        # Create a grid of points where you want to interpolate
+        grid_x, grid_y = np.mgrid[min(track_diff[1:]):max(track_diff[1:]):100j,
+                                  min(self.comprock.all_tensile[1:]):max(self.comprock.all_tensile[1:]):100j]
+
+        # Perform the interpolation but values below 0 are ot possible
+        grid_z_linear = griddata((track_diff[1:], self.comprock.all_tensile[1:]),
+                                 track_num_ext[1:], (grid_x, grid_y),
+                                 method='linear')
+        grid_z_cubic = griddata((track_diff[1:], self.comprock.all_tensile[1:]),
+                                track_num_ext[1:], (grid_x, grid_y),
+                                method='cubic')
+        grid_z_nearest = griddata((track_diff[1:], self.comprock.all_tensile[1:]),
+                                  track_num_ext[1:], (grid_x, grid_y),
+                                  method='nearest')
+
+        # filter negative values in grid_z_cubic and set them to 0
+        grid_z_cubic[grid_z_cubic < 0] = 0
+
+        # Plot the interpolated surface
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.plot_surface(grid_x, grid_y, grid_z_linear, cmap=color_map_input, edgecolor='none')
+        # ax.plot_surface(grid_x, grid_y, grid_z_cubic, cmap='magma', edgecolor='none')
+        # ax.plot_surface(grid_x, grid_y, grid_z_nearest, cmap='plasma', edgecolor='none')
+        ax.scatter(track_diff[1:], self.comprock.all_tensile[1:], track_num_ext[1:], c='black', marker='o', s=10 )
+        ax.set_xlabel('Differential stress [MPa]')
+        ax.set_ylabel("Tensile strength [MPa]")
+        ax.set_zlabel('Cumulative fluid extraction [cm$^3$]')
+        plt.show()
+
+
     def garnet_visualization(self, rock_tag, img_save=False):
         """
         Plot the garnet distribution in the model.
@@ -4634,7 +4799,7 @@ class ThorPT_plots():
         cvol = np.sum(garnet_content.volume)
 
         # plot data for the four garnet endmembers
-        fig, axs = plt.subplots(2, 2, figsize=(10, 8), constrained_layout=True)
+        fig, axs = plt.subplots(2, 2, dpi=200, constrained_layout=True)
         # fig.subplots_adjust(top=0.88, bottom=0.11, left=0.125, right=0.9, hspace=0.2, wspace=0.2)
         for j, ax in enumerate(axs.flatten()):
             # call a garnet sphere
@@ -5032,24 +5197,30 @@ if __name__ == '__main__':
     compPlot = ThorPT_plots(
         data.filename, data.mainfolder, data.rock, data.compiledrock)
 
+    compPlot.bulk_rock_sensitivity_twin()
+    compPlot.diff_stress_vs_tensile_vs_extractedCumVol(color_map_input='coolwarm')
+    compPlot.diff_stress_vs_tensile_vs_numberofextraction(color_map_input='coolwarm')
 
-
-    compPlot.garnet_visualization_diffusion(
-        'rock004', garnet_size=1000, diffusion_time=20,
-        input_temperature=520, input_pressure=2.4,
-        img_save=False
-        )
-
-    """compPlot.fluid_distribution_sgm23(img_save=True, gif_save=True, x_axis_log=False)
-
-    for key in data.rock.keys():
+    compPlot.diff_stress_vs_mean_stress_vs_total_volume_fluid_extracted(color_map_input='coolwarm')
+    compPlot.diff_stress_vs_mean_stress_vs_extraction(color_map_input='coolwarm')
+    """for key in data.rock.keys():
         print(key)
         compPlot.phases_stack_plot(rock_tag=key, img_save=True,
                     val_tag='volume', transparent=False, fluid_porosity=True)"""
 
-    # compPlot.ternary_vs_extraction_cumVol()
+    """compPlot.garnet_visualization('rock002', img_save=True)
+    compPlot.garnet_visualization_diffusion(
+        'rock004', garnet_size=1000, diffusion_time=5,
+        input_temperature=550, input_pressure=2.5,
+        img_save=False
+        )"""
 
-    # compPlot.bulk_rock_sensitivity_cumVol()
+    """compPlot.fluid_distribution_sgm23(img_save=True, gif_save=True, x_axis_log=False)
+    """
+
+    # compPlot.ternary_vs_extraction_cumVol()
+    compPlot.tensile_strength_sensitivity_cumVol()
+    compPlot.bulk_rock_sensitivity_cumVol()
     # compPlot.tensile_strength_sensitivity_cumVol()
 
     # compPlot.diff_stress_vs_tensile_vs_extractedCumVol(color_map_input='coolwarm')
@@ -5059,9 +5230,6 @@ if __name__ == '__main__':
     #     compPlot.phases_stack_plot(rock_tag=key, img_save=True,
     #                 val_tag='volume', transparent=False, fluid_porosity=True)
     #     # compPlot.oxygen_isotopes(rock_tag=key, img_save=True)
-
-    # compPlot.garnet_visualization('rock001', img_save=False)
-    # compPlot.garnet_visualization_diffusion('rock001', img_save=False)
 
 
     # compPlot.diff_stress_vs_mean_stress_vs_total_volume_fluid_extracted()
