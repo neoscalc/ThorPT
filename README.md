@@ -28,16 +28,29 @@ Quick start: Get the jupyter working directory that includes all instructions an
 Install the package manually into your python environment and develop your own script.
 
 # 1.1 Use the package with the jupyter environment
-Download the jupyter release that includes:
+`Download the jupyter release that includes:`
 - Jupyter notebook script to install ThorPT and all dependencies
 - Jupyter script to run ThorPT and containing functions
 - Datafiles directory with
     - initial file
     - examples for modelling
 
-```Before you start, make sure that you have followed all the steps and executed all the cells in the "install_ThorPT" Jupyter notebook!```
 
-Now, before running ThorPT, you have to declare the working directory of the theriak executable in your theriak-domino directory. To do this, use and open the file "_init_.txt" which is included in the released package you downloaded from github (in the DataFiles folder). Edit the first line after "Theriak:". Here you have to write the path to the directory of the working "theriak" version you have. It is located in the folder where the theriak executable of theriak-domino is located. For the version from 22.02.2024 this is usually the "programs" folder of the software.
+<div class="alert alert-block alert-danger">
+
+<b>__Before you start, make sure that you have followed all the steps and executed all the cells in the "install_ThorPT" Jupyter notebook!__<b>
+</div>
+
+
+`Instructions: Creating the link to the software theriak`
+
+- Declare the working directory of the theriak executable in order to do minimizations with ThorPT.
+- Open the file "_init_.txt" and edit the first line after "Theriak:".<br>(You find the file in the released package you downloaded from github, it is located in the DataFiles folder)
+
+- Insert the file path of theriak. In the latest versions of TheriakDomino it is located in the "programs" folder.
+
+Windows example:
+"Theriak:C:\TheriakDominoWIN.2023.06.11\Programs"
 
 # 1.2 Manual installation to your python environment
 # 1.2.1 Install the package
