@@ -15,7 +15,7 @@ Information and requirements:
 There are currently two ways to use the package. Prerequisite in both cases is to get and install a working version of theriak-domino, because we need access to its executables. Check the software at
 https://github.com/Theriak-Domino/theriak-domino
 
-The latest updates incorporate packages written in the programming language Julia. Therefore, it is now necessary to have a version of Julia (>=v1.9) isntalled on your machine (see juypter installation notebook for more details).
+The latest updates incorporate packages written in the programming language Julia. Therefore, it is now necessary to have a version of Julia (>=v1.9; https://julialang.org/) installed on your machine (see juypter installation notebook for more details).
 
 Further, you need the ThorPT input files to pass informations to the software. This is a simple text file and can be found in the latest release of ThorPT jupyter.
 
@@ -35,7 +35,8 @@ Download the jupyter release that includes:
     - initial file
     - examples for modelling
 
-Before you start, make sure that you have followed all the steps and executed all the cells in the "install_ThorPT" Jupyter notebook!
+```Before you start, make sure that you have followed all the steps and executed all the cells in the "install_ThorPT" Jupyter notebook!```
+
 Now, before running ThorPT, you have to declare the working directory of the theriak executable in your theriak-domino directory. To do this, use and open the file "_init_.txt" which is included in the released package you downloaded from github (in the DataFiles folder). Edit the first line after "Theriak:". Here you have to write the path to the directory of the working "theriak" version you have. It is located in the folder where the theriak executable of theriak-domino is located. For the version from 22.02.2024 this is usually the "programs" folder of the software.
 
 # 1.2 Manual installation to your python environment
