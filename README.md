@@ -33,8 +33,8 @@ Download the jupyter release that includes:
     - initial file
     - examples for modelling
 
-Before starting, make sure you have executed all cells in the "install_ThorPT" Jupyter notebook!
-Now, before running ThorPT, you have to declare the working directory of the theriak executable in your theriak-domino directory. To do this, use and open the file "_init_.txt" which is included in the released package you downloaded from github (in the folder DataFiles). Edit the first line after "Theriak:". Here you have to write the path to the directory of the working "theriak" version you have. It is located in the folder where the theriak executable of theriak-domino is located. For the version from 06.06.2023 this is usually the "programs" folder of the software.
+Before you start, make sure that you have followed all the steps and executed all the cells in the "install_ThorPT" Jupyter notebook!
+Now, before running ThorPT, you have to declare the working directory of the theriak executable in your theriak-domino directory. To do this, use and open the file "_init_.txt" which is included in the released package you downloaded from github (in the DataFiles folder). Edit the first line after "Theriak:". Here you have to write the path to the directory of the working "theriak" version you have. It is located in the folder where the theriak executable of theriak-domino is located. For the version from 22.02.2024 this is usually the "programs" folder of the software.
 
 # 1.2 Manual installation to your python environment
 # 1.2.1 Install the package
