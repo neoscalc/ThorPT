@@ -47,10 +47,7 @@ Install the package manually into your python environment and develop your own s
 - Declare the working directory of the theriak executable in order to do minimizations with ThorPT.
 - Open the file "_init_.txt" and edit the first line after "Theriak:".<br>(You find the file in the released package you downloaded from github, it is located in the DataFiles folder)
 
-- Insert the file path of theriak. In the latest versions of TheriakDomino it is located in the "programs" folder.
-
-Windows example:
-"Theriak:C:\TheriakDominoWIN.2023.06.11\Programs"
+- Insert the file path of theriak. In the latest versions of TheriakDomino it is located in the "programs" folder.<br>Windows example:"Theriak:C:\TheriakDominoWIN.2023.06.11\Programs"
 
 # 1.2 Manual installation to your python environment
 # 1.2.1 Install the package
