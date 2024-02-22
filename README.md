@@ -15,6 +15,8 @@ Information and requirements:
 There are currently two ways to use the package. Prerequisite in both cases is to get and install a working version of theriak-domino, because we need access to its executables. Check the software at
 https://github.com/Theriak-Domino/theriak-domino
 
+The latest updates incorporate packages written in the programming language Julia. Therefore, it is now necessary to have a version of Julia (>=v1.9) isntalled on your machine (see juypter installation notebook for more details).
+
 Further, you need the ThorPT input files to pass informations to the software. This is a simple text file and can be found in the latest release of ThorPT jupyter.
 
 1.1 Recommended for all users
