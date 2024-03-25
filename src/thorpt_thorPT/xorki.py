@@ -2377,7 +2377,7 @@ class ThorPT_plots():
             create_gif(phase_data, self.mainfolder, self.filename,
                        group_key, subfolder=subfolder)
 
-    def phases_stack_plot(self, rock_tag, img_save=False, val_tag=False, transparent=False, fluid_porosity=True):
+    def phases_stack_plot(self, rock_tag, img_save=False, val_tag=False, transparent=False, fluid_porosity=True, cumulative=False):
         """
         Plot the phase changes for P-T-t.
 
@@ -2632,16 +2632,17 @@ class ThorPT_plots():
             # fluid content as vol% of total system volume
             y2 = (st_fluid_before)/system_vol_pre*100
 
-            # NOTE testing cumulative fluid volume
-            y2 = st_fluid_before/system_vol_pre
-            mark_extr = np.array(system_vol_pre-system_vol_post, dtype='bool')
-            mark_extr = np.logical_not(mark_extr)
-            # masked array of system_vol_pre using mark_extr
-            y2 = np.ma.masked_array(y2, mark_extr)
-            # y2 = np.cumsum(y2)*100
-            # get array from masked array with False values be zero
-            y2 = np.ma.filled(y2, 0)
-            y2 = np.cumsum(y2)*100
+            if cumulative is True:
+                # NOTE testing cumulative fluid volume
+                y2 = st_fluid_before/system_vol_pre
+                mark_extr = np.array(system_vol_pre-system_vol_post, dtype='bool')
+                mark_extr = np.logical_not(mark_extr)
+                # masked array of system_vol_pre using mark_extr
+                y2 = np.ma.masked_array(y2, mark_extr)
+                # y2 = np.cumsum(y2)*100
+                # get array from masked array with False values be zero
+                y2 = np.ma.filled(y2, 0)
+                y2 = np.cumsum(y2)*100
 
             # extraction steps
             if fluid_porosity is True:
@@ -3497,6 +3498,8 @@ class ThorPT_plots():
             np.savetxt(f"{self.mainfolder}/glaucophane_matrix.txt", glaucophane_content)
             # save lawsonite content to matrix txt file
             np.savetxt(f"{self.mainfolder}/lawsonite_matrix.txt", lawsonite_content)
+            # save hydrous content to matrix txt file
+            np.savetxt(f"{self.mainfolder}/hydrous_matrix.txt", hydrous_content)
             # save omphacity content to matrix txt file
             np.savetxt(f"{self.mainfolder}/omphacite_matrix.txt", omphacite_content)
             # save d18O content to matrix txt file
@@ -4109,15 +4112,29 @@ class ThorPT_plots():
         fig, ax1 = plt.subplots(dpi=150)
         # two y axes
         ax2 = plt.twinx()  # instantiate a second axes that shares the same x-axis
+        from matplotlib.ticker import MaxNLocator
+        ax2.yaxis.set_major_locator(MaxNLocator(integer=True)) # set y axis to integer values
         x = np.array(track_diff[1:])
-        ax1.plot(x, final_extraction_values[1:], 'd--', color=color_palette[1], markeredgecolor='black', markersize=10)
-        ax2.plot(x, np.array(track_num_ext[1:]), 'd--', color=color_palette[2], markeredgecolor='black', markersize=10)
+        ax1.plot(x, final_extraction_values[1:], 'd--', color='black',
+            markeredgecolor='black', markersize=10, linewidth=1.0, label='Cumulative')
+        ax2.plot(x, np.array(track_num_ext[1:]), 'o--', color='#7ebdc2',
+            markeredgecolor='black', markersize=7, linewidth=1.0, label='Extractions')
+        ax2.set_ylim([0, np.round(max(track_num_ext) + 0.1*max(track_num_ext))])
 
         # labels
-        ax1.set_ylabel("Cumulative extracted fluid [Vol%]")
-        ax2.set_ylabel("Number of extractions")
+        ax1.set_ylabel("Extracted fluid [Vol%]")
+        ax2.set_ylabel("Number of extractions", color='#7ebdc2', fontweight='bold')
         ax1.set_xlabel("Differential stress [$\it{MPa}$]")
-        plt.legend(["Cumulative", "Number"], title="Legend")
+
+        # Color the y-axis labels
+        ax2.tick_params(axis='y', labelcolor='#7ebdc2')
+
+        # Get the legend handles and labels from each axes
+        handles1, labels1 = ax1.get_legend_handles_labels()
+        handles2, labels2 = ax2.get_legend_handles_labels()
+
+        # Create a unified legend
+        fig.legend(handles=handles1 + handles2, labels=labels1 + labels2, loc='upper left')
 
         subfolder = 'sensitivity'
         os.makedirs(f'{self.mainfolder}/img_{self.filename}/{subfolder}', exist_ok=True)
@@ -4192,7 +4209,6 @@ class ThorPT_plots():
             plt.show()
         plt.clf()
         plt.close()
-
 
     def tensile_strength_sensitivity_cumVol(self):
         """
@@ -4376,14 +4392,13 @@ class ThorPT_plots():
         filtered_fluid_mode_list = []
         for item in fluid_mode_list:
             if item[-1] == "":
-                filtered_fluid_mode_list.append(1)
+                filtered_fluid_mode_list.append(0)
             else:
                 filtered_fluid_mode_list.append(float(item[-1]))
 
         # do a surface plot excluding the first entry of filtered_fluid_mode_list, track_diff and track_num_ext
         # interpolate the data to increase resolution
         # create a meshgrid for the data
-        
 
         # Create a grid of points where you want to interpolate
         grid_x, grid_y = np.mgrid[min(track_diff[1:]):max(track_diff[1:]):100j, min(filtered_fluid_mode_list[1:]):max(filtered_fluid_mode_list[1:]):100j]
@@ -4402,7 +4417,7 @@ class ThorPT_plots():
         ax.plot_surface(grid_x, grid_y, grid_z_linear, cmap=color_map_input, edgecolor='none')
         # ax.plot_surface(grid_x, grid_y, grid_z_cubic, cmap='magma', edgecolor='none')
         # ax.plot_surface(grid_x, grid_y, grid_z_nearest, cmap='plasma', edgecolor='none')
-        ax.scatter(track_diff[1:], filtered_fluid_mode_list[1:], track_num_ext[1:], c='black', marker='o', s=10)
+        ax.scatter(track_diff[1:], filtered_fluid_mode_list[1:], track_num_ext[1:], c='black', marker='o', s=3)
         ax.set_xlabel('Differential stress [MPa]')
         ax.set_ylabel("Deviation [MPa] (1 = mean stress)")
         ax.set_zlabel('# of extractions')
@@ -4568,7 +4583,6 @@ class ThorPT_plots():
         ax.zaxis.set_major_formatter('{x:.01f}')
         plt.show()
 
-
     def diff_stress_vs_mean_stress_vs_total_volume_fluid_extracted(self, color_map_input='viridis'):
 
         # Basic compilation variables
@@ -4646,7 +4660,6 @@ class ThorPT_plots():
         ax.set_ylabel("Deviation [MPa] (1 = mean stress)")
         ax.set_zlabel('Cumulative fluid extraction [cm$^3$]')
         plt.show()
-
 
     def diff_stress_vs_tensile_vs_numberofextraction(self, color_map_input='coolwarm'):
 
@@ -4732,7 +4745,6 @@ class ThorPT_plots():
         ax.set_ylabel("Tensile strength [MPa]")
         ax.set_zlabel('Cumulative fluid extraction [cm$^3$]')
         plt.show()
-
 
     def garnet_visualization(self, rock_tag, img_save=False):
         """
@@ -5121,7 +5133,6 @@ class ThorPT_plots():
 
         ani.save(f'{self.mainfolder}/img_{self.filename}/Grt_Spherical+1D_{rock_tag}.gif', writer='imagemagick', fps=7)
 
-
     def mohr_coulomb_diagram(self):
         """
         Plot the Mohr-Coulomb diagram for the given rock failure model.
@@ -5134,7 +5145,7 @@ class ThorPT_plots():
             None
         """
         # mechanical data
-        mechanical_data = self.rockdic['rock001'].failure_model
+        mechanical_data = self.rockdic['rock017'].failure_model
 
         # basis of the modellign data
         first_entry_name = list(self.rockdic.keys())[0]
@@ -5197,16 +5208,20 @@ if __name__ == '__main__':
     compPlot = ThorPT_plots(
         data.filename, data.mainfolder, data.rock, data.compiledrock)
 
+    compPlot.fluid_distribution_sgm23(img_save=True, gif_save=True, x_axis_log=False)
+    # compPlot.mohr_coulomb_diagram()
+
+    # compPlot.diff_stress_vs_mean_stress_vs_extraction(color_map_input='coolwarm')
     compPlot.bulk_rock_sensitivity_twin()
-    compPlot.diff_stress_vs_tensile_vs_extractedCumVol(color_map_input='coolwarm')
+    """compPlot.diff_stress_vs_tensile_vs_extractedCumVol(color_map_input='coolwarm')
     compPlot.diff_stress_vs_tensile_vs_numberofextraction(color_map_input='coolwarm')
 
     compPlot.diff_stress_vs_mean_stress_vs_total_volume_fluid_extracted(color_map_input='coolwarm')
-    compPlot.diff_stress_vs_mean_stress_vs_extraction(color_map_input='coolwarm')
-    """for key in data.rock.keys():
+    compPlot.diff_stress_vs_mean_stress_vs_extraction(color_map_input='coolwarm')"""
+    for key in data.rock.keys():
         print(key)
         compPlot.phases_stack_plot(rock_tag=key, img_save=True,
-                    val_tag='volume', transparent=False, fluid_porosity=True)"""
+                    val_tag='volume', transparent=False, fluid_porosity=True, cumulative=True)
 
     """compPlot.garnet_visualization('rock002', img_save=True)
     compPlot.garnet_visualization_diffusion(
