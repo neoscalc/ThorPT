@@ -246,7 +246,10 @@ def oxygen_isotope_recalculation(isotope_data, oxygen_data):
     return new_O_bulk
 
 
-def fluid_injection_isotope_recalculation(isotope_data, oxygen_data, input_deltaO, input_hydrogen, input_oxygen, interaction_factor=1):
+def fluid_injection_isotope_recalculation(
+        isotope_data, oxygen_data, input_deltaO,
+        input_hydrogen, input_oxygen,
+        interaction_factor=1, fluid_name_tag='water.fluid'):
     """
     Recalculates the bulk oxygen isotope signature after fluid injection.
 
@@ -289,7 +292,7 @@ def fluid_injection_isotope_recalculation(isotope_data, oxygen_data, input_delta
             )
 
     # influx data to reclaculate with
-    input_deltaO = np.float64(temp_input.loc['water.fluid', 0])
+    input_deltaO = np.float64(temp_input.loc[fluid_name_tag, 0])
     input_oxygen = interaction_factor * input_oxygen
 
     # recalculation by factors
@@ -662,13 +665,18 @@ class ThorPT_Routines():
                 # LINK - 6) Mineral Fractionation
                 # mineral (garnet) fractionation - coupled oxygen bulk modification
                 if grt_frac == True:
+                    if master_rock[item]['database'] == 'ds62mp.txt':
+                        garnet_name = 'GRT'
+                    else:
+                        garnet_name = 'GARNET'
+
                     # print("-> Mineral fractionation initiated")
                     # old frac position this line
                     for phase in master_rock[item]['df_element_total'].columns:
                         if '_' in phase:
                             pos = phase.index('_')
                             name = phase[:pos]
-                            if name == 'GARNET':
+                            if name == garnet_name:
                                 # Michelles atigorite fractionation
                                 # # if name=='GARNET' or name=='SERP' or name=='BR':
                                 new_bulk_oxygen = master_rock[item]['minimization'].mineral_fractionation(
@@ -1134,7 +1142,8 @@ class ThorPT_Routines():
                                         master_rock[item]['df_element_total'],
                                         master_rock[rock_react_item]['save_oxygen'][-1],
                                         master_rock[rock_react_item]['fluid_hydrogen'][-1]*fluid_influx_factor,
-                                        master_rock[rock_react_item]['fluid_oxygen'][-1]*fluid_influx_factor
+                                        master_rock[rock_react_item]['fluid_oxygen'][-1]*fluid_influx_factor,
+                                        fluid_name_tag=master_rock[rock_react_item]['database_fluid_name']
                                         )
 
                             # Overwrite for new bulk rock oxygen signature
@@ -1357,13 +1366,17 @@ class ThorPT_Routines():
                 # LINK - 6) Mineral Fractionation
                 # mineral (garnet) fractionation - coupled oxygen bulk modification
                 if grt_frac == True:
+                    if master_rock[item]['database'] == 'ds62mp.txt':
+                        garnet_name = 'GRT'
+                    else:
+                        garnet_name = 'GARNET'
                     # print("-> Mineral fractionation initiated")
                     # old frac position this line
                     for phase in master_rock[item]['df_element_total'].columns:
                         if '_' in phase:
                             pos = phase.index('_')
                             name = phase[:pos]
-                            if name == 'GARNET':
+                            if name == garnet_name:
                                 # Michelles atigorite fractionation
                                 # # if name=='GARNET' or name=='SERP' or name=='BR':
                                 new_bulk_oxygen = master_rock[item]['minimization'].mineral_fractionation(
@@ -1472,15 +1485,15 @@ class ThorPT_Routines():
                     failure_mech = master_rock[item]['Extraction scheme']
                     if failure_mech in ['Factor', 'Dynamic', 'Steady', 'Mohr-Coulomb-Permea2', 'Mohr-Coulomb-Griffith']:
                         # ANCHOR work in progres GRIFFITH
-                    # if factor_method is True or dynamic_method is True or steady_method is True or coulomb is True or coulomb_permea is True or coulomb_permea2 is True:
+                        # if factor_method is True or dynamic_method is True or steady_method is True or coulomb is True or coulomb_permea is True or coulomb_permea2 is True:
                         # LINK Fluid flux & permeability
                         # Fluid flux check - Virtual calculation
                         # Hypothetically momentary fluid flux and permeabiltiy test
                         mü_water = 1e-4
                         # water data
-                        v_water = float(master_rock[item]['df_var_dictionary']['df_volume[ccm]'].loc['water.fluid'].iloc[-1])
-                        d_water = float(master_rock[item]['df_var_dictionary']['df_density[g/ccm]'].loc['water.fluid'].iloc[-1])
-                        weigth_water = master_rock[item]['df_var_dictionary']['df_wt[g]'].iloc[:, -1]['water.fluid']
+                        v_water = float(master_rock[item]['df_var_dictionary']['df_volume[ccm]'].loc[fluid_name_tag].iloc[-1])
+                        d_water = float(master_rock[item]['df_var_dictionary']['df_density[g/ccm]'].loc[fluid_name_tag].iloc[-1])
+                        weigth_water = master_rock[item]['df_var_dictionary']['df_wt[g]'].iloc[:, -1][fluid_name_tag]
                         # system data
                         master_rock[item]['meta_grt_weight']
                         v_system = master_rock[item]['solid_volume_new'] + master_rock[item]['fluid_volume_new'] # modelling solid phases + metastable garnet + fluid
@@ -1611,7 +1624,7 @@ class ThorPT_Routines():
                                 #     print("Keyboard wait exception")
                                 #     keyboard.wait('esc')
                                 master_rock[item]['fluid_extraction'] = Fluid_master(
-                                    phase_data=master_rock[item]['minimization'].df_phase_data.loc[:, 'water.fluid'],
+                                    phase_data=master_rock[item]['minimization'].df_phase_data.loc[:, fluid_name_tag],
                                     ext_data=master_rock[item]['extracted_fluid_data'],
                                     temperature=num+1,
                                     new_fluid_V=master_rock[item]['fluid_volume_new'],
@@ -1621,8 +1634,8 @@ class ThorPT_Routines():
                                     fluid_name_tag=fluid_name_tag
                                     )
                                 # backup before extraction
-                                master_rock[item]['fluid_hydrogen'].append(master_rock[item]['df_element_total']['water.fluid']['H'].copy())
-                                master_rock[item]['fluid_oxygen'].append(master_rock[item]['df_element_total']['water.fluid']['O'].copy())
+                                master_rock[item]['fluid_hydrogen'].append(master_rock[item]['df_element_total'][fluid_name_tag]['H'].copy())
+                                master_rock[item]['fluid_oxygen'].append(master_rock[item]['df_element_total'][fluid_name_tag]['O'].copy())
                                 # Execute the extraction
                                 master_rock[item]['fluid_extraction'].hydrogen_ext_all()
                                 # Read the data of the fluid extracted
@@ -1729,7 +1742,7 @@ class ThorPT_Routines():
         # ---> Summarize time information
         for tt, item in enumerate(master_rock):
             # read the fluid name from the database
-            fluid_name_tag = master_rock['rock000']['database_fluid_name']
+            fluid_name_tag = master_rock[item]['database_fluid_name']
 
             if pathfinder is True:
                 cum_time = np.array(track_time)

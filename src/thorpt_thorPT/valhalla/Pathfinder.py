@@ -368,39 +368,36 @@ class Pathfinder_Theoule:
         self.time = self.time[1:]
         self.depth
 
-        # TODO loop function gives unfiltered data - no overstepping yet as for prograde version
-
-        f_option = 3
+        # TODO loop function gives unfiltered data
         yinterp = self.temp
         c_p_list = self.pressure
-        # option 3 - most convenient approach 13.02.2022
-        if f_option == 3:
-            new_x = [yinterp[0]]
-            new_y = [c_p_list[0]]
-            new_d = [self.depth[0]]
-            new_t = [self.time[0]]
-            for i, val in enumerate(c_p_list):
-                step_p = val - new_y[-1]
-                step_t = yinterp[i] - new_x[-1]
-                # define minimum pressure difference for step
-                # REVIEW "pressure steps?"
-                if step_p >= 1000 or -step_p >= 1000:
+        new_x = [yinterp[0]]
+        new_y = [c_p_list[0]]
+        new_d = [self.depth[0]]
+        new_t = [self.time[0]]
+        for i, val in enumerate(c_p_list):
+            step_p = val - new_y[-1]
+            step_t = yinterp[i] - new_x[-1]
+            # define minimum pressure difference for step
+            # REVIEW "pressure steps?"
+            if step_p >= self.p_increment or -step_p >= self.p_increment:
+                if step_t >= self.t_increment or -step_t >= self.t_increment:
                     new_y.append(val)
                     new_x.append(yinterp[i])
                     new_d.append(self.depth[i])
                     new_t.append(self.time[i])
-                # define minimum temperature difference for step
-                # REVIEW "temperature steps?"
-                elif step_t >= 15 or -step_t >= 15:
-                    new_y.append(val)
-                    new_x.append(yinterp[i])
-                    new_d.append(self.depth[i])
-                    new_t.append(self.time[i])
+            # define minimum temperature difference for step
+            # REVIEW "temperature steps?"
+            elif step_t >= self.t_increment or -step_t >= self.t_increment:
+                new_y.append(val)
+                new_x.append(yinterp[i])
+                new_d.append(self.depth[i])
+                new_t.append(self.time[i])
 
-            yinterp = np.array(new_x)
-            c_p_list = np.array(new_y)
-            self.time = new_t
-            self.depth = new_d
+        yinterp = np.array(new_x)
+        c_p_list = np.array(new_y)
+        self.time = new_t
+        self.depth = new_d
 
         # Selecting only steps with temperature >= 350 °C
         frame = pd.DataFrame([yinterp, c_p_list, self.time, self.depth])
@@ -1080,11 +1077,7 @@ class call_Pathfinder:
                 path_increment=path_increment
                 )
 
-        if loop is True:
-            # ANCHOR new loop routine for P-T path
-            nasa.loop()  # first try to do a loop
-        else:
-            nasa.prograde()  # only for prograde P-T path
+        nasa.prograde()  # only for prograde P-T path
 
         # TODO double peak pressure or cut the first of retrograde path?
         # Update self variables
@@ -1096,7 +1089,7 @@ class call_Pathfinder:
         self.plate_v = nasa.speed
 
     # copy of execute_digi_mod2 - Active loop - solution for prograde plus retrograde modelling
-    def loop_digi(self):
+    def loop_digi(self, path_arguments=False, path_increment=False):
         """
         Performs the loop digitization process.
 
@@ -1110,21 +1103,49 @@ class call_Pathfinder:
         """
         answers = ["new", "stored"]
         # Choose new digitization or stored
-        for val in answers:
-            print(val)
-        answer = input("Pathfinder function - new or stored path? Select answer\n")
-        if answer == answers[0]:
-            self.PathfinderV2.run()
-        elif answer == answers[1]:
-            self.PathfinderV2.stored_digitization()
+        if path_arguments is False:
+            # manual
+            for val in answers:
+                print(val)
+            answer = input(
+                "Pathfinder function - new or stored path? Select answer\n")
+
+            # Selected method from answer - 0 new digitisation - 1 stored txt
+            if answer == answers[0]:
+                self.new_or_read.run()
+            elif answer == answers[1]:
+                self.new_or_read.stored_digitization()
+            else:
+                print("Unexpected end - no P-T file input")
+                time.sleep(10)
+                exit()
         else:
-            exit()
+            # init input
+            answer = path_arguments[1]
+            # Selected method from answer - 0 new digitisation - 1 stored txt
+            if answer == answers[0]:
+                self.new_or_read.run()
+            elif answer == answers[1]:
+                self.new_or_read.stored_digitization()
+            else:
+                print("Unexpected end - no P-T file input")
+                time.sleep(10)
+                exit()
+
         # Store image P-T path in array
-        temperatures = self.PathfinderV2.temperatures
-        pressures = self.PathfinderV2.pressures
+        temperatures = self.new_or_read.temperatures
+        pressures = self.new_or_read.pressures
 
         # convert units into Bar - THIS IS NOT SI units because of theriak input
-        units = input("What was the unit of pressure input? Bar/kbar/GPa/MPa?\n")
+        if path_arguments is False:
+            # Manual
+            units = input(
+                "What was the unit of pressure input? Bar/kbar/GPa/MPa?\n")
+        else:
+            # init input
+            units = path_arguments[2]
+
+        # convert units into Bar - THIS IS NOT SI units because of theriak input
         if units == 'GPa':
             pressures = pressures * 10000
         if units == 'MPa':
@@ -1176,30 +1197,54 @@ class call_Pathfinder:
         t_ret = list(f_path[0][peak_index:])
         p_ret = list(f_path[1][peak_index:])
 
-        # apply interpolation
-        ius = InterpolatedUnivariateSpline(p_pro, t_pro)
-        rbf = Rbf(p_ret, t_ret)
-
         # create array
         p_line = np.linspace(min(pressures), max(pressures), 30)
         p_line2 = np.linspace(max(pressures), pressures[-1], 30)
 
-        # Use interpolation
-        yi = ius(p_line)
-        fi = rbf(p_line2)
+        # apply interpolation
+
+        # prograde test
+        if len(t_pro) > 1 and len(p_pro) > 1:
+            ius = InterpolatedUnivariateSpline(p_pro, t_pro)
+            yi = ius(p_line)
+
+        # retrograde test
+        rbf = Rbf(p_ret, t_ret)     #interpolation
+        fi = rbf(p_line2)           #match with array
 
         # plt.plot(yi, p_line, 'xr-', fi, p_line2, 'xb-', temperatures, pressures, 'd')
+        if len(t_pro) > 1 and len(p_pro) > 1:
+            temperatures = list(np.around(yi, 2)) + list(np.around(fi, 2))
+            pressures = list(np.around(p_line, 2)) + list(np.around(p_line2, 2))
+        else:
+            temperatures = list(np.around(fi, 2))
+            pressures = list(np.around(p_line2, 2))
 
-        temperatures = list(np.around(yi, 2)) + list(np.around(fi, 2))
-        pressures = list(np.around(p_line, 2)) + list(np.around(p_line2, 2))
-
-        # Theoule pathfinder creator
+        """# Theoule pathfinder creator
         nasa = Pathfinder_Theoule(
             temperatures, pressures,
             sub_angle=self.sub_angle,
             plate_speed=self.plate_v,
             dt=self.dt
-        )
+        )"""
+
+        # Theoule pathfinder creator
+        if path_arguments is False:
+            nasa = Pathfinder_Theoule(
+                temperatures, pressures,
+                path_increment=[500, 15, 350],
+                dt=self.dt
+                )
+        else:
+            nasa = Pathfinder_Theoule(
+                temperatures, pressures,
+                plate_speed=path_arguments[3],
+                sub_angle=path_arguments[4],
+                dt=self.dt,
+                path_increment=path_increment
+                )
+
+        # NOTE Creating the main P-T path using the increment values
         nasa.loop()  # first try to do a loop
 
         # TODO double peak pressure or cut the first of retrograde path?
@@ -1208,6 +1253,8 @@ class call_Pathfinder:
         self.pressure = nasa.pressure
         self.time_var = nasa.time
         self.depth = nasa.depth
+        self.sub_angle = nasa.angle
+        self.plate_v = nasa.speed
 
     def simple_digi(self, path_arguments=False):
         """
@@ -1430,7 +1477,7 @@ class Pathfinder:
 
         if answer == 'Mod5':
             # Theoule mod for fitting a subduction rate to a digitized P-T path - loop for pro and retrograde
-            self.theoule.loop_digi()
+            self.theoule.loop_digi(path_arguments, path_increment)
 
             # store P and T values
             self.temperature = self.theoule.temp

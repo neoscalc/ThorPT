@@ -291,7 +291,12 @@ def mineral_translation():
     # end_line = len(read_translation) - 16
     comp_list = read_translation[mineral_data_line+1:]
     for num, item in enumerate(comp_list):
-        line = item.split('\t')
+        if '\n' in item:
+            line = item.split('\n')
+            line = remove_items(line, '')
+            line = line[0].split('\t')
+        else:
+            line = item.split('\t')
         # function to remove all occurences of '' in list
         line = remove_items(line, '')
         # test for the length of the line - if it is 3, it is ok, if not, we need an additional symbol filter
@@ -541,6 +546,9 @@ def read_to_dataframe(index_entry, df_index_as_list, input_in_lines, skip=2, num
             if key == '----------' or key == 'of' or key == 'total' or key == '' or key == '--------':
                 break
             else:
+                # NOTE - NaN bug fix substitute by 0.0 - working? Mistake?
+                if 'NaN' in entry_decoded[key]:
+                    entry_decoded[key] = [0.0 if value == 'NaN' else value for value in entry_decoded[key]]
                 entries = pd.to_numeric(entry_decoded[key])
                 # turns objects into numbers
                 temp_series = pd.Series(entries)

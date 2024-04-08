@@ -5208,8 +5208,14 @@ if __name__ == '__main__':
     compPlot = ThorPT_plots(
         data.filename, data.mainfolder, data.rock, data.compiledrock)
 
-    compPlot.fluid_distribution_sgm23(img_save=True, gif_save=True, x_axis_log=False)
-    # compPlot.mohr_coulomb_diagram()
+
+    for key in data.rock.keys():
+        print(key)
+        compPlot.phases_stack_plot(rock_tag=key, img_save=True,
+                    val_tag='volume', transparent=False, fluid_porosity=True, cumulative=True)
+
+    """compPlot.fluid_distribution_sgm23(img_save=True, gif_save=True, x_axis_log=False)
+    # compPlot.mohr_coulomb_diagram()"""
 
     # compPlot.diff_stress_vs_mean_stress_vs_extraction(color_map_input='coolwarm')
     compPlot.bulk_rock_sensitivity_twin()
@@ -5218,10 +5224,7 @@ if __name__ == '__main__':
 
     compPlot.diff_stress_vs_mean_stress_vs_total_volume_fluid_extracted(color_map_input='coolwarm')
     compPlot.diff_stress_vs_mean_stress_vs_extraction(color_map_input='coolwarm')"""
-    for key in data.rock.keys():
-        print(key)
-        compPlot.phases_stack_plot(rock_tag=key, img_save=True,
-                    val_tag='volume', transparent=False, fluid_porosity=True, cumulative=True)
+    
 
     """compPlot.garnet_visualization('rock002', img_save=True)
     compPlot.garnet_visualization_diffusion(
