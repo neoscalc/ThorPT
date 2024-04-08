@@ -5224,7 +5224,6 @@ if __name__ == '__main__':
 
     compPlot.diff_stress_vs_mean_stress_vs_total_volume_fluid_extracted(color_map_input='coolwarm')
     compPlot.diff_stress_vs_mean_stress_vs_extraction(color_map_input='coolwarm')"""
-    
 
     """compPlot.garnet_visualization('rock002', img_save=True)
     compPlot.garnet_visualization_diffusion(
