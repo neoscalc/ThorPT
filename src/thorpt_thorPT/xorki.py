@@ -2475,7 +2475,7 @@ class ThorPT_plots():
                     y.loc['Garnet',k] = np.cumsum(garnet.volume[:1+kk])[-1]
                     kk += 1
             # y.loc['Garnet'][y.loc['Garnet']==0] = np.nan
-            y.loc['Garnet', y.loc['Garnet'] == 0] = np.nan
+            # y.loc['Garnet', y.loc['Garnet'] == 0] = np.nan
 
         # nomrmalize the volume data to starting volume
         y = y/y.sum()[0]
@@ -5213,6 +5213,7 @@ if __name__ == '__main__':
         print(key)
         compPlot.phases_stack_plot(rock_tag=key, img_save=True,
                     val_tag='volume', transparent=False, fluid_porosity=True, cumulative=True)
+        compPlot.oxygen_isotopes(rock_tag=key, img_save=True)
 
     """compPlot.fluid_distribution_sgm23(img_save=True, gif_save=True, x_axis_log=False)
     # compPlot.mohr_coulomb_diagram()"""
