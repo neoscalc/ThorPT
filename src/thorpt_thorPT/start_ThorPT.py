@@ -587,18 +587,27 @@ def run_main_routine():
                 layers_array[i] = float(entry[0])
             slab_thickness = np.sum(layers_array)
             layers_array = layers_array
-            layers_array = np.insert(layers_array, 0, 0)
-            positional_layer = np.cumsum(layers_array)[:-1][::-1]
+            layers_array = np.append(layers_array, 0)[::-1]
+            positional_layer = np.cumsum(layers_array)[0:-1][::-1]
 
             # get temperature matrix, iterating slice-wise with increasing depth
             temperature_matrix = []
             for temperature_top in temperatures:
-                temperature_bottom = temperature_top - 100
-                temperature_array = temperature_top + (temperature_bottom - temperature_top) * scipy.special.erf(positional_layer/(slab_thickness/2))
+                temperature_bottom = temperature_top + 100
+                temperature_array = temperature_top + (temperature_bottom - temperature_top) * \
+                            scipy.special.erf(positional_layer/(slab_thickness/2))
                 temperature_matrix.append(temperature_array)
 
+            # get pressure matrix, iterating slice-wise with increasing depth
+            pressure_matrix = []
+            density = 3300
+            for pressure_top in pressures:
+                overburden = np.cumsum(layers_array)[:-1]
+                pressure_array = pressure_top + density * 9.81 * overburden * 1e-5
+                pressure_matrix.append(pressure_array)
 
-            ThorPT = routines_ThorPT.ThorPT_Routines(temperature_matrix, pressures, master_rock, rock_origin,
+
+            ThorPT = routines_ThorPT.ThorPT_Routines(temperature_matrix, pressure_matrix, master_rock, rock_origin,
                 track_time, track_depth, grt_frac, path_method,
                 lowest_permeability, conv_speed, angle, time_step, init_data['theriak'])
             ThorPT.transmitting_multi_rock_altPT()

@@ -1899,14 +1899,14 @@ class ThorPT_Routines():
                 if isinstance(master_rock[item]['theriak_input_record'], dict) == False:
                     master_rock[item]['theriak_input_record'] = {}
                     master_rock[item]['theriak_input_record']['temperature'] = [temperature[tt]]
-                    master_rock[item]['theriak_input_record']['pressure'] = [pressures[num]]
+                    master_rock[item]['theriak_input_record']['pressure'] = [pressures[num][tt]]
                     master_rock[item]['theriak_input_record']['bulk'] = [master_rock[item]['new_bulk']]
                     print("Tracking theriak -> Create dictionary -> first entry")
 
                 # test for empty dictionary
                 elif isinstance(master_rock[item]['theriak_input_record'], dict) == True:
                     master_rock[item]['theriak_input_record']['temperature'].append(temperature[tt])
-                    master_rock[item]['theriak_input_record']['pressure'].append(pressures[num])
+                    master_rock[item]['theriak_input_record']['pressure'].append(pressures[num][tt])
                     master_rock[item]['theriak_input_record']['bulk'].append(master_rock[item]['new_bulk'])
                     print("Tracking theriak -> dictionary exists -> add entry")
 
@@ -1915,7 +1915,7 @@ class ThorPT_Routines():
                 # LINK 1) Initialisation of the rock system
                 master_rock[item]['minimization'] = Therm_dyn_ther_looper(self.theriak,
                     master_rock[item]['database'], master_rock[item]['new_bulk'],
-                    temperature[tt], pressures[num], master_rock[item]['df_var_dictionary'],
+                    temperature[tt], pressures[num][tt], master_rock[item]['df_var_dictionary'],
                     master_rock[item]['df_h2o_content_dic'], master_rock[item]['df_element_total'],
                     num, fluid_name_tag=master_rock[item]['database_fluid_name'])
                 # //////////////////////////////////////////////////////////////////////////
@@ -1923,10 +1923,10 @@ class ThorPT_Routines():
                 # calculating difference between new Volumes and previous P-T-step volumes - for derivate, not difference!!!
                 if num < 1:
                     master_rock[item]['master_norm'].append(np.sqrt(
-                        (temperature[tt]-temperatures[num][tt])**2 + (pressures[num]-pressures[num])**2))
+                        (temperature[tt]-temperatures[num][tt])**2 + (pressures[num][tt]-pressures[num][tt])**2))
                 else:
                     master_rock[item]['master_norm'].append(np.sqrt(
-                        (temperature-temperatures[num-1][tt])**2 + (pressures[num]-pressures[num-1])**2))
+                        (temperature-temperatures[num-1][tt])**2 + (pressures[num][tt]-pressures[num-1][tt])**2))
 
                 # //////////////////////////////////////////////////////////////////////////
                 # 1) Minimization
@@ -2102,7 +2102,7 @@ class ThorPT_Routines():
                         print("Garnet protocol")
                         # take al modelled garnets
                         # LINK - Metastable garnet call
-                        metastable_garnet = Garnet_recalc(self.theriak, master_rock[item]['garnet'], temperature[tt], pressures[num])
+                        metastable_garnet = Garnet_recalc(self.theriak, master_rock[item]['garnet'], temperature[tt], pressures[num][tt])
                         metastable_garnet.recalculation_of_garnets()
                         print(f"Fluid volume = {master_rock[item]['fluid_volume_new']} ccm")
                         print(f"Solid volume = {master_rock[item]['solid_volume_new']} ccm")
@@ -2112,7 +2112,7 @@ class ThorPT_Routines():
                     if len(master_rock[item]['garnet']) > 1 and master_rock[item]['garnet_check'][-1] == 1:
                         print("protocol")
                         # take all garnets but last one
-                        metastable_garnet = Garnet_recalc(self.theriak, master_rock[item]['garnet'][:-1], temperature[tt], pressures[num])
+                        metastable_garnet = Garnet_recalc(self.theriak, master_rock[item]['garnet'][:-1], temperature[tt], pressures[num][tt])
                         metastable_garnet.recalculation_of_garnets()
                         print(f"Fluid volume = {master_rock[item]['fluid_volume_new']} ccm")
                         print(f"Solid volume = {master_rock[item]['solid_volume_new']} ccm")
@@ -2160,7 +2160,7 @@ class ThorPT_Routines():
 
                     # Start Extraction Master Module
                     master_rock[item]['fluid_calculation'] = Ext_method_master(
-                        pressures[num],
+                        pressures[num][tt],
                         fluid_before, master_rock[item]['fluid_volume_new'],
                         master_rock[item]['solid_volume_before'], master_rock[item]['solid_volume_new'],
                         master_rock[item]['save_factor'], master_rock[item]['master_norm'][-1],
@@ -2293,7 +2293,7 @@ class ThorPT_Routines():
                                 master_rock[item]['fluid_calculation'].frac_respo)
                             master_rock[item]['fracture_value'] = 1 + \
                                 master_rock[item]['tensile strength'] / \
-                                (pressures[num]/10)
+                                (pressures[num][tt]/10)
 
                             # Fracture flag trigger
                             # activate fracture flag trigger when vol% of fluid is above or equal 10%
@@ -2628,13 +2628,18 @@ class ThorPT_Routines():
 
             for tt, rock in enumerate(master_rock):
                 entries = list(master_rock[rock].keys())
-                if np.dim(temperatures) > 1:
+                if np.ndim(temperatures) > 1:
                     hf.create_dataset(f"{rock}/Parameters/temperatures", data=np.array(temperatures).T[tt])
-                elif np.dim(temperatures) == 1:
+                elif np.ndim(temperatures) == 1:
                     hf.create_dataset(f"{rock}/Parameters/temperatures", data=temperatures)
                 else:
-                    print(f"Temperature array warning. Number of dimensions = {np.dim(temperatures)} - is not a valid array.".format(temperatures))
-                hf.create_dataset(f"{rock}/Parameters/pressures", data=pressures)
+                    print(f"Temperature array warning. Number of dimensions = {np.ndim(temperatures)} - is not a valid array.".format(temperatures))
+                if np.ndim(pressures) > 1:
+                    hf.create_dataset(f"{rock}/Parameters/pressures", data=np.array(pressures).T[tt])
+                elif np.ndim(pressures) == 1:
+                    hf.create_dataset(f"{rock}/Parameters/pressures", data=pressures)
+                else:
+                    print(f"Pressure array warning. Number of dimensions = {np.ndim(pressures)} - is not a valid array.".format(pressures))
                 hf.create_dataset(f"{rock}/Parameters/convergence_speed", data=conv_speed)
                 hf.create_dataset(f"{rock}/Parameters/subuction_angle", data=angle)
 
@@ -2731,7 +2736,8 @@ class ThorPT_Routines():
 
                         # NOTE - New naming convention for the dictionary keys
                         # New naming convention prepared 2023.12.07
-                        if str(master_rock[rock][item].keys()) == "dict_keys(['df_N', 'df_volume/mol', 'df_volume[ccm]', 'df_vol%', 'df_wt/mol', 'df_wt[g]', 'df_wt%', 'df_density[g/ccm]'])":
+                        if str(master_rock[rock][item].keys()) == "dict_keys(['df_N', \
+                                    'df_volume/mol', 'df_volume[ccm]', 'df_vol%', 'df_wt/mol', 'df_wt[g]', 'df_wt%', 'df_density[g/ccm]'])":
                             new_dic_names = ['df_N', 'df_vol_mol', 'df_volume', 'df_vol%', 'df_wt_mol', 'df_wt', 'df_wt%', 'df_density']
                             old_dic_names = list(master_rock[rock][item].keys())
                             for jj, entry in enumerate(new_dic_names):
