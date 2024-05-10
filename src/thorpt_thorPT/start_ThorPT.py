@@ -566,20 +566,47 @@ def run_main_routine():
                 coulomb_permea2
                 )"""
 
-        ThorPT = routines_ThorPT.ThorPT_Routines(temperatures, pressures, master_rock, rock_origin,
+        # Initializing the main module for the routines and select the routine given by the anser in the init file
+        if answer == 1:
+            ThorPT = routines_ThorPT.ThorPT_Routines(temperatures, pressures, master_rock, rock_origin,
                 track_time, track_depth, grt_frac, path_method,
                 lowest_permeability, conv_speed, angle, time_step, init_data['theriak'])
-
-
-        if answer == 1:
             ThorPT.unreactive_multi_rock()
         elif answer == 2:
+            ThorPT = routines_ThorPT.ThorPT_Routines(temperatures, pressures, master_rock, rock_origin,
+                track_time, track_depth, grt_frac, path_method,
+                lowest_permeability, conv_speed, angle, time_step, init_data['theriak'])
             ThorPT.transmitting_multi_rock()
+        elif answer == 3:
+            import scipy.special
+            # layered model and get matrix of temperatures and pressures
+            layers_array = np.zeros(len(init_data['geometry']))
+            # convert each entry in layers_array to float
+            for i, entry in enumerate(init_data['geometry']):
+                print(entry)
+                layers_array[i] = float(entry[0])
+            slab_thickness = np.sum(layers_array)
+            layers_array = layers_array
+            layers_array = np.insert(layers_array, 0, 0)
+            positional_layer = np.cumsum(layers_array)[:-1][::-1]
+
+            # get temperature matrix, iterating slice-wise with increasing depth
+            temperature_matrix = []
+            for temperature_top in temperatures:
+                temperature_bottom = temperature_top - 100
+                temperature_array = temperature_top + (temperature_bottom - temperature_top) * scipy.special.erf(positional_layer/(slab_thickness/2))
+                temperature_matrix.append(temperature_array)
+
+
+            ThorPT = routines_ThorPT.ThorPT_Routines(temperature_matrix, pressures, master_rock, rock_origin,
+                track_time, track_depth, grt_frac, path_method,
+                lowest_permeability, conv_speed, angle, time_step, init_data['theriak'])
+            ThorPT.transmitting_multi_rock_altPT()
         else:
             print("Script is ending...\u03BA\u03B1\u03BB\u03B7\u03BD\u03C5\u03C7\u03C4\u03B1!")
 
 
-        if answer == 1 or answer == 2:
+        if answer == 1 or answer == 2 or answer == 3:
 
             sound_flag = True
             if sound_flag is True:
