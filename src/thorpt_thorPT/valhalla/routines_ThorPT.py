@@ -358,7 +358,7 @@ class ThorPT_Routines():
     def __init__(self,
             temperatures, pressures, master_rock, rock_origin,
             track_time, track_depth, garnet_fractionation, path_methods,
-            lowest_permeability, speed, angle, time_step, theriak):
+            lowest_permeability, speed, angle, time_step, theriak, debugging_recorder):
         """
         Initialize the ThorPT class.
 
@@ -392,6 +392,7 @@ class ThorPT_Routines():
         self.angle = angle
         self.time_step = time_step
         self.theriak = theriak
+        self.debugging_recorder = debugging_recorder
 
     def unreactive_multi_rock(self):
         """
@@ -1009,8 +1010,6 @@ class ThorPT_Routines():
 
         ar_flow = np.array(v_fluid_cubic_track)
         ar_perma = np.array(v_fluid_cubicp_track)
-
-
 
     def transmitting_multi_rock(self):
         """
@@ -1722,6 +1721,11 @@ class ThorPT_Routines():
         Returns:
             None
         """
+        # save the list self.debugging_recorder to txt file
+        with open('debugging_recorder.txt', 'w') as f:
+            for item in self.debugging_recorder:
+                f.write("%s\n" % item)
+
 
         # Main variables petrology
         temperatures = self.temperatures

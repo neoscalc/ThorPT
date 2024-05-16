@@ -10,6 +10,7 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 import time
+import scipy.special
 
 import platform
 import json
@@ -121,6 +122,50 @@ def read_temperature_pressure_txt():
     pressures = np.array(pressures)
 
     return temperatures, pressures
+
+def layered_model_PTpatch(temperatures, pressures, layers, temperature_increase_to_bottom=100):
+    """
+    Creates a layered model for a P-T patch.
+
+    Args:
+        temperatures (list): The temperature array from the digitized P-T path.
+        pressures (list): The pressure array from the digitized P-T path.
+        layers_array (list): The array of layer thicknesses.
+        temperature_increase_to_bottom (int): The temperature increase to the bottom.
+
+    Returns:
+        temperature_matrix (list): The temperature matrix.
+        pressure_matrix (list): The pressure matrix.
+    """
+
+    layers_array = np.zeros(len(layers))
+    # convert each entry in layers_array to float
+    for i, entry in enumerate(layers):
+        # print(entry)
+        layers_array[i] = float(entry[0])
+    slab_thickness = np.sum(layers_array)
+    layers_array = layers_array
+    layers_array = np.append(layers_array, 0)[::-1]
+    positional_layer = np.cumsum(layers_array)[0:-1][::-1]
+
+    # get temperature matrix, iterating slice-wise with increasing depth
+    temperature_matrix = []
+    for temperature_top in temperatures:
+        temperature_bottom = temperature_top + temperature_increase_to_bottom
+        temperature_array = temperature_top + (temperature_bottom - temperature_top) * \
+                    scipy.special.erf(positional_layer/(slab_thickness/2))
+        temperature_matrix.append(temperature_array)
+
+    # get pressure matrix, iterating slice-wise with increasing depth
+    pressure_matrix = []
+    density = 3300
+    for pressure_top in pressures:
+        overburden = np.cumsum(layers_array)[:-1]
+        pressure_array = pressure_top + density * 9.81 * overburden * 1e-5
+        pressure_matrix.append(pressure_array)
+
+    return temperature_matrix, pressure_matrix
+
 
 class Pathfinder_Theoule:
     """
@@ -1338,7 +1383,6 @@ class call_Pathfinder:
         self.depth = np.full(len(temperatures),np.nan)
         self.sub_angle = "Undefined"
         self.plate_v = "Undefined"
-
 
 
 class Pathfinder:
