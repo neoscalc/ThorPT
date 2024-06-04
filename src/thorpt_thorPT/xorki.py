@@ -1258,10 +1258,12 @@ class ThorPT_hdf5_reader():
 
                 volume_data = copy.deepcopy(df_var_d['df_volume'])
                 volume_data.columns = phases
+
                 volume_data[np.isnan(volume_data) == True] = 0
 
                 mass_abs_data = copy.deepcopy(df_var_d['df_wt'])
                 mass_abs_data.columns = phases
+
                 mass_abs_data[np.isnan(mass_abs_data) == True] = 0
 
                 if 'fluid' in volume_data.columns:
@@ -2408,9 +2410,8 @@ class ThorPT_plots():
                 "Please provide what you want to convert to a stack. ['vol%', 'volume', 'wt%', 'wt']")
             tag = 'df_'+tag_in
         else:
-            tag_in = val_tag
             if val_tag in ['vol%', 'volume', 'wt%', 'wt']:
-                tag = 'df_'+tag_in
+                tag = 'df_'+ val_tag
                 pass
             else:
                 print("Try again and select a proper value for stack plot input")
@@ -5213,7 +5214,7 @@ if __name__ == '__main__':
         print(key)
         compPlot.phases_stack_plot(rock_tag=key, img_save=True,
                     val_tag='volume', transparent=False, fluid_porosity=True, cumulative=True)
-        compPlot.oxygen_isotopes(rock_tag=key, img_save=True)
+        # compPlot.oxygen_isotopes(rock_tag=key, img_save=True)
 
     """compPlot.fluid_distribution_sgm23(img_save=True, gif_save=True, x_axis_log=False)
     # compPlot.mohr_coulomb_diagram()"""
