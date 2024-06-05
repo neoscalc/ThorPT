@@ -2878,7 +2878,7 @@ class ThorPT_plots():
         if img_save is True:
             os.makedirs(
                     f'{self.mainfolder}/img_{self.filename}/{subfolder}', exist_ok=True)
-            plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}_oxygen_isotope_plot.png',
+            plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}_oxygen_isotope_plot.pdf',
                             transparent=False, facecolor='white')
         else:
             plt.show()
@@ -5212,9 +5212,9 @@ if __name__ == '__main__':
 
     for key in data.rock.keys():
         print(key)
-        compPlot.phases_stack_plot(rock_tag=key, img_save=True,
-                    val_tag='volume', transparent=False, fluid_porosity=True, cumulative=True)
-        # compPlot.oxygen_isotopes(rock_tag=key, img_save=True)
+        # compPlot.phases_stack_plot(rock_tag=key, img_save=True,
+        #             val_tag='volume', transparent=False, fluid_porosity=True, cumulative=True)
+        compPlot.oxygen_isotopes(rock_tag=key, img_save=True)
 
     """compPlot.fluid_distribution_sgm23(img_save=True, gif_save=True, x_axis_log=False)
     # compPlot.mohr_coulomb_diagram()"""

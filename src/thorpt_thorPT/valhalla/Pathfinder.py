@@ -166,6 +166,63 @@ def layered_model_PTpatch(temperatures, pressures, layers, temperature_increase_
 
     return temperature_matrix, pressure_matrix
 
+def crust2layer_model(pressure_array, time, speed, angle, dt=10000):
+
+    # read layermodel.txt
+    with open('layermodel.txt') as f:
+        lines = f.readlines()
+        for item in lines:
+            if 'layers' in item:
+                # split item by :
+                layers = item.split(':')
+                layers = layers[1].split(',')
+                number_of_layers = len(layers)
+            if 'rho' in item:
+                rho = item.split(':')
+                rho = rho[1].split(',')
+                # add number to rho_list for each number of layers
+                rho_list = np.zeros(number_of_layers)
+                for i in range(number_of_layers):
+                    rho_list[i] = float(rho[i])
+            if 'thickness' in item:
+                thickness = item.split(':')
+                thickness = thickness[1].split(',')
+                thickness_list = []
+                for val in thickness:
+                    if val == 'increasing':
+                        pass
+                    else:
+                        thickness_list.append(float(val))
+
+    depth = []
+    crust_d = 0
+    c_p_list = []
+    # calculated pressure with the layer model
+    c_p_zero = 0
+    for i in range(len(thickness_list)):
+        c_p_zero += rho_list[i] * thickness_list[i] * 9.81 / 10**5
+    c_p = c_p_zero
+
+    # c_p = self.rho[1] * depth * 1000 * 9.81 / 10**5
+    d_step = speed * dt * abs(np.sin(angle/180*np.pi))
+
+    while c_p < pressure_array[-1]:
+        # calc pressure in bar
+        c_p = c_p_zero + (rho_list[-1]*(crust_d) * 9.81 / 10**5)
+        print(c_p)
+        # c_p = self.rho[1] * depth * 1000 * 9.81 / 10**5
+
+        if c_p < pressure_array[0]:
+            crust_d = crust_d + d_step
+        else:
+            crust_d = crust_d + d_step
+            time.append(time[-1]+dt)
+            depth.append(crust_d + sum(thickness_list))
+            c_p_list.append(c_p)
+
+    print('End-depth is: {} km'.format(depth[-1]))
+
+    return c_p_list, time, depth
 
 class Pathfinder_Theoule:
     """
@@ -230,7 +287,7 @@ class Pathfinder_Theoule:
         # prepare spline from input P-T
         spl = splrep(self.pressure, self.temp)
 
-        depth = 1000
+        """depth = 1000
         crust_d = 1000
         c_p_list = []
         # calculated pressure with 1km of starting cont. crust of density 2800
@@ -252,15 +309,19 @@ class Pathfinder_Theoule:
                 self.depth.append(depth)
                 c_p_list.append(c_p)
 
-        print('End-depth is: {} km'.format(depth))
+        print('End-depth is: {} km'.format(depth))"""
 
+        # Construct layer model for pressure, depth and time model
+        c_p_list, self.time, self.depth = crust2layer_model(self.pressure, self.time, self.speed, self.angle, self.dt)
+
+        # Fit the model to the P-T path
         yinterp = splev(c_p_list, spl)
         # plt.plot(c_p_list, yinterp, 'x--', markersize = 5)
         # plt.plot(self.pressure, self.temp, '-.')
 
         f_option = 3
 
-        # filter option #1 - rough 300 bar filter, no caution for temperature
+        """# filter option #1 - rough 300 bar filter, no caution for temperature
         if f_option == 1:
             while np.diff(c_p_list)[0] < self.p_increment:
                 num = round(300/np.diff(c_p_list)[0])
@@ -292,6 +353,7 @@ class Pathfinder_Theoule:
 
             yinterp = np.array(new_x)
             c_p_list = np.array(new_y)
+            """
 
         # option 3 - most convenient approach 13.02.2022
         # TODO: energy potential argument
@@ -459,6 +521,9 @@ class Pathfinder_Theoule:
 
         self.temp = yinterp
         self.pressure = c_p_list
+
+
+
 
 
 class Pathfinder_calc:
