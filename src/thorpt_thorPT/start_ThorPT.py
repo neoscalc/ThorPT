@@ -588,6 +588,15 @@ def run_main_routine():
         if answer == 1:
             debugging_recorder.append("Routine 1 selected.\n")
             # routine 1 simulates every rock individually - no fluid transport between rocks
+
+            """
+            # metastable test
+            temperatures = np.array([500.0, 550.0])
+            pressures = np.array([20000.0, 21500.0])
+            track_time = track_time[:2]
+            track_depth[17:19]
+            """
+
             ThorPT = routines_ThorPT.ThorPT_Routines(temperatures, pressures, master_rock, rock_origin,
                 track_time, track_depth, grt_frac, path_method,
                 lowest_permeability, conv_speed, angle, time_step, init_data['theriak'], debugging_recorder)

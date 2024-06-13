@@ -507,6 +507,12 @@ class ThorPT_Routines():
 
 
                 # Send information to the theriak wrapper
+                """
+                # test for metastable calculation
+                if num < 1:
+                    master_rock[item]['new_bulk'] = 'O(22.398)AL(1.877)CA(1.486)FE(0.596)H(2.993)K(0.032)MG(1.725)NA(0.66)SI(6.709)TI(0.206)    *metastable test'
+                """
+
                 master_rock[item]['minimization'] = Therm_dyn_ther_looper(self.theriak,
                     master_rock[item]['database'], master_rock[item]['new_bulk'],
                     temperature, pressures[num], master_rock[item]['df_var_dictionary'],
@@ -987,6 +993,7 @@ class ThorPT_Routines():
                     #                 fluid_oxygen)/(rockOxy - oxy_mole_fluid)
 
                 else:
+                    # No fluid in the system
                     master_rock[item]['save_factor'].append(0)
                     # master_rock[item]['diff. stress'].append(0)
                     master_rock[item]['fracture bool'].append(0)

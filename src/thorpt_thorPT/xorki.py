@@ -5134,7 +5134,7 @@ class ThorPT_plots():
 
         ani.save(f'{self.mainfolder}/img_{self.filename}/Grt_Spherical+1D_{rock_tag}.gif', writer='imagemagick', fps=7)
 
-    def mohr_coulomb_diagram(self):
+    def mohr_coulomb_diagram(self, rock_tag):
         """
         Plot the Mohr-Coulomb diagram for the given rock failure model.
 
@@ -5146,7 +5146,7 @@ class ThorPT_plots():
             None
         """
         # mechanical data
-        mechanical_data = self.rockdic['rock017'].failure_model
+        mechanical_data = self.rockdic[rock_tag].failure_model
 
         # basis of the modellign data
         first_entry_name = list(self.rockdic.keys())[0]
@@ -5212,9 +5212,10 @@ if __name__ == '__main__':
 
     for key in data.rock.keys():
         print(key)
-        # compPlot.phases_stack_plot(rock_tag=key, img_save=True,
-        #             val_tag='volume', transparent=False, fluid_porosity=True, cumulative=True)
-        compPlot.oxygen_isotopes(rock_tag=key, img_save=True)
+        compPlot.phases_stack_plot(rock_tag=key, img_save=True,
+                     val_tag='volume', transparent=False, fluid_porosity=True, cumulative=True)
+        # compPlot.oxygen_isotopes(rock_tag=key, img_save=True)
+        # compPlot.permeability_plot(rock_tag=key, img_save=True)
 
     """compPlot.fluid_distribution_sgm23(img_save=True, gif_save=True, x_axis_log=False)
     # compPlot.mohr_coulomb_diagram()"""

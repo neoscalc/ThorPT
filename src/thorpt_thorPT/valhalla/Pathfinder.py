@@ -209,7 +209,7 @@ def crust2layer_model(pressure_array, time, speed, angle, dt=10000):
     while c_p < pressure_array[-1]:
         # calc pressure in bar
         c_p = c_p_zero + (rho_list[-1]*(crust_d) * 9.81 / 10**5)
-        print(c_p)
+        # print(c_p)
         # c_p = self.rho[1] * depth * 1000 * 9.81 / 10**5
 
         if c_p < pressure_array[0]:
