@@ -195,6 +195,7 @@ def whole_rock_to_weight_normalizer(rock_bulk=[32.36, 0.4, 8.78, 2.91, 0.0, 0.0,
         norm_mass = np.sum(mol_frame*element_mass)
         # - normalize rock mass to 1kg, conversion of the moles
         mol_frame_norm = mol_frame*1/norm_mass
+        excess_oxy = excess_oxy*1/norm_mass
 
         # Update bulk
         bulk = mol_frame_norm
@@ -459,6 +460,7 @@ class ThorPT_Routines():
                         init_water=float(master_rock[item]['bulk'][-2]),
                         init_carbon=float(master_rock[item]['bulk'][-1])
                         )
+                    # master_rock[item]['new_bulk'] = 'AL(0.0325)MG(1.212)FE(0.045)SI(0.6598)H(10)O(?)    * PierreBulk'
                 else:
                     master_rock[item]['new_bulk'] = whole_rock_convert_3(
                         ready_mol_bulk=master_rock[item]['df_element_total']['total:']
@@ -487,6 +489,7 @@ class ThorPT_Routines():
                 progress(ic)
                 print("\n")
                 print(master_rock[item]['new_bulk'])
+                """master_rock[item]['new_bulk'] = 'AL(0.0325)MG(1.212)FE(0.045)SI(0.6598)H(10)O(?)    * PierreBulk'"""
 
                 # tracking theriak input before minimization
                 # save temperature, pressure and master_rock[item]['new_bulk']
@@ -586,6 +589,9 @@ class ThorPT_Routines():
                     master_rock[item]['minimization'].df_var_dictionary,
                     master_rock[item]['minimization'].df_hydrous_data_dic,
                     master_rock[item]['minimization'].df_all_elements)
+
+                #print(master_rock[item]['df_var_dictionary']['df_N'])
+
                 master_rock[item]['df_element_total'] = master_rock[item]['df_element_total'].iloc[:, :-1]
                 # hydrogen content of the system before extraction
                 if 'H' in master_rock[item]['df_element_total'].index:
@@ -651,6 +657,9 @@ class ThorPT_Routines():
                 # LINK - 5) Oxygen fractionation module
                 # isotope fractionation module
                 # print("-> Oxygen isotope module initiated")
+                if temperature > 560:
+                    master_rock[item]['bulk_oxygen']
+
                 master_rock[item]['model_oxygen'] = Isotope_calc(
                     master_rock[item]['df_var_dictionary']['df_N'], master_rock[item]['minimization'].sol_sol_base,
                     master_rock[item]['df_element_total'], oxygen_signature=master_rock[item]['bulk_oxygen'])
@@ -672,7 +681,7 @@ class ThorPT_Routines():
                 # LINK - 6) Mineral Fractionation
                 # mineral (garnet) fractionation - coupled oxygen bulk modification
                 if grt_frac == True:
-                    if master_rock[item]['database'] == 'ds62mp.txt':
+                    if master_rock[item]['database'] == 'ds62mp.txt' or master_rock[item]['database'] == 'td-ds62-mb50-v07.txt':
                         garnet_name = 'GRT'
                     else:
                         garnet_name = 'GARNET'
@@ -698,6 +707,8 @@ class ThorPT_Routines():
                                 #     f"Selected phase = {phase} with Vol% = {master_rock[item]['df_var_dictionary']['df_vol%'].loc[phase][-2:]}")
                                 # print(
                                 #     f"Bulk deltaO changed from {round(master_rock[item]['bulk_oxygen'], 3)} to {round(new_bulk_oxygen, 3)}")
+                                # print temperature, pressure and new_bulk_oxygen
+                                print(f"Fractionation of {name} at {temperature} and {pressures[num]}. Bulk oxygen changed from {master_rock[item]['bulk_oxygen']} to {new_bulk_oxygen}")
                                 master_rock[item]['bulk_oxygen'] = new_bulk_oxygen
                                 print("_______________________")
                                 master_rock[item]['garnet_check'].append(1)
@@ -716,7 +727,7 @@ class ThorPT_Routines():
                         # LINK - Metastable garnet call
                         print(f"1MStab-Grt {temperature} --- {pressures[num]}")
                         metastable_garnet = Garnet_recalc(self.theriak, master_rock[item]['garnet'], temperature, pressures[num])
-                        metastable_garnet.recalculation_of_garnets()
+                        metastable_garnet.recalculation_of_garnets(database=master_rock[item]['database'], garnet_name=garnet_name)
                         print(f"Fluid volume = {master_rock[item]['fluid_volume_new']} ccm")
                         print(f"Solid volume = {master_rock[item]['solid_volume_new']} ccm")
                         volume = metastable_garnet.recalc_volume
@@ -727,7 +738,7 @@ class ThorPT_Routines():
                         # take all garnets but last one
                         print(f"2MStab-Grt {temperature} --- {pressures[num]}")
                         metastable_garnet = Garnet_recalc(self.theriak, master_rock[item]['garnet'][:-1], temperature, pressures[num])
-                        metastable_garnet.recalculation_of_garnets()
+                        metastable_garnet.recalculation_of_garnets(database=master_rock[item]['database'], garnet_name=garnet_name)
                         print(f"Fluid volume = {master_rock[item]['fluid_volume_new']} ccm")
                         print(f"Solid volume = {master_rock[item]['solid_volume_new']} ccm")
                         volume = metastable_garnet.recalc_volume
@@ -994,14 +1005,48 @@ class ThorPT_Routines():
 
                 else:
                     # No fluid in the system
+                    if len(master_rock[item]['st_fluid_after']) > 1:
+                        fluid_before = master_rock[item]['st_fluid_after'][-2]
+                    else:
+                        fluid_before = master_rock[item]['st_fluid_after'][-1]
+
+                    master_rock[item]['fluid_calculation'] = Ext_method_master(
+                        pressures[num],
+                        fluid_before, master_rock[item]['fluid_volume_new'],
+                        master_rock[item]['solid_volume_before'], master_rock[item]['solid_volume_new'],
+                        master_rock[item]['save_factor'], master_rock[item]['master_norm'][-1],
+                        master_rock[item]['minimization'].df_phase_data,
+                        master_rock[item]['tensile strength'],
+                        differential_stress= master_rock[item]['diff. stress'],
+                        friction= master_rock[item]['friction'],
+                        fluid_pressure_mode= master_rock[item]['fluid_pressure_mode'],
+                        fluid_name_tag=fluid_name_tag, subduction_angle=self.angle
+                        )
+
+                    if master_rock[item]['Extraction scheme'] == 'Mohr-Coulomb-Griffith':
+                        print("\t===== Mohr-Coulomb-Griffith method active =====")
+                        #test if differntial stress is in master_rock[item] keys
+                        if 'diff. stress' in master_rock[item].keys():
+                            master_rock[item]['fluid_calculation'].mohr_cloulomb_griffith()
+                        else:
+                            master_rock[item]['fluid_calculation'].mohr_cloulomb_griffith(
+                                shear_stress=master_rock[item]['shear']
+                            )
+
+                        # TODO - double asignment in output data, one is nan one the dry value - no solution found yet
+                        """master_rock[item]['failure module'].append(
+                                master_rock[item]['fluid_calculation'].failure_dictionary)"""
+
+
                     master_rock[item]['save_factor'].append(0)
                     # master_rock[item]['diff. stress'].append(0)
                     master_rock[item]['fracture bool'].append(0)
                     master_rock[item]['live_fluid-flux'].append(np.nan)
                     master_rock[item]['live_permeability'].append(np.nan)
-                    master_rock[item]['failure module'].append("None activated, no fluid.")
+                    # master_rock[item]['failure module'].append("None activated, no fluid.")
                     print(
                         f"No free water in the system for {item} - no fracturing model")
+
 
                 # save bulk oxygen after extraction
                 master_rock[item]['save_bulk_oxygen_post'].append(
@@ -1372,7 +1417,7 @@ class ThorPT_Routines():
                 # LINK - 6) Mineral Fractionation
                 # mineral (garnet) fractionation - coupled oxygen bulk modification
                 if grt_frac == True:
-                    if master_rock[item]['database'] == 'ds62mp.txt':
+                    if master_rock[item]['database'] == 'ds62mp.txt' or master_rock[item]['database'] == 'td-ds62-mb50-v07.txt':
                         garnet_name = 'GRT'
                     else:
                         garnet_name = 'GARNET'
@@ -1413,7 +1458,7 @@ class ThorPT_Routines():
                         # take al modelled garnets
                         # LINK - Metastable garnet call
                         metastable_garnet = Garnet_recalc(self.theriak, master_rock[item]['garnet'], temperature, pressures[num])
-                        metastable_garnet.recalculation_of_garnets()
+                        metastable_garnet.recalculation_of_garnets(database=master_rock[item]['database'], garnet_name=garnet_name)
                         print(f"Fluid volume = {master_rock[item]['fluid_volume_new']} ccm")
                         print(f"Solid volume = {master_rock[item]['solid_volume_new']} ccm")
                         volume = metastable_garnet.recalc_volume
@@ -1423,7 +1468,7 @@ class ThorPT_Routines():
                         print("protocol")
                         # take all garnets but last one
                         metastable_garnet = Garnet_recalc(self.theriak, master_rock[item]['garnet'][:-1], temperature, pressures[num])
-                        metastable_garnet.recalculation_of_garnets()
+                        metastable_garnet.recalculation_of_garnets(database=master_rock[item]['database'], garnet_name=garnet_name)
                         print(f"Fluid volume = {master_rock[item]['fluid_volume_new']} ccm")
                         print(f"Solid volume = {master_rock[item]['solid_volume_new']} ccm")
                         volume = metastable_garnet.recalc_volume
@@ -2073,7 +2118,7 @@ class ThorPT_Routines():
                 # LINK - 6) Mineral Fractionation
                 # mineral (garnet) fractionation - coupled oxygen bulk modification
                 if grt_frac == True:
-                    if master_rock[item]['database'] == 'ds62mp.txt':
+                    if master_rock[item]['database'] == 'ds62mp.txt' or master_rock[item]['database'] == 'td-ds62-mb50-v07.txt':
                         garnet_name = 'GRT'
                     else:
                         garnet_name = 'GARNET'
@@ -2114,7 +2159,7 @@ class ThorPT_Routines():
                         # take al modelled garnets
                         # LINK - Metastable garnet call
                         metastable_garnet = Garnet_recalc(self.theriak, master_rock[item]['garnet'], temperature[tt], pressures[num][tt])
-                        metastable_garnet.recalculation_of_garnets()
+                        metastable_garnet.recalculation_of_garnets(database=master_rock[item]['database'], garnet_name=garnet_name)
                         print(f"Fluid volume = {master_rock[item]['fluid_volume_new']} ccm")
                         print(f"Solid volume = {master_rock[item]['solid_volume_new']} ccm")
                         volume = metastable_garnet.recalc_volume
@@ -2124,7 +2169,7 @@ class ThorPT_Routines():
                         print("protocol")
                         # take all garnets but last one
                         metastable_garnet = Garnet_recalc(self.theriak, master_rock[item]['garnet'][:-1], temperature[tt], pressures[num][tt])
-                        metastable_garnet.recalculation_of_garnets()
+                        metastable_garnet.recalculation_of_garnets(database=master_rock[item]['database'], garnet_name=garnet_name)
                         print(f"Fluid volume = {master_rock[item]['fluid_volume_new']} ccm")
                         print(f"Solid volume = {master_rock[item]['solid_volume_new']} ccm")
                         volume = metastable_garnet.recalc_volume

@@ -96,12 +96,12 @@ def phases_and_colors_XMT(database, phases):
     min_translation = pd.read_csv(file_to_open, delimiter='\t')
 
     # Iterating through phases and select colors
-    colpal = sns.color_palette("flare", 20)
+    colpal = sns.color_palette("flare", len(phases))
     color_set = []
     phase_set = []
     z = 0
     for mini in phases:
-        if mini == 'fluid' or mini == 'H2O.liq':
+        if mini == 'fluid' or mini == 'H2O.liq' or mini == 'Liqtc6_H2Ol' or mini == 'H2O':
             color_set.append((84/255, 247/255, 242/255))
             phase_set.append("Water")
         elif mini in list(min_translation['Database-name']):
@@ -2709,11 +2709,17 @@ class ThorPT_plots():
             os.makedirs(
                     f'{self.mainfolder}/img_{self.filename}/{subfolder}', exist_ok=True)
             if transparent is True:
+                plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}_stack_plot_transparent.png',
+                                                transparent=True)
+            else:
+                plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}_stack_plot.png',
+                                transparent=False)
+            """if transparent is True:
                 plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}_stack_plot_transparent.pdf',
                                                 transparent=True)
             else:
                 plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}_stack_plot.pdf',
-                                transparent=False)
+                                transparent=False)"""
 
         else:
             plt.show()
@@ -4137,6 +4143,8 @@ class ThorPT_plots():
         # Create a unified legend
         fig.legend(handles=handles1 + handles2, labels=labels1 + labels2, loc='upper left')
 
+        # plt.show()
+
         subfolder = 'sensitivity'
         os.makedirs(f'{self.mainfolder}/img_{self.filename}/{subfolder}', exist_ok=True)
         plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/bulk_rock_sensitivity_twin.pdf',transparent=False)
@@ -5221,7 +5229,7 @@ if __name__ == '__main__':
     # compPlot.mohr_coulomb_diagram()"""
 
     # compPlot.diff_stress_vs_mean_stress_vs_extraction(color_map_input='coolwarm')
-    compPlot.bulk_rock_sensitivity_twin()
+    # compPlot.bulk_rock_sensitivity_twin()
     """compPlot.diff_stress_vs_tensile_vs_extractedCumVol(color_map_input='coolwarm')
     compPlot.diff_stress_vs_tensile_vs_numberofextraction(color_map_input='coolwarm')
 
@@ -5239,8 +5247,8 @@ if __name__ == '__main__':
     """
 
     # compPlot.ternary_vs_extraction_cumVol()
-    compPlot.tensile_strength_sensitivity_cumVol()
-    compPlot.bulk_rock_sensitivity_cumVol()
+    # compPlot.tensile_strength_sensitivity_cumVol()
+    # compPlot.bulk_rock_sensitivity_cumVol()
     # compPlot.tensile_strength_sensitivity_cumVol()
 
     # compPlot.diff_stress_vs_tensile_vs_extractedCumVol(color_map_input='coolwarm')

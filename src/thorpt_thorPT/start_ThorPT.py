@@ -313,7 +313,7 @@ def run_main_routine():
         debugging_recorder.append("Initialize test run for theriak link.\n")
 
         # test run for theriak
-        test_output = test_theriak(init_data['theriak'], database[0], 500.0, 20000.0, whole_rock="SI(7.9)AL(2.9)FE(0.8)MN(0.0)MG(1.7)CA(1.8)NA(0.7)TI(0.1)K(0.03)H(100.0)C(0.0)O(?)O(0.0)    * CalculatedBulk")
+        test_output = test_theriak(init_data['theriak'], database[0], 500.0, 20000.0, whole_rock="SI(7.9)AL(2.9)FE(0.8)MN(0.0)MG(1.7)CA(1.8)NA(0.7)TI(0.1)K(0.03)H(0.0)C(0.0)O(?)O(0.0)    * CalculatedBulk")
         if len(test_output) > 200:
             print("Theriak test run passed. Theriak is ready to use.")
         else:
