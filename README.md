@@ -38,7 +38,8 @@ Install the package manually into your python environment and develop your own s
 
 <div class="alert alert-block alert-danger">
 
-<b>__Before you start, make sure that you have followed all the steps and executed all the cells in the "install_ThorPT" Jupyter notebook!__<b>
+__Before you start, make sure that you have followed all the steps and executed all the cells in the "install_ThorPT" Jupyter notebook!__
+
 </div>
 
 
@@ -53,7 +54,9 @@ Install the package manually into your python environment and develop your own s
 # 1.2.1 Install the package
 ThorPT is public on the test PyPi servers and will be published on the offical servers soon. You can get the package by using the following command to import it to your python environment.
 
+``` python
 pip install -i https://test.pypi.org/simple/ thorpt-thorPT
+```
 
 # 1.2.2 Import the package
 from thorpt_thorPT import start_ThorPT
