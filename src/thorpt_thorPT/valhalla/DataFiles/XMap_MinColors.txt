@@ -21,6 +21,7 @@ Amphibole	0	162	122
 Andalusite	127	179	193
 Anorthite	243	224	127
 Apatite	161	177	132
+Aragonite	198	180	180
 Biotite	118	57	33
 Brucite	142	206	211
 Calcite	170	162	149

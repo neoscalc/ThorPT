@@ -15,6 +15,7 @@ import copy
 from dataclasses import dataclass
 from tkinter import filedialog
 import time
+import scipy.special
 
 # ThorPT modules
 # from thorpt_thorPT.valhalla.Pathfinder import *
@@ -100,6 +101,9 @@ def run_main_routine():
 
     set_origin()
 
+    debugging_recorder = []
+
+    # /////////////////////////////////////////////////////
     # Starting up and select the init file to model
     init_interface = True
     init_interface2 = False
@@ -146,7 +150,8 @@ def run_main_routine():
             'Extraction scheme:': 'extraction',
             'Marco:': 'Marco',
             'grt_frac_off:': 'grt_frac_off',
-            'Input-arguments:': 'path_arguments'
+            'Input-arguments:': 'path_arguments',
+            'Slab-Temperature-Difference:': 'slab_temp_diff'
         }
 
         for entry in init:
@@ -168,6 +173,8 @@ def run_main_routine():
                         value = float(value)
                     elif key == 'Marco' or key == 'grt_frac_off':
                         value = True
+                    elif key == 'slab_temp_diff':
+                        value = float(value)
                     init_data[key] = value
 
         # updating the pressure unit in init file when a new path is created
@@ -185,6 +192,8 @@ def run_main_routine():
         answer = int(init_data['path_arguments'][-1])
         init_data['path_arguments'] = init_data['path_arguments'][:-1]
         # answer = 2
+
+        debugging_recorder.append("First init file block succesfully read.\n")
 
         breaks = []
         for i, entry in enumerate(init):
@@ -283,6 +292,8 @@ def run_main_routine():
         init_data['Bulk'] = bulk
         init_data['Oxygen'] = oxygen
 
+        debugging_recorder.append("Second init file block succesfully read. All rocks read and stored.\n")
+
         # test for fluid name from database - now assigned by init file (23.01.2024)
         """if database[0] == "tc55.txt" or database[0] == "tc55_Serp.txt":
             init_data['fluid_name_tag'] = "water.fluid"
@@ -298,8 +309,11 @@ def run_main_routine():
             from valhalla import Pathfinder
             from valhalla import routines_ThorPT
             from valhalla.tunorrad import run_theriak as test_theriak
+
+        debugging_recorder.append("Initialize test run for theriak link.\n")
+
         # test run for theriak
-        test_output = test_theriak(init_data['theriak'], database[0], 500.0, 20000.0, whole_rock="SI(7.9)AL(2.9)FE(0.8)MN(0.0)MG(1.7)CA(1.8)NA(0.7)TI(0.1)K(0.03)H(100.0)C(0.0)O(?)O(0.0)    * CalculatedBulk")
+        test_output = test_theriak(init_data['theriak'], database[0], 500.0, 20000.0, whole_rock="SI(7.9)AL(2.9)FE(0.8)MN(0.0)MG(1.7)CA(1.8)NA(0.7)TI(0.1)K(0.03)H(0.0)C(0.0)O(?)O(0.0)    * CalculatedBulk")
         if len(test_output) > 200:
             print("Theriak test run passed. Theriak is ready to use.")
         else:
@@ -308,6 +322,8 @@ def run_main_routine():
             print(init_data['theriak'])
             time.sleep(5)
             quit()
+
+        debugging_recorder.append("Theriak test run passed. Theriak is ready to use.\n")
 
         # /////////////////////////////////////////////////////
         # Preparing input data for modelling routine
@@ -566,20 +582,55 @@ def run_main_routine():
                 coulomb_permea2
                 )"""
 
-        ThorPT = routines_ThorPT.ThorPT_Routines(temperatures, pressures, master_rock, rock_origin,
-                track_time, track_depth, grt_frac, path_method,
-                lowest_permeability, conv_speed, angle, time_step, init_data['theriak'])
+        debugging_recorder.append("Initializing the routine.\n")
 
-
+        # Initializing the main module for the routines and select the routine given by the anser in the init file
         if answer == 1:
+            debugging_recorder.append("Routine 1 selected.\n")
+            # routine 1 simulates every rock individually - no fluid transport between rocks
+
+            """
+            # metastable test
+            temperatures = np.array([500.0, 550.0])
+            pressures = np.array([20000.0, 21500.0])
+            track_time = track_time[:2]
+            track_depth[17:19]
+            """
+
+            ThorPT = routines_ThorPT.ThorPT_Routines(temperatures, pressures, master_rock, rock_origin,
+                track_time, track_depth, grt_frac, path_method,
+                lowest_permeability, conv_speed, angle, time_step, init_data['theriak'], debugging_recorder)
             ThorPT.unreactive_multi_rock()
+
         elif answer == 2:
+            debugging_recorder.append("Routine 2 selected.\n")
+            # routine 2 simulates every rock but allows fluid transport - the P-T path is the same for all rocks
+            ThorPT = routines_ThorPT.ThorPT_Routines(temperatures, pressures, master_rock, rock_origin,
+                track_time, track_depth, grt_frac, path_method,
+                lowest_permeability, conv_speed, angle, time_step, init_data['theriak'], debugging_recorder)
             ThorPT.transmitting_multi_rock()
+
+        elif answer == 3:
+            debugging_recorder.append("Routine 3 selected.\n")
+            # routine 3 simulates every rock and allows fluid transport - the P-T path is different for all rocks following a layerd scheme
+            # layered model and get matrix of temperatures and pressures
+
+            if 'slab_temp_diff' in init_data.keys():
+                temperature_matrix, pressure_matrix = Pathfinder.layered_model_PTpatch(temperatures, pressures, init_data['geometry'], init_data['slab_temp_diff'])
+            else:
+                debugging_recorder.append("No slab temperature difference is set. Default of 100°C is default.\n")
+                temperature_matrix, pressure_matrix = Pathfinder.layered_model_PTpatch(temperatures, pressures, init_data['geometry'], 100)
+
+            ThorPT = routines_ThorPT.ThorPT_Routines(temperature_matrix, pressure_matrix, master_rock, rock_origin,
+                track_time, track_depth, grt_frac, path_method,
+                lowest_permeability, conv_speed, angle, time_step, init_data['theriak'], debugging_recorder)
+            ThorPT.transmitting_multi_rock_altPT()
+
         else:
             print("Script is ending...\u03BA\u03B1\u03BB\u03B7\u03BD\u03C5\u03C7\u03C4\u03B1!")
 
 
-        if answer == 1 or answer == 2:
+        if answer == 1 or answer == 2 or answer == 3:
 
             sound_flag = True
             if sound_flag is True:
@@ -589,7 +640,10 @@ def run_main_routine():
 
             # Call the data reduction function
             # ThorPT.data_reduction()
+            debugging_recorder.append("Routine finished.\n")
+            debugging_recorder.append("Data reduction is starting.\n")
             ThorPT.data_reduction(init_file)
+            debugging_recorder.append("Data reduction finished.\n")
 
     # NOTE playsound to be fixed
     """

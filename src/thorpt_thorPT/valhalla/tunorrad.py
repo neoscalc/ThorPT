@@ -927,6 +927,9 @@ def read_theriak(theriak_path, database, temperature, pressure, whole_rock):
     except:
         if temp2[1] == '':
             g_sys = float(temp2[0].split()[2])
+        elif '*' in temp2[0].split()[-1]:
+            print(" * in system energy - failure?")
+            g_sys = np.nan
         else:
             g_sys = float(temp2[1])
 
@@ -1970,9 +1973,12 @@ class Ext_method_master:
               self.solid_t1, self.fluid_t0, self.fluid_t1))
 
         # test before executing module - phase data fluid volume should be equal the self.fluid_t1
-        if self.phase_data[self.fluid_name_tag]['volume[ccm]'] != self.fluid_t1:
-            print("Inconsistency in new fluid volume")
-            # keyboard.wait('esc')
+        if self.fluid_name_tag in self.phase_data.columns:
+            if self.phase_data[self.fluid_name_tag]['volume[ccm]'] != self.fluid_t1:
+                print("Inconsistency in new fluid volume")
+                # keyboard.wait('esc')
+        else:
+            print("No fluid phase data available")
 
         #################################
         # Mohr-Coulomb rock yield
@@ -2003,7 +2009,7 @@ class Ext_method_master:
         # 45 degree gives that diff stress is two time shear stress (and not more)
         self.diff_stress = 2*shear_stress/np.sin(2*theta)"""
 
-        # NOTE - setting lithostatic pressure for sig1
+        # NOTE - setting lithostatic pressure for sig3
         # sigma 1 or sigma 3, it defines the stress regime
         sig3 = litho
         sig1 = litho + self.diff_stress
@@ -2042,6 +2048,10 @@ class Ext_method_master:
             hydro = mean_stress
             delta_p = mean_stress - hydro
 
+        if self.fluid_name_tag not in self.phase_data.columns:
+            print("No fluid phase data available")
+            hydro = 0
+
         # Mohr circle arguments
         r = self.diff_stress/2      # radius of the circle
         center = sig1-r             # centre of the cricel
@@ -2059,6 +2069,8 @@ class Ext_method_master:
 
         # ##########################################
         # Failure envelope test
+        # mcg_plot(cohesion, self.friction, self.diff_stress, self.shear_stress, sig1, hydro)
+
         if self.diff_stress >= self.tensile_strength*5.66:
 
             print("Compressive shear failure test")
@@ -2111,6 +2123,7 @@ class Ext_method_master:
             print(self.diff_stress)
             self.frac_respo = 0
 
+        
         self.failure_dictionary = {
             "sigma 1":copy.deepcopy(sig1),
             "sigma 3":copy.deepcopy(sig3),
@@ -2428,6 +2441,8 @@ class Isotope_calc():
                     # collect detected phase present in model
                     enabled_phase.append(phase)
                     layered_name.append(True)
+                else:
+                    layered_name.append(False)
             except ValueError:
                 print(
                     f"---ERROR:---Searching for stable phase in translation failed. No such phase: {phase} found!")
@@ -2644,7 +2659,7 @@ class Garnet_recalc():
         self.pressure = pressure
         self.theriak_path = theriak
 
-    def recalculation_of_garnets(self):
+    def recalculation_of_garnets(self, database, garnet_name):
         """
         Recalculates the volume and weight of garnets based on the provided data.
 
@@ -2661,7 +2676,7 @@ class Garnet_recalc():
             bulk = garnet_bulk_from_dataframe(relements, garnet.moles, garnet.volPmole, garnet.volume)
 
             # FIXME static database tc55 for garnet recalculation
-            db = "tc55.txt    GARNET"
+            db = f"{database}    {garnet_name}"
             Data_dic, g_sys, pot_frame = read_theriak(
                 self.theriak_path,
                 database=db, temperature=self.temperature,
@@ -2673,7 +2688,7 @@ class Garnet_recalc():
             double_grt_check = []
             selected_garnet_name = False
             for item in phase_list:
-                if 'GARNET' in item:
+                if garnet_name in item:
                     selected_garnet_name = item
                     double_grt_check.append(item)
 
@@ -2682,6 +2697,7 @@ class Garnet_recalc():
                 print(f"Bulk is: {bulk}")
                 # keyboard.wait('esc')
                 v = 0
+                g = 0
             else:
                 # backward - Volume of the garnet shell to be added (back-normlaized from 1 mole to x-mol (garnet.moles))
                 rec_mole = garnet.volume/garnet.volPmole

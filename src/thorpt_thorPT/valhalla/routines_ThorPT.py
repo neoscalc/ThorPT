@@ -195,6 +195,7 @@ def whole_rock_to_weight_normalizer(rock_bulk=[32.36, 0.4, 8.78, 2.91, 0.0, 0.0,
         norm_mass = np.sum(mol_frame*element_mass)
         # - normalize rock mass to 1kg, conversion of the moles
         mol_frame_norm = mol_frame*1/norm_mass
+        excess_oxy = excess_oxy*1/norm_mass
 
         # Update bulk
         bulk = mol_frame_norm
@@ -358,7 +359,7 @@ class ThorPT_Routines():
     def __init__(self,
             temperatures, pressures, master_rock, rock_origin,
             track_time, track_depth, garnet_fractionation, path_methods,
-            lowest_permeability, speed, angle, time_step, theriak):
+            lowest_permeability, speed, angle, time_step, theriak, debugging_recorder):
         """
         Initialize the ThorPT class.
 
@@ -392,6 +393,7 @@ class ThorPT_Routines():
         self.angle = angle
         self.time_step = time_step
         self.theriak = theriak
+        self.debugging_recorder = debugging_recorder
 
     def unreactive_multi_rock(self):
         """
@@ -458,6 +460,7 @@ class ThorPT_Routines():
                         init_water=float(master_rock[item]['bulk'][-2]),
                         init_carbon=float(master_rock[item]['bulk'][-1])
                         )
+                    # master_rock[item]['new_bulk'] = 'AL(0.0325)MG(1.212)FE(0.045)SI(0.6598)H(10)O(?)    * PierreBulk'
                 else:
                     master_rock[item]['new_bulk'] = whole_rock_convert_3(
                         ready_mol_bulk=master_rock[item]['df_element_total']['total:']
@@ -486,6 +489,7 @@ class ThorPT_Routines():
                 progress(ic)
                 print("\n")
                 print(master_rock[item]['new_bulk'])
+                """master_rock[item]['new_bulk'] = 'AL(0.0325)MG(1.212)FE(0.045)SI(0.6598)H(10)O(?)    * PierreBulk'"""
 
                 # tracking theriak input before minimization
                 # save temperature, pressure and master_rock[item]['new_bulk']
@@ -506,6 +510,12 @@ class ThorPT_Routines():
 
 
                 # Send information to the theriak wrapper
+                """
+                # test for metastable calculation
+                if num < 1:
+                    master_rock[item]['new_bulk'] = 'O(22.398)AL(1.877)CA(1.486)FE(0.596)H(2.993)K(0.032)MG(1.725)NA(0.66)SI(6.709)TI(0.206)    *metastable test'
+                """
+
                 master_rock[item]['minimization'] = Therm_dyn_ther_looper(self.theriak,
                     master_rock[item]['database'], master_rock[item]['new_bulk'],
                     temperature, pressures[num], master_rock[item]['df_var_dictionary'],
@@ -579,6 +589,9 @@ class ThorPT_Routines():
                     master_rock[item]['minimization'].df_var_dictionary,
                     master_rock[item]['minimization'].df_hydrous_data_dic,
                     master_rock[item]['minimization'].df_all_elements)
+
+                #print(master_rock[item]['df_var_dictionary']['df_N'])
+
                 master_rock[item]['df_element_total'] = master_rock[item]['df_element_total'].iloc[:, :-1]
                 # hydrogen content of the system before extraction
                 if 'H' in master_rock[item]['df_element_total'].index:
@@ -644,6 +657,9 @@ class ThorPT_Routines():
                 # LINK - 5) Oxygen fractionation module
                 # isotope fractionation module
                 # print("-> Oxygen isotope module initiated")
+                if temperature > 560:
+                    master_rock[item]['bulk_oxygen']
+
                 master_rock[item]['model_oxygen'] = Isotope_calc(
                     master_rock[item]['df_var_dictionary']['df_N'], master_rock[item]['minimization'].sol_sol_base,
                     master_rock[item]['df_element_total'], oxygen_signature=master_rock[item]['bulk_oxygen'])
@@ -665,7 +681,7 @@ class ThorPT_Routines():
                 # LINK - 6) Mineral Fractionation
                 # mineral (garnet) fractionation - coupled oxygen bulk modification
                 if grt_frac == True:
-                    if master_rock[item]['database'] == 'ds62mp.txt':
+                    if master_rock[item]['database'] == 'ds62mp.txt' or master_rock[item]['database'] == 'td-ds62-mb50-v07.txt':
                         garnet_name = 'GRT'
                     else:
                         garnet_name = 'GARNET'
@@ -691,6 +707,8 @@ class ThorPT_Routines():
                                 #     f"Selected phase = {phase} with Vol% = {master_rock[item]['df_var_dictionary']['df_vol%'].loc[phase][-2:]}")
                                 # print(
                                 #     f"Bulk deltaO changed from {round(master_rock[item]['bulk_oxygen'], 3)} to {round(new_bulk_oxygen, 3)}")
+                                # print temperature, pressure and new_bulk_oxygen
+                                print(f"Fractionation of {name} at {temperature} and {pressures[num]}. Bulk oxygen changed from {master_rock[item]['bulk_oxygen']} to {new_bulk_oxygen}")
                                 master_rock[item]['bulk_oxygen'] = new_bulk_oxygen
                                 print("_______________________")
                                 master_rock[item]['garnet_check'].append(1)
@@ -709,7 +727,7 @@ class ThorPT_Routines():
                         # LINK - Metastable garnet call
                         print(f"1MStab-Grt {temperature} --- {pressures[num]}")
                         metastable_garnet = Garnet_recalc(self.theriak, master_rock[item]['garnet'], temperature, pressures[num])
-                        metastable_garnet.recalculation_of_garnets()
+                        metastable_garnet.recalculation_of_garnets(database=master_rock[item]['database'], garnet_name=garnet_name)
                         print(f"Fluid volume = {master_rock[item]['fluid_volume_new']} ccm")
                         print(f"Solid volume = {master_rock[item]['solid_volume_new']} ccm")
                         volume = metastable_garnet.recalc_volume
@@ -720,7 +738,7 @@ class ThorPT_Routines():
                         # take all garnets but last one
                         print(f"2MStab-Grt {temperature} --- {pressures[num]}")
                         metastable_garnet = Garnet_recalc(self.theriak, master_rock[item]['garnet'][:-1], temperature, pressures[num])
-                        metastable_garnet.recalculation_of_garnets()
+                        metastable_garnet.recalculation_of_garnets(database=master_rock[item]['database'], garnet_name=garnet_name)
                         print(f"Fluid volume = {master_rock[item]['fluid_volume_new']} ccm")
                         print(f"Solid volume = {master_rock[item]['solid_volume_new']} ccm")
                         volume = metastable_garnet.recalc_volume
@@ -986,14 +1004,49 @@ class ThorPT_Routines():
                     #                 fluid_oxygen)/(rockOxy - oxy_mole_fluid)
 
                 else:
+                    # No fluid in the system
+                    if len(master_rock[item]['st_fluid_after']) > 1:
+                        fluid_before = master_rock[item]['st_fluid_after'][-2]
+                    else:
+                        fluid_before = master_rock[item]['st_fluid_after'][-1]
+
+                    master_rock[item]['fluid_calculation'] = Ext_method_master(
+                        pressures[num],
+                        fluid_before, master_rock[item]['fluid_volume_new'],
+                        master_rock[item]['solid_volume_before'], master_rock[item]['solid_volume_new'],
+                        master_rock[item]['save_factor'], master_rock[item]['master_norm'][-1],
+                        master_rock[item]['minimization'].df_phase_data,
+                        master_rock[item]['tensile strength'],
+                        differential_stress= master_rock[item]['diff. stress'],
+                        friction= master_rock[item]['friction'],
+                        fluid_pressure_mode= master_rock[item]['fluid_pressure_mode'],
+                        fluid_name_tag=fluid_name_tag, subduction_angle=self.angle
+                        )
+
+                    if master_rock[item]['Extraction scheme'] == 'Mohr-Coulomb-Griffith':
+                        print("\t===== Mohr-Coulomb-Griffith method active =====")
+                        #test if differntial stress is in master_rock[item] keys
+                        if 'diff. stress' in master_rock[item].keys():
+                            master_rock[item]['fluid_calculation'].mohr_cloulomb_griffith()
+                        else:
+                            master_rock[item]['fluid_calculation'].mohr_cloulomb_griffith(
+                                shear_stress=master_rock[item]['shear']
+                            )
+
+                        # TODO - double asignment in output data, one is nan one the dry value - no solution found yet
+                        """master_rock[item]['failure module'].append(
+                                master_rock[item]['fluid_calculation'].failure_dictionary)"""
+
+
                     master_rock[item]['save_factor'].append(0)
                     # master_rock[item]['diff. stress'].append(0)
                     master_rock[item]['fracture bool'].append(0)
                     master_rock[item]['live_fluid-flux'].append(np.nan)
                     master_rock[item]['live_permeability'].append(np.nan)
-                    master_rock[item]['failure module'].append("None activated, no fluid.")
+                    # master_rock[item]['failure module'].append("None activated, no fluid.")
                     print(
                         f"No free water in the system for {item} - no fracturing model")
+
 
                 # save bulk oxygen after extraction
                 master_rock[item]['save_bulk_oxygen_post'].append(
@@ -1009,8 +1062,6 @@ class ThorPT_Routines():
 
         ar_flow = np.array(v_fluid_cubic_track)
         ar_perma = np.array(v_fluid_cubicp_track)
-
-
 
     def transmitting_multi_rock(self):
         """
@@ -1052,6 +1103,7 @@ class ThorPT_Routines():
 
         # Main variables fractionation
         grt_frac = self.garnet_fractionation
+        print(f"Garnet fractionation in this model is: {grt_frac}")
 
         # //////////////////////////////////////////////////
         # /////////////////////////////////////////////////
@@ -1128,7 +1180,7 @@ class ThorPT_Routines():
                             bulka['H'] += (master_rock[rock_react_item]['fluid_hydrogen'][-1]*fluid_influx_factor)
                             bulka['O'] += (master_rock[rock_react_item]['fluid_oxygen'][-1]*fluid_influx_factor)
                             print("Fluid influx added to bulk rock")
-                            print(f"Fluid influx is {master_rock[rock_react_item]['fluid_hydrogen'][-1]*fluid_influx_factor} mol H and {master_rock[rock_react_item]['fluid_oxygen'][-1]*fluid_influx_factor} mol O")
+                            print(f"Fluid influx is H = {master_rock[rock_react_item]['fluid_hydrogen'][-1]*fluid_influx_factor} mol and O = {master_rock[rock_react_item]['fluid_oxygen'][-1]*fluid_influx_factor} mol")
 
                             # save fluid influx to the rock for later use
                             master_rock[item]["fluid_influx_data"] = 0
@@ -1366,7 +1418,7 @@ class ThorPT_Routines():
                 # LINK - 6) Mineral Fractionation
                 # mineral (garnet) fractionation - coupled oxygen bulk modification
                 if grt_frac == True:
-                    if master_rock[item]['database'] == 'ds62mp.txt':
+                    if master_rock[item]['database'] == 'ds62mp.txt' or master_rock[item]['database'] == 'td-ds62-mb50-v07.txt':
                         garnet_name = 'GRT'
                     else:
                         garnet_name = 'GARNET'
@@ -1407,7 +1459,7 @@ class ThorPT_Routines():
                         # take al modelled garnets
                         # LINK - Metastable garnet call
                         metastable_garnet = Garnet_recalc(self.theriak, master_rock[item]['garnet'], temperature, pressures[num])
-                        metastable_garnet.recalculation_of_garnets()
+                        metastable_garnet.recalculation_of_garnets(database=master_rock[item]['database'], garnet_name=garnet_name)
                         print(f"Fluid volume = {master_rock[item]['fluid_volume_new']} ccm")
                         print(f"Solid volume = {master_rock[item]['solid_volume_new']} ccm")
                         volume = metastable_garnet.recalc_volume
@@ -1417,7 +1469,7 @@ class ThorPT_Routines():
                         print("protocol")
                         # take all garnets but last one
                         metastable_garnet = Garnet_recalc(self.theriak, master_rock[item]['garnet'][:-1], temperature, pressures[num])
-                        metastable_garnet.recalculation_of_garnets()
+                        metastable_garnet.recalculation_of_garnets(database=master_rock[item]['database'], garnet_name=garnet_name)
                         print(f"Fluid volume = {master_rock[item]['fluid_volume_new']} ccm")
                         print(f"Solid volume = {master_rock[item]['solid_volume_new']} ccm")
                         volume = metastable_garnet.recalc_volume
@@ -1707,6 +1759,706 @@ class ThorPT_Routines():
 
         self.rock_dic = master_rock
 
+    def transmitting_multi_rock_altPT(self):
+        """
+        Perform multi-rock transmission calculations.
+        Each rock model has its own PT-path.
+
+        This method calculates the transmission of multiple rocks based on various parameters such as temperature, pressure,
+        rock composition, and mechanical methods. It iterates over the list of temperatures and performs calculations for each
+        temperature.
+
+        Args:
+            self: The current object instance.
+
+        Returns:
+            None
+        """
+        # save the list self.debugging_recorder to txt file
+        with open('debugging_recorder.txt', 'w') as f:
+            for item in self.debugging_recorder:
+                f.write("%s\n" % item)
+
+
+        # Main variables petrology
+        temperatures = self.temperatures
+        pressures = self.pressures
+        master_rock = self.rock_dic
+        rock_origin = self.rock_origin
+        track_time = self.track_time
+        track_depth = self.track_depth
+
+        # Main variables mechanical model
+        lowest_permeability = self.minimum_permeability
+
+        """
+        # REVIEW - mechanical methods
+        # Methods
+        factor_method = self.mechanical_methods[0]
+        steady_method = self.mechanical_methods[1]
+        dynamic_method = self.mechanical_methods[2]
+        coulomb = self.mechanical_methods[3]
+        coulomb_permea = self.mechanical_methods[4]
+        coulomb_permea2 = self.mechanical_methods[5]
+        """
+
+
+        # Main variables fractionation
+        grt_frac = self.garnet_fractionation
+
+        # //////////////////////////////////////////////////
+        # /////////////////////////////////////////////////
+        # ////////////////////////////////////////////////
+        count = 0
+        k = 0
+        kk = len(temperatures[0])*len(master_rock)
+        progress(int(k/kk)*100)
+        for num, temperature in enumerate(temperatures):
+
+            print('\n')
+            print("New calculation")
+            print("Script: transmitting_multi_rock")
+            print("===================")
+            print(f"==== 1) time = {track_time[num]} years,\n==== 2) depth = {track_depth[num]}.")
+
+            # //////////////////////////////////////////////////////////////////////////
+            # preparing bulk rock for calculation
+            rocks = list(master_rock.keys())
+            for tt, item in enumerate(rocks):
+
+                rock_react_item = list(master_rock.keys())[tt-1]
+
+                if tt != 0:
+                    # LINK - 0) Rock reactivity
+                    # Decision for rock reactivity
+                    # Reactivity decision is made on the rock below/before the momentary calculation (base rock vs. stack rock)
+
+                    # taking the bulk rock elements and add the extracted fluid from layer below
+                    if master_rock[rock_react_item]['reactivity'].react is True:
+
+                        # Bulk rock calculation plus incoming H and O
+                        if num < 1:
+                            # FIXME - no fluid influx for rock in first step? Test this
+                            master_rock[item]['new_bulk'], rockOxy = whole_rock_to_weight_normalizer(
+                                rock_bulk=master_rock[item]['bulk'][:-2],
+                                init_water=float(master_rock[item]['bulk'][-2]),
+                                init_carbon=float(master_rock[item]['bulk'][-1])
+                                )
+                        else:
+                            # print for testing which rock reacts into the new
+                            print(f"Calculating {item}, {rock_react_item} is reactive")
+                            if item != list(master_rock.keys())[tt]:
+                                print("ERROR - reactivity: Momentary rock is not concordant!!!")
+                                # keyboard.wait('esc')
+                            # fix double total in column error
+                            master_rock[item]['df_element_total']['total:']
+                            bulka = master_rock[item]['df_element_total']['total:']
+
+                            # double "total" problem
+                            if isinstance(bulka, pd.DataFrame):
+                                    if len(bulka.columns) > 1:
+                                        bulka = bulka.iloc[:, 0]
+
+                            # add the H and O that is transfered
+                            # FIXME - Addition of moles dependend on geometry
+                            # - need a factor because thermodynamic modellign uses 1 kg but geometry defines a volume
+                            # - different geometries will have different impact on each other
+                            external_rock_volume = (master_rock[rock_react_item]['st_solid'][-1] + master_rock[rock_react_item]['st_fluid_before'][-1])/1_000_000
+                            external_rock_geometry = master_rock[rock_react_item]['geometry']
+                            external_rock_geometry = np.float64(external_rock_geometry[0])*np.float64(external_rock_geometry[1])*np.float64(external_rock_geometry[2])
+
+                            internal_volume = (master_rock[item]['fluid_volume_new'] + master_rock[item]['solid_volume_new'])/1_000_000
+                            internal_geometry = master_rock[item]['geometry']
+                            internal_geometry = np.float64(internal_geometry[0])*np.float64(internal_geometry[1])*np.float64(internal_geometry[2])
+
+                            fluid_influx_factor = external_rock_geometry * internal_volume / external_rock_volume / internal_geometry
+                            print(f"Fluid influx factor is {fluid_influx_factor}")
+
+                            # test if 'H' and 'O' are in the bulk rock index
+                            if 'H' not in bulka.index:
+                                bulka['H'] = 0
+                            # Add the H and O to the bulk rock accounting for the geometry
+                            bulka['H'] += (master_rock[rock_react_item]['fluid_hydrogen'][-1]*fluid_influx_factor)
+                            bulka['O'] += (master_rock[rock_react_item]['fluid_oxygen'][-1]*fluid_influx_factor)
+                            print("Fluid influx added to bulk rock")
+                            print(f"Fluid influx is {master_rock[rock_react_item]['fluid_hydrogen'][-1]*fluid_influx_factor} mol H and {master_rock[rock_react_item]['fluid_oxygen'][-1]*fluid_influx_factor} mol O")
+
+                            # save fluid influx to the rock for later use
+                            master_rock[item]["fluid_influx_data"] = 0
+
+                            # calculate the new bulk rock composition
+                            master_rock[item]['new_bulk'] = whole_rock_convert_3(ready_mol_bulk=bulka)
+
+                            # Recalculate bulk delta-oxygen after fluid input
+                            new_O_bulk = fluid_injection_isotope_recalculation(
+                                        master_rock[item]['save_oxygen'],
+                                        master_rock[item]['df_element_total'],
+                                        master_rock[rock_react_item]['save_oxygen'][-1],
+                                        master_rock[rock_react_item]['fluid_hydrogen'][-1]*fluid_influx_factor,
+                                        master_rock[rock_react_item]['fluid_oxygen'][-1]*fluid_influx_factor,
+                                        fluid_name_tag=master_rock[rock_react_item]['database_fluid_name']
+                                        )
+
+                            # Overwrite for new bulk rock oxygen signature
+                            master_rock[item]['bulk_oxygen_before_influx'].append(np.copy(master_rock[item]['bulk_oxygen']))
+                            master_rock[item]['bulk_oxygen'] = new_O_bulk
+                            master_rock[item]['bulk_oxygen_after_influx'].append(np.copy(master_rock[item]['bulk_oxygen']))
+
+                            print(f"New bulk oxygen is {master_rock[item]['bulk_oxygen_before_influx'][-1]}")
+                            print(f"New bulk oxygen is {master_rock[item]['bulk_oxygen_after_influx'][-1]}")
+
+                    else:
+                        # Bulk rock calculation - normal
+                        if num < 1:
+                            master_rock[item]['new_bulk'], rockOxy = whole_rock_to_weight_normalizer(
+                                rock_bulk=master_rock[item]['bulk'][:-2],
+                                init_water=float(master_rock[item]['bulk'][-2]),
+                                init_carbon=float(master_rock[item]['bulk'][-1])
+                                )
+                        else:
+                            master_rock[item]['new_bulk'] = whole_rock_convert_3(
+                                ready_mol_bulk=master_rock[item]['df_element_total']['total:']
+                                )
+                        # Storing delta-oxygen bulk rock in any case before fluid influx
+                        master_rock[item]['bulk_oxygen_before_influx'].append(np.copy(master_rock[item]['bulk_oxygen']))
+                        master_rock[item]['bulk_oxygen_after_influx'].append(np.copy(master_rock[item]['bulk_oxygen']))
+                else:
+                    # Bulk rock calculation - normal
+                    if num < 1:
+                        master_rock[item]['new_bulk'], rockOxy = whole_rock_to_weight_normalizer(
+                            rock_bulk=master_rock[item]['bulk'][:-2],
+                            init_water=float(master_rock[item]['bulk'][-2]),
+                            init_carbon=float(master_rock[item]['bulk'][-1])
+                            )
+                    else:
+                        master_rock[item]['new_bulk'] = whole_rock_convert_3(
+                            ready_mol_bulk=master_rock[item]['df_element_total']['total:']
+                            )
+                    master_rock[item]['bulk_oxygen_before_influx'].append(0)
+                    master_rock[item]['bulk_oxygen_after_influx'].append(0)
+
+                print("¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦")
+                print("v v v v v v v v v v v v v v v v v v v v v v v v")
+                print(f"-> Forward modeling step initiated - {item}")
+                    # print("Bulk rock stop")
+                # store the current used bulk rock to the backup dictionary
+                rock_origin[item]['bulk'].append(master_rock[item]['new_bulk'])
+                # print(f"{item} Bulk rock composition checked.")
+                print(f"Bulk rock composition checked. No error found")
+                print("\n")
+                # display modelling progress
+                ic = k/kk*100
+                progress(ic)
+                k += 1
+                print("\n")
+
+                # tracking theriak input before minimization
+                if isinstance(master_rock[item]['theriak_input_record'], dict) == False:
+                    master_rock[item]['theriak_input_record'] = {}
+                    master_rock[item]['theriak_input_record']['temperature'] = [temperature[tt]]
+                    master_rock[item]['theriak_input_record']['pressure'] = [pressures[num][tt]]
+                    master_rock[item]['theriak_input_record']['bulk'] = [master_rock[item]['new_bulk']]
+                    print("Tracking theriak -> Create dictionary -> first entry")
+
+                # test for empty dictionary
+                elif isinstance(master_rock[item]['theriak_input_record'], dict) == True:
+                    master_rock[item]['theriak_input_record']['temperature'].append(temperature[tt])
+                    master_rock[item]['theriak_input_record']['pressure'].append(pressures[num][tt])
+                    master_rock[item]['theriak_input_record']['bulk'].append(master_rock[item]['new_bulk'])
+                    print("Tracking theriak -> dictionary exists -> add entry")
+
+                # _____________________________________________________________________________
+                # 1) Initialize rock
+                # LINK 1) Initialisation of the rock system
+                master_rock[item]['minimization'] = Therm_dyn_ther_looper(self.theriak,
+                    master_rock[item]['database'], master_rock[item]['new_bulk'],
+                    temperature[tt], pressures[num][tt], master_rock[item]['df_var_dictionary'],
+                    master_rock[item]['df_h2o_content_dic'], master_rock[item]['df_element_total'],
+                    num, fluid_name_tag=master_rock[item]['database_fluid_name'])
+                # //////////////////////////////////////////////////////////////////////////
+                # Master norm values
+                # calculating difference between new Volumes and previous P-T-step volumes - for derivate, not difference!!!
+                if num < 1:
+                    master_rock[item]['master_norm'].append(np.sqrt(
+                        (temperature[tt]-temperatures[num][tt])**2 + (pressures[num][tt]-pressures[num][tt])**2))
+                else:
+                    master_rock[item]['master_norm'].append(np.sqrt(
+                        (temperature-temperatures[num-1][tt])**2 + (pressures[num][tt]-pressures[num-1][tt])**2))
+
+                # //////////////////////////////////////////////////////////////////////////
+                # 1) Minimization
+                # Calculating and passing thermo data by theriak and theriak wrapper
+                # ----> self.df_var_dictionary, self.df_all_elements, self.df_hydrous_data_dic, new_fluid_volumes
+                master_rock[item]['minimization'].thermodynamic_looping_station()
+                # Main dictionary save
+                # saving G_sys per mol of system
+                master_rock[item]['g_sys'].append(master_rock[item]['minimization'].g_sys /
+                                                sum(master_rock[item]['minimization'].df_phase_data.iloc[0, :]))
+                # g_sys.append(minimization.g_sys)
+                master_rock[item]['pot_data'].append(
+                    master_rock[item]['minimization'].pot_frame)
+                # Backup dictionary save
+                rock_origin[item]['g_sys'] = copy.deepcopy(
+                    master_rock[item]['g_sys'][-1])
+                rock_origin[item]['pot_data'] = copy.deepcopy(
+                    master_rock[item]['pot_data'][-1])
+
+                # //////////////////////////////////////////////////////////////////////////
+                # 2) Creating DataFrame structure for "df_var_dictionary" in first itteration
+                # LINK - 2) Setup dataframes
+                if num < 1:
+                    # Volume and Density ouput - Dataframes (df_N, df_Vol% etc)
+                    for variable in list(master_rock[item]['minimization'].df_phase_data.index):
+                        master_rock[item]['df_var_dictionary']['df_' +
+                                                            str(variable)] = pd.DataFrame()
+                    water_cont_ind = ["N", "H2O[pfu]", "H2O[mol]",
+                                    "H2O[g]", "wt%_phase", "wt%_solids", "wt%_H2O.solid"]
+                    for variable in water_cont_ind:
+                        master_rock[item]['df_h2o_content_dic']['df_' +
+                                                                str(variable)] = pd.DataFrame()
+                    # Copy to backup dictionary
+                    rock_origin[item]['df_var_dictionary'] = copy.deepcopy(
+                        master_rock[item]['df_var_dictionary'])
+                    rock_origin[item]['df_h2o_content_dic'] = copy.deepcopy(
+                        master_rock[item]['df_h2o_content_dic'])
+                # updating dictionary with newly calculated data
+                master_rock[item]['minimization'].merge_dataframe_dic()
+                print("\n")
+                print("////// Energy minimization executed //////")
+                print("\n")
+
+                # //////////////////////////////////////////////////////////////////////////
+                # multi-rock loop for updating data storage, MicaPotassium, SystemFluidTest, init oxygen-isotope module, mineral fractionation
+                # //////////////////////////////////////////////////////////////////////////
+                # 3)
+                # LINK - 3) Data storage & merge
+                # calling dictionaries and dataframe for up-to-date usage
+                print(f"Running data re-storage, MicaPotassium, SystemFluidTest, oxy-module and mineral fractionation")
+                # for item in master_rock:
+                master_rock[item]['df_var_dictionary'], master_rock[item]['df_h2o_content_dic'], master_rock[item]['df_element_total'] = (
+                    master_rock[item]['minimization'].df_var_dictionary,
+                    master_rock[item]['minimization'].df_hydrous_data_dic,
+                    master_rock[item]['minimization'].df_all_elements)
+                master_rock[item]['df_element_total'] = master_rock[item]['df_element_total'].iloc[:, :-1]
+                # hydrogen content of the system before extraction
+                if 'H' in master_rock[item]['df_element_total'].index:
+                    master_rock[item]['total_hydrogen'] = master_rock[item]['df_element_total']['total:']['H']
+                else:
+                    master_rock[item]['total_hydrogen'] = 0
+                master_rock[item]['st_elements'] = pd.concat(
+                    [master_rock[item]['st_elements'], master_rock[item]['df_element_total']['total:']], axis=1)
+                # Backup dictionary - merging the data
+                for kkey in rock_origin[item]['df_var_dictionary'].keys():
+                    cdata = pd.concat(
+                        [rock_origin[item]['df_var_dictionary'][kkey], master_rock[item]['df_var_dictionary'][kkey].iloc[:, -1]], axis=1)
+                    rock_origin[item]['df_var_dictionary'][kkey] = copy.deepcopy(
+                        cdata)
+                for kkey in rock_origin[item]['df_h2o_content_dic'].keys():
+                    # Testing if dataframe is empty
+                    if rock_origin[item]['df_h2o_content_dic'][kkey].empty is True:
+                        cdata = rock_origin[item]['df_h2o_content_dic'][kkey]
+                    # If not empty, merge data
+                    else:
+                        cdata = pd.concat(
+                            [rock_origin[item]['df_h2o_content_dic'][kkey], master_rock[item]['df_h2o_content_dic'][kkey].iloc[:, -1]], axis=1)
+                    rock_origin[item]['df_h2o_content_dic'][kkey] = copy.deepcopy(
+                        cdata)
+                cdata = master_rock[item]['df_element_total']
+                rock_origin[item]['df_element_total'].append(copy.deepcopy(cdata))
+                # //////////////////////////////////////////////////////////////////////////
+                # store Mica potassium if stable
+                for phase in master_rock[item]['df_element_total'].columns:
+                    if 'PHNG' in phase:
+                        master_rock[item]['mica_K'].append(
+                            [temperature[tt], master_rock[item]['df_element_total'][phase]['K']])
+                # //////////////////////////////////////////////////////////////////////////
+                # 4)
+                # LINK - 4) System and fluid volumes
+                # Checking for fluid/solid volumes at t = 0 and t = -1,
+                # calculating difference (used for escape/extraction rule e.g., factor method)
+                # print("-> Testing for aq fluid in the system")
+                master_rock[item]['minimization'].step_on_water()
+                # Checking fluid and solid volumes. Storing t(-1) and t(0) data before calling calculation
+                if num < 1:
+                    master_rock[item]['fluid_volume_new'] = master_rock[item]['minimization'].new_fluid_Vol
+                    master_rock[item]['fluid_volume_before'] = master_rock[item]['fluid_volume_new']
+                    master_rock[item]['solid_volume_new'] = master_rock[item]['minimization'].new_solid_Vol
+                    master_rock[item]['solid_volume_before'] = master_rock[item]['solid_volume_new']
+                else:
+                    master_rock[item]['fluid_volume_before'] = master_rock[item]['minimization'].free_water_before
+                    master_rock[item]['fluid_volume_new'] = master_rock[item]['minimization'].new_fluid_Vol
+                    if master_rock[item]['minimization'].solid_vol_before != master_rock[item]['st_solid'][-1]:
+                        print("\nWARNING: solid volume mismatch\n")
+                    master_rock[item]['solid_volume_before'] = master_rock[item]['minimization'].solid_vol_before
+                    master_rock[item]['solid_volume_before'] = master_rock[item]['st_solid'][-1]
+                    master_rock[item]['solid_volume_new'] = master_rock[item]['minimization'].new_solid_Vol
+                # //////////////////////////////////////////////////////////////////////////
+                # 5)
+                # LINK - 5) Oxygen fractionation module
+                # isotope fractionation module
+                # print("-> Oxygen isotope module initiated")
+                print("d18O before oxygen isotope module")
+                print(f"Value is {master_rock[item]['bulk_oxygen']}")
+                master_rock[item]['model_oxygen'] = Isotope_calc(
+                    master_rock[item]['df_var_dictionary']['df_N'], master_rock[item]['minimization'].sol_sol_base,
+                    master_rock[item]['df_element_total'], oxygen_signature=master_rock[item]['bulk_oxygen'])
+                # print(f"Bulk oxygen is {master_rock[item]['bulk_oxygen']}")
+                # Isotope calc - function for oxygen isotope signatures
+                master_rock[item]['model_oxygen'].frac_oxygen(temperature[tt])
+                # storing isotope fractionation result, dic in list appended
+                master_rock[item]['save_oxygen'].append(
+                    master_rock[item]['model_oxygen'].oxygen_dic)
+                master_rock[item]['save_bulk_oxygen_pre'].append(
+                    master_rock[item]['bulk_oxygen'])
+                ### Backup dictionary - save oxygen data
+                rock_origin[item]['save_oxygen'].append(copy.deepcopy(master_rock[item]['model_oxygen'].oxygen_dic))
+                print("d18O after oxygen isotope module")
+                print(f"Value is {master_rock[item]['bulk_oxygen']}")
+                # //////////////////////////////////////////////////////////////////////////
+                # 6)
+                # LINK - 6) Mineral Fractionation
+                # mineral (garnet) fractionation - coupled oxygen bulk modification
+                if grt_frac == True:
+                    if master_rock[item]['database'] == 'ds62mp.txt' or master_rock[item]['database'] == 'td-ds62-mb50-v07.txt':
+                        garnet_name = 'GRT'
+                    else:
+                        garnet_name = 'GARNET'
+                    # print("-> Mineral fractionation initiated")
+                    # old frac position this line
+                    for phase in master_rock[item]['df_element_total'].columns:
+                        if '_' in phase:
+                            pos = phase.index('_')
+                            name = phase[:pos]
+                            if name == garnet_name:
+                                # Michelles atigorite fractionation
+                                # # if name=='GARNET' or name=='SERP' or name=='BR':
+                                new_bulk_oxygen = master_rock[item]['minimization'].mineral_fractionation(
+                                    master_rock[item]['save_oxygen'][-1], name)
+                                master_rock[item]['garnet'].append(
+                                    master_rock[item]['minimization'].separate)
+                                # Collect the volume of each formed garnet
+                                master_rock[item]['meta_grt_volume'].append(master_rock[item]['minimization'].separate.volume)
+                                # print(
+                                #     f"Selected phase = {phase} with Vol% = {master_rock[item]['df_var_dictionary']['df_vol%'].loc[phase][-2:]}")
+                                # print(
+                                #     f"Bulk deltaO changed from {round(master_rock[item]['bulk_oxygen'], 3)} to {round(new_bulk_oxygen, 3)}")
+                                master_rock[item]['bulk_oxygen'] = new_bulk_oxygen
+                                print("_______________________")
+                                master_rock[item]['garnet_check'].append(1)
+                            if len(master_rock[item]['garnet_check']) < num:
+                                master_rock[item]['garnet_check'].append(0)
+                # Do not delete - necessary step -
+                master_rock[item]['df_element_total'] = master_rock[item]['minimization'].df_all_elements
+                # LINK - 7) Metastable garnet
+                # Adding the metastable garnet impact
+                # calculate the metastable garnet for all bits besides the last
+                # add the calculated volume to the solid volume of the current step (this is then saved to the st_solid and used next turn)
+                grt_flag = True
+                if grt_flag is True and len(master_rock[item]['garnet']) > 0 and len(master_rock[item]['garnet_check']) > 1:
+                    if master_rock[item]['garnet_check'][-1] == 0:
+                        print("Garnet protocol")
+                        # take al modelled garnets
+                        # LINK - Metastable garnet call
+                        metastable_garnet = Garnet_recalc(self.theriak, master_rock[item]['garnet'], temperature[tt], pressures[num][tt])
+                        metastable_garnet.recalculation_of_garnets(database=master_rock[item]['database'], garnet_name=garnet_name)
+                        print(f"Fluid volume = {master_rock[item]['fluid_volume_new']} ccm")
+                        print(f"Solid volume = {master_rock[item]['solid_volume_new']} ccm")
+                        volume = metastable_garnet.recalc_volume
+                        # Adding the metastable volume of the fractionated garnet to the current minimized solied volume!
+                        master_rock[item]['solid_volume_new'] += volume
+                    if len(master_rock[item]['garnet']) > 1 and master_rock[item]['garnet_check'][-1] == 1:
+                        print("protocol")
+                        # take all garnets but last one
+                        metastable_garnet = Garnet_recalc(self.theriak, master_rock[item]['garnet'][:-1], temperature[tt], pressures[num][tt])
+                        metastable_garnet.recalculation_of_garnets(database=master_rock[item]['database'], garnet_name=garnet_name)
+                        print(f"Fluid volume = {master_rock[item]['fluid_volume_new']} ccm")
+                        print(f"Solid volume = {master_rock[item]['solid_volume_new']} ccm")
+                        volume = metastable_garnet.recalc_volume
+                        # Adding the metastable volume of the fractionated garnet to the current minimized solied volume!
+                        master_rock[item]['solid_volume_new'] += volume
+                        master_rock[item]['meta_grt_weight'].append(metastable_garnet.recalc_weight)
+                else:
+                    master_rock[item]['solid_volume_new'] += np.array(master_rock[item]['meta_grt_volume']).sum()
+                    if np.array(master_rock[item]['meta_grt_volume']).sum() != np.float64(0):
+                        print("What happend now? Here is suddenly garnet which is not stable???")
+                        # keyboard.wait('esc')
+                    metastable_garnet_weight = 0
+
+                # keeping track of stored and removed fluid
+                # !!!! necessary for mechanical module
+                master_rock[item]['st_fluid_before'].append(
+                    master_rock[item]['fluid_volume_new'])
+                master_rock[item]['st_fluid_after'].append(
+                    master_rock[item]['fluid_volume_new'])
+                master_rock[item]['st_solid'].append(
+                    master_rock[item]['solid_volume_new'])
+
+                print("All rocks passed the petrochemical model set-up")
+                # //////////////////////////////////////////////////////////////////////////
+                # LINK - MECHANICAL FAILURE MODEL
+                # 1) Failure and extraction mode selection
+                # 2) Oxygen isotope recalculation
+                # Physical fracture model section - active if free fluid is present
+                # Checking if free fluid is present. Stores this value, initializes
+                print(f"Mechanical failure model activated.")
+                fluid_name_tag = master_rock[item]['database_fluid_name']
+                if fluid_name_tag in list(master_rock[item]['df_element_total'].columns):
+                    print("-> Fluid extraction test")
+                    # Prepare fluid extraction
+                    if master_rock[rock_react_item]['reactivity'].react is True:
+                            print("reactivity break")
+
+                    # Prepare fluid extraction
+                    # - last entry of st_fluid_after has last fluid volume (number when not extracted or zero when extracted)
+                    if len(master_rock[item]['st_fluid_after']) > 1:
+                        fluid_before = master_rock[item]['st_fluid_after'][-2]
+                    else:
+                        fluid_before = master_rock[item]['st_fluid_after'][-1]
+
+                    # Start Extraction Master Module
+                    master_rock[item]['fluid_calculation'] = Ext_method_master(
+                        pressures[num][tt],
+                        fluid_before, master_rock[item]['fluid_volume_new'],
+                        master_rock[item]['solid_volume_before'], master_rock[item]['solid_volume_new'],
+                        master_rock[item]['save_factor'], master_rock[item]['master_norm'][-1],
+                        master_rock[item]['minimization'].df_phase_data,
+                        master_rock[item]['tensile strength'],
+                        differential_stress= master_rock[item]['diff. stress'],
+                        friction= master_rock[item]['friction'],
+                        fluid_pressure_mode= master_rock[item]['fluid_pressure_mode'],
+                        fluid_name_tag=fluid_name_tag, subduction_angle=self.angle,
+                        rock_item_tag=item
+                        )
+                    # //////////////////////////////////////////////////////////////////////////
+                    # LINK 1) selection of the failure and fluid extraction
+                    # ////// Calculation for new whole rock /////////
+                    # !!!!Assumption: fracturing of the system
+                    # if condition = open system, free water gets extracted
+                    fracturing_flag = False # Trigger by default False - active when coulomb module becomes positive
+                    failure_mech = master_rock[item]['Extraction scheme']
+                    if failure_mech in ['Factor', 'Dynamic', 'Steady', 'Mohr-Coulomb-Permea2', 'Mohr-Coulomb-Griffith']:
+                        # ANCHOR work in progres GRIFFITH
+                        # if factor_method is True or dynamic_method is True or steady_method is True or coulomb is True or coulomb_permea is True or coulomb_permea2 is True:
+                        # LINK Fluid flux & permeability
+                        # Fluid flux check - Virtual calculation
+                        # Hypothetically momentary fluid flux and permeabiltiy test
+                        mü_water = 1e-4
+                        # water data
+                        v_water = float(master_rock[item]['df_var_dictionary']['df_volume[ccm]'].loc[fluid_name_tag].iloc[-1])
+                        d_water = float(master_rock[item]['df_var_dictionary']['df_density[g/ccm]'].loc[fluid_name_tag].iloc[-1])
+                        weigth_water = master_rock[item]['df_var_dictionary']['df_wt[g]'].iloc[:, -1][fluid_name_tag]
+                        # system data
+                        master_rock[item]['meta_grt_weight']
+                        v_system = master_rock[item]['solid_volume_new'] + master_rock[item]['fluid_volume_new'] # modelling solid phases + metastable garnet + fluid
+                        # add metastable garnet weight - volume is already up to date
+                        if len(master_rock[item]['meta_grt_weight']) > 0:
+                            weight_sys = float(
+                                master_rock[item]['df_var_dictionary']['df_wt[g]'].iloc[:, -1].sum()
+                                ) + master_rock[item]['meta_grt_weight'][-1] # weight of solid + fluid + metastable garnet
+                        else:
+                            weight_sys = float(
+                                master_rock[item]['df_var_dictionary']['df_wt[g]'].iloc[:, -1].sum()
+                                ) # weight of solid + fluid + metastable garnet
+
+                        d_system = float(master_rock[item]['df_var_dictionary']['df_wt[g]'].iloc[:, -1].sum())/v_system
+                        # solid rock data
+                        v_rock = master_rock[item]['solid_volume_new']
+                        weight_rock = weight_sys - weigth_water # weight of solids + metastable garnet
+                        d_rock = weight_rock/v_rock
+                        # density difference
+                        density_cont = (d_rock-d_water)*1000 # kg/m3
+
+                        # Reading the time interval
+                        if num < 1:
+                            tc_time_c = float(np.diff(track_time[num:num+2])*365*24*60*60)
+                        else:
+                            tc_time_c = float(np.diff(track_time[num-1:num+1])*365*24*60*60)
+
+
+                        """# test 4
+                        cubic_meter = 2 # TODO put as input here - geometry or size of the block!
+                        xxx = np.power(1_000_000 * cubic_meter, 1/3) # length of x of cube (100cm for 1 m3)
+                        size = xxx**3 # cubic size
+                        area = xxx**2 # surface size
+                        # fluid flux = drainiage flux throughout a column
+                        volume_flux = v_water * size /v_system/area/tc_time_c # cm3 cm-2 s-1
+                        volume_flux = volume_flux/100 # m3 m-2 s-1
+                        # integrated permeability
+                        int_permea = volume_flux*mü_water/9.81*xxx/density_cont # permeability in m2"""
+
+                        # test 05
+                        bloc_a = np.float64(master_rock[item]['geometry'][0])
+                        bloc_b = np.float64(master_rock[item]['geometry'][1])
+                        bloc_c = np.float64(master_rock[item]['geometry'][2])
+                        area = bloc_b*bloc_c
+                        xxx = bloc_a
+                        size = bloc_a * bloc_b * bloc_c
+                        v_water1 = v_water/1000000 # cm3 to m3
+                        v_system1 = v_system/1000000 # cm3 to m3
+                        volume_flux = v_water1 * size/v_system1/area/tc_time_c # m3 m-2 s-1
+                        int_permea = volume_flux*mü_water/9.81/xxx/density_cont # permeability in m2
+
+                        # udpate to virtual test
+                        v_permea = int_permea
+                        master_rock[item]['live_fluid-flux'].append(volume_flux)
+                        master_rock[item]['live_permeability'].append(int_permea)
+                        print(f"-> Virtual permeability test results: {v_permea}")
+
+                        # Latest failure criterion 07.02.2023
+                        # LINK i) Mohr-Coulomb failure w. diff. stress input and min. permeabiltiy
+                        if failure_mech == 'Mohr-Coulomb-Permea2':
+                            print("\t===== Mohr-Couloumb.Permea2 method active =====")
+                            master_rock[item]['fluid_calculation'].couloumb_method2(
+                                shear_stress=master_rock[item]['shear'],
+                                friction=master_rock[item]['friction'],
+                                cohesion=master_rock[item]['cohesion']
+                                )
+
+                        elif failure_mech == 'Mohr-Coulomb-Griffith':
+                            print("\t===== Mohr-Coulomb-Griffith method active =====")
+                            if 'diff. stress' in master_rock[item].keys():
+                                master_rock[item]['fluid_calculation'].mohr_cloulomb_griffith()
+                            else:
+                                master_rock[item]['fluid_calculation'].mohr_cloulomb_griffith(
+                                        shear_stress=master_rock[item]['shear']
+                                        )
+                            master_rock[item]['failure module'].append(
+                                master_rock[item]['fluid_calculation'].failure_dictionary)
+
+                        # LINK ii) Steady state fluid extraction
+                        elif failure_mech == 'Steady':
+                            print("===== steady method active =====")
+                            master_rock[item]['fluid_calculation'].frac_respo = 5
+                            fracturing_flag = True
+                            master_rock[item]['fluid_calculation'].fracture = True
+                            master_rock[item]['failure module'].append("Steady")
+
+                        else:
+                            fracturing_flag = False
+                            master_rock[item]['fracture bool'].append(
+                                    master_rock[item]['fluid_calculation'].frac_respo)
+
+                        # ##############################################
+                        # LINK Coulomb mechanical trigger
+                        # Tracking fracturing from coulomb approach methods
+                        # Editing trigger
+                        # if coulomb is True or coulomb_permea2 is True or coulomb_permea is True:
+                        if failure_mech in ['Factor', 'Dynamic', 'Steady', 'Mohr-Coulomb-Permea2', 'Mohr-Coulomb-Griffith']:
+
+                            # store a bool index for the type of fracturing
+                            master_rock[item]['fracture bool'].append(
+                                master_rock[item]['fluid_calculation'].frac_respo)
+                            master_rock[item]['fracture_value'] = 1 + \
+                                master_rock[item]['tensile strength'] / \
+                                (pressures[num][tt]/10)
+
+                            # Fracture flag trigger
+                            # activate fracture flag trigger when vol% of fluid is above or equal 10%
+                            if v_water/v_system >= 0.1:
+                                master_rock[item]['fluid_calculation'].fracture = True
+                                fracturing_flag = True
+                                master_rock[item]['fracture bool'][-1] = 10
+                            else:
+                                fracturing_flag = master_rock[item]['fluid_calculation'].fracture
+                            # print(f"\nThe calculated extensional fracturing fator is: .... {fracture_value}\n")
+                            # print(f"Check factor: {fluid_fac}")
+
+                            # ##############################################
+                            # LINK Release criteria
+                            # Fluid Extraction when the modules before give true fracturing
+                            # checking with the mohr-coloumb model and decision for fracturing or not
+                            if fracturing_flag is True and v_permea > lowest_permeability[tt]:
+                                print("!!! Below minimum permeability!")
+                            # FIXME modified extraction criteria - minimum permeability is never reached 06.03.2023
+                            if fracturing_flag is True:
+                                print("Enter fluid extraction")
+                                # keyboard activation and exite by esc
+                                # if master_rock[rock_react_item]['reactivity'].react is True:
+                                #     print("Keyboard wait exception")
+                                #     keyboard.wait('esc')
+                                master_rock[item]['fluid_extraction'] = Fluid_master(
+                                    phase_data=master_rock[item]['minimization'].df_phase_data.loc[:, fluid_name_tag],
+                                    ext_data=master_rock[item]['extracted_fluid_data'],
+                                    temperature=num+1,
+                                    new_fluid_V=master_rock[item]['fluid_volume_new'],
+                                    sys_H=master_rock[item]['total_hydrogen'],
+                                    element_frame=master_rock[item]['df_element_total'],
+                                    st_fluid_post=master_rock[item]['st_fluid_after'],
+                                    fluid_name_tag=fluid_name_tag
+                                    )
+                                # backup before extraction
+                                master_rock[item]['fluid_hydrogen'].append(master_rock[item]['df_element_total'][fluid_name_tag]['H'].copy())
+                                master_rock[item]['fluid_oxygen'].append(master_rock[item]['df_element_total'][fluid_name_tag]['O'].copy())
+                                # Execute the extraction
+                                master_rock[item]['fluid_extraction'].hydrogen_ext_all()
+                                # Read the data of the fluid extracted
+                                master_rock[item]['extracted_fluid_data'] = master_rock[item]['fluid_extraction'].ext_data
+                                # Read the element frame when extraction
+                                master_rock[item]['df_element_total'] = master_rock[item]['fluid_extraction'].element_frame
+
+                                # Control the rock reactivity
+                                master_rock[item]['reactivity'].react=True
+                                # Save the time of extraction step
+                                master_rock[item]['extr_time'].append(track_time[num])
+                                # step system total volume (for surface ---> time integrated fluid flux)
+                                master_rock[item]['extr_svol'].append(
+                                    np.sum(master_rock[item]['df_var_dictionary']['df_volume[ccm]'].iloc[:, -1]))
+                                master_rock[item]['track_refolidv'] = []
+                            else:
+                                print("!!! No release!")
+                                master_rock[item]['reactivity'].react=False
+                                master_rock[item]['track_refolidv'].append(
+                                    master_rock[item]['solid_volume_before'])
+                                master_rock[item]['fracture bool'][-1] = 0
+
+                    # OPTION no extraction
+                    # Starts no extraction scheme
+                    else:
+                        master_rock[item]['reactivity'].react=False
+                        print("////// %s No extraction enabled! %s //////")
+
+                    # //////////////////////////////////////////////////////////////////////////
+                    # LINK Recalculate the oxygen isotope signature
+                    # Recalculate bulk rock oxygen value after possible extraction
+                    print("Oxygen isotope signature recalculation fluid extraction - before")
+                    print(f"Value is {master_rock[item]['bulk_oxygen']}")
+                    if item == 'rock003':
+                        print("break")
+                    new_O_bulk = oxygen_isotope_recalculation(
+                        master_rock[item]['save_oxygen'],
+                        master_rock[item]['df_element_total'])
+                    # Overwrite for new bulk rock oxygen signature
+                    master_rock[item]['bulk_oxygen'] = new_O_bulk
+                    # bulk_oxygen = (rockOxy*bulk_oxygen - oxy_mole_fluid *
+                    #                 fluid_oxygen)/(rockOxy - oxy_mole_fluid)
+                    print("Oxygen isotope signature recalculation fluid extraction - after")
+                    print(f"Value is {master_rock[item]['bulk_oxygen']}")
+                else:
+                    master_rock[item]['save_factor'].append(0)
+                    master_rock[item]['fracture bool'].append(0)
+                    master_rock[item]['live_fluid-flux'].append(np.nan)
+                    master_rock[item]['live_permeability'].append(np.nan)
+                    master_rock[item]['failure module'].append("None activated, no fluid.")
+                    master_rock[item]['reactivity'].react=False
+                    print(f"No free water in the system for {item} - no fracturing model")
+                # save bulk oxygen after extraction
+                master_rock[item]['save_bulk_oxygen_post'].append(
+                    master_rock[item]['bulk_oxygen'])
+                print("\n")
+
+            count += 1
+            # k += 1
+            ic = k/kk*100
+            print("=====Progress=====")
+            progress(ic)
+            print("\n")
+
+        # LINK ROUTINE END
+        # //////////////////////////////////////////////////////////////////////////
+        # //////////////////////////// END OF SCRIPT ///////////////////////////////
+        # //////////////////////////////////////////////////////////////////////////
+
+        self.rock_dic = master_rock
 
     def data_reduction(self, defined_path=False):
         """
@@ -1931,10 +2683,20 @@ class ThorPT_Routines():
             else:
                 hf.attrs.create("bulk_grid", False)
 
-            for rock in master_rock:
+            for tt, rock in enumerate(master_rock):
                 entries = list(master_rock[rock].keys())
-                hf.create_dataset(f"{rock}/Parameters/temperatures", data=temperatures)
-                hf.create_dataset(f"{rock}/Parameters/pressures", data=pressures)
+                if np.ndim(temperatures) > 1:
+                    hf.create_dataset(f"{rock}/Parameters/temperatures", data=np.array(temperatures).T[tt])
+                elif np.ndim(temperatures) == 1:
+                    hf.create_dataset(f"{rock}/Parameters/temperatures", data=temperatures)
+                else:
+                    print(f"Temperature array warning. Number of dimensions = {np.ndim(temperatures)} - is not a valid array.".format(temperatures))
+                if np.ndim(pressures) > 1:
+                    hf.create_dataset(f"{rock}/Parameters/pressures", data=np.array(pressures).T[tt])
+                elif np.ndim(pressures) == 1:
+                    hf.create_dataset(f"{rock}/Parameters/pressures", data=pressures)
+                else:
+                    print(f"Pressure array warning. Number of dimensions = {np.ndim(pressures)} - is not a valid array.".format(pressures))
                 hf.create_dataset(f"{rock}/Parameters/convergence_speed", data=conv_speed)
                 hf.create_dataset(f"{rock}/Parameters/subuction_angle", data=angle)
 
@@ -2061,6 +2823,8 @@ class ThorPT_Routines():
                         hf.create_dataset(f"{rock}/GarnetData/{entries[i]}", data=master_rock[rock][item])
                     elif item in h5_system_data:
                         hf.create_dataset(f"{rock}/SystemData/{entries[i]}", data=master_rock[rock][item])
+                    elif item == 'master_norm':
+                        pass
                     else:
                         hf.create_dataset(f"{rock}/Other/{entries[i]}", data=master_rock[rock][item])
 

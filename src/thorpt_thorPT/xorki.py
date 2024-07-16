@@ -96,12 +96,12 @@ def phases_and_colors_XMT(database, phases):
     min_translation = pd.read_csv(file_to_open, delimiter='\t')
 
     # Iterating through phases and select colors
-    colpal = sns.color_palette("flare", 20)
+    colpal = sns.color_palette("flare", len(phases))
     color_set = []
     phase_set = []
     z = 0
     for mini in phases:
-        if mini == 'fluid' or mini == 'H2O.liq':
+        if mini == 'fluid' or mini == 'H2O.liq' or mini == 'Liqtc6_H2Ol' or mini == 'H2O':
             color_set.append((84/255, 247/255, 242/255))
             phase_set.append("Water")
         elif mini in list(min_translation['Database-name']):
@@ -1258,10 +1258,12 @@ class ThorPT_hdf5_reader():
 
                 volume_data = copy.deepcopy(df_var_d['df_volume'])
                 volume_data.columns = phases
+
                 volume_data[np.isnan(volume_data) == True] = 0
 
                 mass_abs_data = copy.deepcopy(df_var_d['df_wt'])
                 mass_abs_data.columns = phases
+
                 mass_abs_data[np.isnan(mass_abs_data) == True] = 0
 
                 if 'fluid' in volume_data.columns:
@@ -2408,9 +2410,8 @@ class ThorPT_plots():
                 "Please provide what you want to convert to a stack. ['vol%', 'volume', 'wt%', 'wt']")
             tag = 'df_'+tag_in
         else:
-            tag_in = val_tag
             if val_tag in ['vol%', 'volume', 'wt%', 'wt']:
-                tag = 'df_'+tag_in
+                tag = 'df_'+ val_tag
                 pass
             else:
                 print("Try again and select a proper value for stack plot input")
@@ -2460,7 +2461,7 @@ class ThorPT_plots():
         # plt.rcParams['font.family'] = 'sans-serif'
 
         # add metastable garnet to the dataframe
-        if 'Garnet' in y.index:
+        if 'Garnet' in y.index and len(garnet.name) > 0:
             # y.loc['Garnet'][np.isnan(y.loc['Garnet'])] = 0
             y.loc['Garnet', y.loc['Garnet'].isna()] = 0
             kk = 0
@@ -2708,11 +2709,17 @@ class ThorPT_plots():
             os.makedirs(
                     f'{self.mainfolder}/img_{self.filename}/{subfolder}', exist_ok=True)
             if transparent is True:
+                plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}_stack_plot_transparent.png',
+                                                transparent=True)
+            else:
+                plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}_stack_plot.png',
+                                transparent=False)
+            """if transparent is True:
                 plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}_stack_plot_transparent.pdf',
                                                 transparent=True)
             else:
                 plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}_stack_plot.pdf',
-                                transparent=False)
+                                transparent=False)"""
 
         else:
             plt.show()
@@ -2877,7 +2884,7 @@ class ThorPT_plots():
         if img_save is True:
             os.makedirs(
                     f'{self.mainfolder}/img_{self.filename}/{subfolder}', exist_ok=True)
-            plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}_oxygen_isotope_plot.png',
+            plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}_oxygen_isotope_plot.pdf',
                             transparent=False, facecolor='white')
         else:
             plt.show()
@@ -3538,7 +3545,8 @@ class ThorPT_plots():
             ax1.set_xlim([0, omphacite_content.max()+0.1*omphacite_content.max()])
             ax2.set_xlim([0, glaucophane_content.max()+0.1*glaucophane_content.max()])
             ax3.set_xlim([0, hydrous_content.max()+0.1*hydrous_content.max()])
-            ax4.set_xlim([0, lawsonite_content.max()+0.1*lawsonite_content.max()])
+            # ax4.set_xlim([0, lawsonite_content.max()+0.1*lawsonite_content.max()])
+            ax4.set_xscale('log')
             ax5.set_xlim([0, garnet_content.max()+0.1*garnet_content.max()])
             ax6.set_xlim([0, water_content.max()+0.1*water_content.max()])
             ax7.set_xlim([0, 25])
@@ -4135,6 +4143,8 @@ class ThorPT_plots():
 
         # Create a unified legend
         fig.legend(handles=handles1 + handles2, labels=labels1 + labels2, loc='upper left')
+
+        # plt.show()
 
         subfolder = 'sensitivity'
         os.makedirs(f'{self.mainfolder}/img_{self.filename}/{subfolder}', exist_ok=True)
@@ -4994,7 +5004,10 @@ class ThorPT_plots():
 
         # get the position of shells with fluid extraction
         frac_boolean = self.rockdic[rock_tag].extraction_boolean
-        fracture_shell = np.ma.masked_array(iloc, frac_boolean)
+        if len(frac_boolean) != len(iloc):
+            fracture_shell = np.ma.masked_array(iloc, np.zeros(len(iloc)))
+        else:
+            fracture_shell = np.ma.masked_array(iloc, frac_boolean)
         fracture_shell = fracture_shell.compressed()
         fracture_shell = fracture_shell/1000
 
@@ -5048,7 +5061,7 @@ class ThorPT_plots():
         if img_save is True:
             os.makedirs(
                 f'{self.mainfolder}/img_{self.filename}/garnet_sphere', exist_ok=True)
-            plt.savefig(f'{self.mainfolder}/img_{self.filename}/garnet_sphere/garnet_sphere_diffused{rock_tag}.png',
+            plt.savefig(f'{self.mainfolder}/img_{self.filename}/garnet_sphere/garnet_sphere_diffused{rock_tag}.pdf',
                         transparent=False)
         else:
             plt.show()
@@ -5133,7 +5146,7 @@ class ThorPT_plots():
 
         ani.save(f'{self.mainfolder}/img_{self.filename}/Grt_Spherical+1D_{rock_tag}.gif', writer='imagemagick', fps=7)
 
-    def mohr_coulomb_diagram(self):
+    def mohr_coulomb_diagram(self, rock_tag):
         """
         Plot the Mohr-Coulomb diagram for the given rock failure model.
 
@@ -5145,7 +5158,7 @@ class ThorPT_plots():
             None
         """
         # mechanical data
-        mechanical_data = self.rockdic['rock017'].failure_model
+        mechanical_data = self.rockdic[rock_tag].failure_model
 
         # basis of the modellign data
         first_entry_name = list(self.rockdic.keys())[0]
@@ -5209,17 +5222,27 @@ if __name__ == '__main__':
         data.filename, data.mainfolder, data.rock, data.compiledrock)
 
 
+    """compPlot.fluid_distribution_sgm23(img_save=True, gif_save=True, x_axis_log=False)"""
+
+    # compPlot.fluid_content(img_save=False)"""
+
     for key in data.rock.keys():
         print(key)
         compPlot.phases_stack_plot(rock_tag=key, img_save=True,
-                    val_tag='volume', transparent=False, fluid_porosity=True, cumulative=True)
-        compPlot.oxygen_isotopes(rock_tag=key, img_save=True)
+                     val_tag='volume', transparent=False, fluid_porosity=True, cumulative=True)
+        """compPlot.garnet_visualization_diffusion(
+        key, garnet_size=1000, diffusion_time=20,
+        input_temperature=540, input_pressure=2.0,
+        img_save=True
+        )"""
+        # compPlot.oxygen_isotopes(rock_tag=key, img_save=True)
+        # compPlot.permeability_plot(rock_tag=key, img_save=True)
 
     """compPlot.fluid_distribution_sgm23(img_save=True, gif_save=True, x_axis_log=False)
     # compPlot.mohr_coulomb_diagram()"""
 
     # compPlot.diff_stress_vs_mean_stress_vs_extraction(color_map_input='coolwarm')
-    compPlot.bulk_rock_sensitivity_twin()
+    # compPlot.bulk_rock_sensitivity_twin()
     """compPlot.diff_stress_vs_tensile_vs_extractedCumVol(color_map_input='coolwarm')
     compPlot.diff_stress_vs_tensile_vs_numberofextraction(color_map_input='coolwarm')
 
@@ -5233,12 +5256,11 @@ if __name__ == '__main__':
         img_save=False
         )"""
 
-    """compPlot.fluid_distribution_sgm23(img_save=True, gif_save=True, x_axis_log=False)
-    """
+    
 
     # compPlot.ternary_vs_extraction_cumVol()
-    compPlot.tensile_strength_sensitivity_cumVol()
-    compPlot.bulk_rock_sensitivity_cumVol()
+    # compPlot.tensile_strength_sensitivity_cumVol()
+    # compPlot.bulk_rock_sensitivity_cumVol()
     # compPlot.tensile_strength_sensitivity_cumVol()
 
     # compPlot.diff_stress_vs_tensile_vs_extractedCumVol(color_map_input='coolwarm')
