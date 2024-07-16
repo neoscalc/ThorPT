@@ -1,0 +1,3 @@
+layers:crust1,crust3
+rho:2800,3300
+thickness:1000,increasing

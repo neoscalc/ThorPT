@@ -55,7 +55,7 @@ __Before you start, make sure that you have followed all the steps and executed 
 ThorPT is public on the test PyPi servers and will be published on the offical servers soon. You can get the package by using the following command to import it to your python environment.
 
 ``` python
-pip install -i https://test.pypi.org/simple/ thorpt-thorPT
+pip install thorpt_thorPT
 ```
 
 # 1.2.2 Import the package
