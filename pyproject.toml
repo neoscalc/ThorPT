@@ -3,8 +3,8 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "thorpt-thorPT"
-version = "1.0.2"
+name = "thorpt_thorPT"
+version = "1.0.0"
 authors = [
   { name="Thorsten A. Markmann", email="thorsten.markmann@unibe.ch" },
 ]

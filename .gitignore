@@ -11,7 +11,7 @@ __pycache__/
 *.so
 
 # Output txt files
-*.txt
+# *.txt
 
 # Distribution / packaging
 .Python

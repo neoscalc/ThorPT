@@ -1,0 +1,12 @@
+First init file block succesfully read.
+
+Second init file block succesfully read. All rocks read and stored.
+
+Initialize test run for theriak link.
+
+Theriak test run passed. Theriak is ready to use.
+
+Initializing the routine.
+
+Routine 3 selected.
+

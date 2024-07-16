@@ -1,0 +1,21 @@
+File formatting works like:
+
+
+
+*** SOLID SOLUTIONS ***
+
+>> DesiredName		DatabaseName
+NamePhaseSS1		NamePhaseSS2
+NameInDB		NameInDB
+NumOxygen		NumOxygen
+
+>> OLIVINE	OLIVINEi 
+FAYALITE	FORSTERITE
+fayalite	forsterite
+4		4
+
+
+
+*** MINERAL DATA ***
+DesiredName		DatabaseName		Oxygen
+CLINOHUMITE		clinohumite		18
