@@ -36,6 +36,7 @@ Garnet	181	44	31
 Glaucophane	103	80	152
 Hematite	219	219	211
 Ilmenite	224	93	42
+Jadeite	126	191	148
 Kfeldspar	233	184	204
 Kyanite	0	91	147
 Lawsonite	202	108	165

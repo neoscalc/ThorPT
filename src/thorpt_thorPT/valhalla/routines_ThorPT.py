@@ -1103,6 +1103,7 @@ class ThorPT_Routines():
 
         # Main variables fractionation
         grt_frac = self.garnet_fractionation
+        print(f"Garnet fractionation in this model is: {grt_frac}")
 
         # //////////////////////////////////////////////////
         # /////////////////////////////////////////////////
@@ -1179,7 +1180,7 @@ class ThorPT_Routines():
                             bulka['H'] += (master_rock[rock_react_item]['fluid_hydrogen'][-1]*fluid_influx_factor)
                             bulka['O'] += (master_rock[rock_react_item]['fluid_oxygen'][-1]*fluid_influx_factor)
                             print("Fluid influx added to bulk rock")
-                            print(f"Fluid influx is {master_rock[rock_react_item]['fluid_hydrogen'][-1]*fluid_influx_factor} mol H and {master_rock[rock_react_item]['fluid_oxygen'][-1]*fluid_influx_factor} mol O")
+                            print(f"Fluid influx is H = {master_rock[rock_react_item]['fluid_hydrogen'][-1]*fluid_influx_factor} mol and O = {master_rock[rock_react_item]['fluid_oxygen'][-1]*fluid_influx_factor} mol")
 
                             # save fluid influx to the rock for later use
                             master_rock[item]["fluid_influx_data"] = 0

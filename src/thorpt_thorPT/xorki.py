@@ -2461,7 +2461,7 @@ class ThorPT_plots():
         # plt.rcParams['font.family'] = 'sans-serif'
 
         # add metastable garnet to the dataframe
-        if 'Garnet' in y.index:
+        if 'Garnet' in y.index and len(garnet.name) > 0:
             # y.loc['Garnet'][np.isnan(y.loc['Garnet'])] = 0
             y.loc['Garnet', y.loc['Garnet'].isna()] = 0
             kk = 0
@@ -3545,7 +3545,8 @@ class ThorPT_plots():
             ax1.set_xlim([0, omphacite_content.max()+0.1*omphacite_content.max()])
             ax2.set_xlim([0, glaucophane_content.max()+0.1*glaucophane_content.max()])
             ax3.set_xlim([0, hydrous_content.max()+0.1*hydrous_content.max()])
-            ax4.set_xlim([0, lawsonite_content.max()+0.1*lawsonite_content.max()])
+            # ax4.set_xlim([0, lawsonite_content.max()+0.1*lawsonite_content.max()])
+            ax4.set_xscale('log')
             ax5.set_xlim([0, garnet_content.max()+0.1*garnet_content.max()])
             ax6.set_xlim([0, water_content.max()+0.1*water_content.max()])
             ax7.set_xlim([0, 25])
@@ -5003,7 +5004,10 @@ class ThorPT_plots():
 
         # get the position of shells with fluid extraction
         frac_boolean = self.rockdic[rock_tag].extraction_boolean
-        fracture_shell = np.ma.masked_array(iloc, frac_boolean)
+        if len(frac_boolean) != len(iloc):
+            fracture_shell = np.ma.masked_array(iloc, np.zeros(len(iloc)))
+        else:
+            fracture_shell = np.ma.masked_array(iloc, frac_boolean)
         fracture_shell = fracture_shell.compressed()
         fracture_shell = fracture_shell/1000
 
@@ -5057,7 +5061,7 @@ class ThorPT_plots():
         if img_save is True:
             os.makedirs(
                 f'{self.mainfolder}/img_{self.filename}/garnet_sphere', exist_ok=True)
-            plt.savefig(f'{self.mainfolder}/img_{self.filename}/garnet_sphere/garnet_sphere_diffused{rock_tag}.png',
+            plt.savefig(f'{self.mainfolder}/img_{self.filename}/garnet_sphere/garnet_sphere_diffused{rock_tag}.pdf',
                         transparent=False)
         else:
             plt.show()
@@ -5218,10 +5222,19 @@ if __name__ == '__main__':
         data.filename, data.mainfolder, data.rock, data.compiledrock)
 
 
+    """compPlot.fluid_distribution_sgm23(img_save=True, gif_save=True, x_axis_log=False)"""
+
+    # compPlot.fluid_content(img_save=False)"""
+
     for key in data.rock.keys():
         print(key)
         compPlot.phases_stack_plot(rock_tag=key, img_save=True,
                      val_tag='volume', transparent=False, fluid_porosity=True, cumulative=True)
+        """compPlot.garnet_visualization_diffusion(
+        key, garnet_size=1000, diffusion_time=20,
+        input_temperature=540, input_pressure=2.0,
+        img_save=True
+        )"""
         # compPlot.oxygen_isotopes(rock_tag=key, img_save=True)
         # compPlot.permeability_plot(rock_tag=key, img_save=True)
 
@@ -5243,8 +5256,7 @@ if __name__ == '__main__':
         img_save=False
         )"""
 
-    """compPlot.fluid_distribution_sgm23(img_save=True, gif_save=True, x_axis_log=False)
-    """
+    
 
     # compPlot.ternary_vs_extraction_cumVol()
     # compPlot.tensile_strength_sensitivity_cumVol()
