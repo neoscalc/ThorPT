@@ -2,8 +2,8 @@
 """
 Written by
 Thorsten Markmann
-thorsten.markmann@geo.unibe.ch
-status: 25.01.2024
+thorsten.markmann@unibe.ch
+status: 16.07.2024
 """
 
 import pandas as pd
