@@ -3,13 +3,13 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('../src'))
-sys.path.insert(0, os.path.abspath('../src/thorpt_thorPT'))
-sys.path.insert(0, os.path.abspath('../src/thorpt_thorPT/valhalla'))
+sys.path.insert(0, os.path.abspath('../src/thorpt'))
+sys.path.insert(0, os.path.abspath('../src/thorpt/valhalla'))
 sys.path.insert(0, os.path.abspath("."))
 sys.path.insert(0, os.path.abspath("../."))
 sys.path.insert(0, os.path.abspath("../.."))
 
-import thorpt_thorPT
+import thorpt
 
 # Configuration file for the Sphinx documentation builder.
 #

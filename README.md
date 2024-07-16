@@ -55,11 +55,11 @@ __Before you start, make sure that you have followed all the steps and executed 
 ThorPT is public on the test PyPi servers and will be published on the offical servers soon. You can get the package by using the following command to import it to your python environment.
 
 ``` python
-pip install thorpt_thorPT
+pip install thorpt
 ```
 
 # 1.2.2 Import the package
-from thorpt_thorPT import start_ThorPT
+from thorpt import start_ThorPT
 
 
 # 1.2.3 Run the main module
@@ -75,10 +75,10 @@ Plotting is based on the ξόρκι module. This module comprises pre defined pl
 
 
 First steps:
-from thorpt_thorPT.xorki import *
+from thorpt.xorki import *
 Read variables from a hdf5 with the function
 ```python
-from thorpt_thorPT.xorki import *
+from thorpt.xorki import *
 data = ThorPT_hdf5_reader()
 data.open_ThorPT_hdf5()
 ```

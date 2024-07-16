@@ -94,9 +94,9 @@ def run_main_routine():
     # Test if function is not called by a script
     if __name__ != '__main__':
         print("Import the modules of ThorPT during package import")
-        from thorpt_thorPT.valhalla import Pathfinder
-        from thorpt_thorPT.valhalla import routines_ThorPT
-        from thorpt_thorPT.valhalla.tunorrad import run_theriak as test_theriak
+        from thorpt.valhalla import Pathfinder
+        from thorpt.valhalla import routines_ThorPT
+        from thorpt.valhalla.tunorrad import run_theriak as test_theriak
         print("Import finished")
 
     set_origin()
@@ -686,9 +686,9 @@ if __name__ == '__main__':
 else:
     # The script was imported as a module
     print("Import the modules of ThorPT during package import")
-    from thorpt_thorPT.valhalla import Pathfinder
-    from thorpt_thorPT.valhalla.routines_ThorPT import *
-    from thorpt_thorPT.valhalla.tunorrad import run_theriak as test_theriak
+    from thorpt.valhalla import Pathfinder
+    from thorpt.valhalla.routines_ThorPT import *
+    from thorpt.valhalla.tunorrad import run_theriak as test_theriak
     print("Import finished")
 
 
