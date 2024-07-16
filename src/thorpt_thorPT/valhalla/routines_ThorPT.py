@@ -959,8 +959,8 @@ class ThorPT_Routines():
                             # Fluid Extraction when the modules before give true fracturing
                             # checking with the mohr-coloumb model and decision for fracturing or not
 
-                            if fracturing_flag is True and v_permea > lowest_permeability[jjj]:
-                                print("!!! Below minimum permeability!")
+                            """if fracturing_flag is True and v_permea > lowest_permeability[jjj]:
+                                print("!!! Below minimum permeability!")"""
                             # # FIXME modified extraction criteria - minimum permeability is never reached 06.03.2023
                             if fracturing_flag is True:
                                 print("Enter fluid extraction")
@@ -1666,8 +1666,8 @@ class ThorPT_Routines():
                             # LINK Release criteria
                             # Fluid Extraction when the modules before give true fracturing
                             # checking with the mohr-coloumb model and decision for fracturing or not
-                            if fracturing_flag is True and v_permea > lowest_permeability[tt]:
-                                print("!!! Below minimum permeability!")
+                            """if fracturing_flag is True and v_permea > lowest_permeability[tt]:
+                                print("!!! Below minimum permeability!")"""
                             # FIXME modified extraction criteria - minimum permeability is never reached 06.03.2023
                             if fracturing_flag is True:
                                 print("Enter fluid extraction")
@@ -2367,8 +2367,8 @@ class ThorPT_Routines():
                             # LINK Release criteria
                             # Fluid Extraction when the modules before give true fracturing
                             # checking with the mohr-coloumb model and decision for fracturing or not
-                            if fracturing_flag is True and v_permea > lowest_permeability[tt]:
-                                print("!!! Below minimum permeability!")
+                            """if fracturing_flag is True and v_permea > lowest_permeability[tt]:
+                                print("!!! Below minimum permeability!")"""
                             # FIXME modified extraction criteria - minimum permeability is never reached 06.03.2023
                             if fracturing_flag is True:
                                 print("Enter fluid extraction")
