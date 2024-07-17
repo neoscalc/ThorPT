@@ -12,6 +12,7 @@ __pycache__/
 
 # Output txt files
 # *.txt
+tc55_TotoPierre.txt
 
 # Distribution / packaging
 .Python
