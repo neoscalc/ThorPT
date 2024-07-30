@@ -2835,6 +2835,9 @@ class ThorPT_plots():
         oxyframe = self.rockdic[rock_tag].oxygen_data.T
         oxyframe.columns = self.rockdic[rock_tag].temperature
 
+        # read metastable garnet data
+        garnet = self.rockdic[rock_tag].garnet[rock_tag]
+
         # XMT naming and coloring
         database = self.rockdic[rock_tag].database
         phases2 = oxyframe.index
@@ -2853,6 +2856,22 @@ class ThorPT_plots():
             pass
         else:
             oxyframe, legend_phases, color_set = clean_frame(oxyframe, legend_phases, color_set)
+
+        if 'Garnet' in oxyframe.index and len(garnet.name) > 0:
+            # y.loc['Garnet'][np.isnan(y.loc['Garnet'])] = 0
+            kk = 0
+            garnet_in = False
+            for k, xval in enumerate(oxyframe.loc['Garnet']):
+                if xval == 0 and garnet_in is True:
+                    oxyframe.loc['Garnet'].iloc[k] = oxyframe.loc['Garnet'].iloc[k-1]
+                elif xval == 0:
+                    pass
+                else:
+                    garnet_in = True
+
+
+        # replace 0 in oxyframe with NaN
+        oxyframe = oxyframe.replace(0, np.nan)
 
         # manual colorset for the plot
         # "Serp_Atg', 'Br_Br', 'Olivine', 'Chlorite', 'Magnetite', 'Water"
