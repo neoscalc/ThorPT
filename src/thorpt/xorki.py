@@ -2379,7 +2379,8 @@ class ThorPT_plots():
             create_gif(phase_data, self.mainfolder, self.filename,
                        group_key, subfolder=subfolder)
 
-    def phases_stack_plot(self, rock_tag, img_save=False, val_tag=False, transparent=False, fluid_porosity=True, cumulative=False):
+    def phases_stack_plot(self, rock_tag, img_save=False, val_tag=False,
+                          transparent=False, fluid_porosity=True, cumulative=False, img_type='png'):
         """
         Plot the phase changes for P-T-t.
 
@@ -2709,10 +2710,10 @@ class ThorPT_plots():
             os.makedirs(
                     f'{self.mainfolder}/img_{self.filename}/{subfolder}', exist_ok=True)
             if transparent is True:
-                plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}_stack_plot_transparent.png',
+                plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}_stack_plot_transparent.{img_type}',
                                                 transparent=True)
             else:
-                plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}_stack_plot.png',
+                plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}_stack_plot.{img_type}',
                                 transparent=False)
             """if transparent is True:
                 plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}_stack_plot_transparent.pdf',
@@ -2817,7 +2818,7 @@ class ThorPT_plots():
             else:
                 plt.show()
 
-    def oxygen_isotopes(self, rock_tag, img_save=False):
+    def oxygen_isotopes(self, rock_tag, img_save=False, img_type="png"):
         """Plotting function for the modelled oxygen isotope data
 
         Args:
@@ -2861,7 +2862,7 @@ class ThorPT_plots():
         # plt.rcParams['font.family'] = 'arial'
         fig, ax211 = plt.subplots(1, 1, figsize=(8, 5))
         for t, phase in enumerate(list(oxyframe.index)):
-            print(t)
+            # print(t)
             ax211.plot(oxyframe.columns, oxyframe.loc[phase], '--d',
                        color=color_set[t], linewidth=0.7, markeredgecolor='black', markersize=9)
 
@@ -2884,7 +2885,7 @@ class ThorPT_plots():
         if img_save is True:
             os.makedirs(
                     f'{self.mainfolder}/img_{self.filename}/{subfolder}', exist_ok=True)
-            plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}_oxygen_isotope_plot.pdf',
+            plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}_oxygen_isotope_plot.{img_type}',
                             transparent=False, facecolor='white')
         else:
             plt.show()
@@ -5225,3 +5226,6 @@ if __name__ == '__main__':
         print(key)
         compPlot.phases_stack_plot(rock_tag=key, img_save=True,
                      val_tag='volume', transparent=False, fluid_porosity=True, cumulative=True)
+        compPlot.oxygen_isotopes(rock_tag=key, img_save=True)
+
+

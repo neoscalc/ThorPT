@@ -1,7 +1,5 @@
 
-/src/thorpt_thorPT/meta.json
-/src/thorpt_thorPT/ThkOut.txt
-/src/thorpt_thorPT/valhalla/output_Pathfinder.txt
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -12,8 +10,16 @@ __pycache__/
 
 # Output txt files
 # *.txt
+ThkOut.txt
 tc55_TotoPierre.txt
+tc55_AngiRaim.txt
 tc55_no_grt.txt
+tc55_italy.txt
+ds62mp_italy_backup.txt
+
+src/thorpt/ThkOut.txt
+meta.json
+/src/thorpt/valhalla/output_Pathfinder.txt
 
 # Distribution / packaging
 .Python

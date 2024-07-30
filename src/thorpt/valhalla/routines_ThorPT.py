@@ -294,18 +294,19 @@ def fluid_injection_isotope_recalculation(
 
     # influx data to reclaculate with
     input_deltaO = np.float64(temp_input.loc[fluid_name_tag, 0])
+    print(f"Fluid influx is d18O = {input_deltaO}")
     input_oxygen = interaction_factor * input_oxygen
 
     # recalculation by factors
     bulk_deltaO = sum(phase_oxygen*phase_doxy / sum(phase_oxygen))
     new_O_bulk = (input_oxygen*input_deltaO + sum(phase_oxygen)*bulk_deltaO ) / (input_oxygen+sum(phase_oxygen))
-    print("New bulk oxygen isotope signature is: ", new_O_bulk)
+    # print("New bulk oxygen isotope signature is: ", new_O_bulk)
 
     # test with append
     phase_oxygen = np.append(phase_oxygen, input_oxygen)
     phase_doxy = np.append(phase_doxy, input_deltaO)
     bulk_deltaO = sum(phase_oxygen*phase_doxy / sum(phase_oxygen))
-    print("New bulk oxygen isotope signature is: ", bulk_deltaO)
+    # print("New bulk oxygen isotope signature is: ", bulk_deltaO)
 
     return new_O_bulk
 
@@ -1203,7 +1204,7 @@ class ThorPT_Routines():
                             master_rock[item]['bulk_oxygen'] = new_O_bulk
                             master_rock[item]['bulk_oxygen_after_influx'].append(np.copy(master_rock[item]['bulk_oxygen']))
 
-                            print(f"New bulk oxygen is {master_rock[item]['bulk_oxygen_before_influx'][-1]}")
+                            print(f"Before bulk oxygen is {master_rock[item]['bulk_oxygen_before_influx'][-1]}")
                             print(f"New bulk oxygen is {master_rock[item]['bulk_oxygen_after_influx'][-1]}")
 
                     else:
@@ -1446,6 +1447,10 @@ class ThorPT_Routines():
                                 master_rock[item]['garnet_check'].append(1)
                             if len(master_rock[item]['garnet_check']) < num:
                                 master_rock[item]['garnet_check'].append(0)
+
+                print("d18O after mineral fractionation module")
+                print(f"Value is {master_rock[item]['bulk_oxygen']}")
+
                 # Do not delete - necessary step -
                 master_rock[item]['df_element_total'] = master_rock[item]['minimization'].df_all_elements
                 # LINK - 7) Metastable garnet
@@ -1721,8 +1726,6 @@ class ThorPT_Routines():
                     # Recalculate bulk rock oxygen value after possible extraction
                     print("Oxygen isotope signature recalculation fluid extraction - before")
                     print(f"Value is {master_rock[item]['bulk_oxygen']}")
-                    if item == 'rock003':
-                        print("break")
                     new_O_bulk = oxygen_isotope_recalculation(
                         master_rock[item]['save_oxygen'],
                         master_rock[item]['df_element_total'])
