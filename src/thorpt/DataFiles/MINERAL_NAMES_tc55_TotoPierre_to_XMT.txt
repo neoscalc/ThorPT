@@ -27,6 +27,7 @@ Glaucophane	glaucophane
 Glaucophane	ClAMP_gl2
 Hematite	hematite
 Ilmenite	ilmenite
+Ilmenite	ILM_oilm
 Jadeite	OMPH_jd
 Kfeldspar	FSP
 Kyanite	kyanite

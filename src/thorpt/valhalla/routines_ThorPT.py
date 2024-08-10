@@ -302,13 +302,35 @@ def fluid_injection_isotope_recalculation(
     new_O_bulk = (input_oxygen*input_deltaO + sum(phase_oxygen)*bulk_deltaO ) / (input_oxygen+sum(phase_oxygen))
     # print("New bulk oxygen isotope signature is: ", new_O_bulk)
 
+    if fluid_name_tag in oxygen_data.columns:
+        #fluid incoming and fluid present in infiltrated rock
+        fluid_mix_d18O = (input_oxygen*input_deltaO + oxygen_data.loc['O'][fluid_name_tag]*temp_oxygen_data.loc[fluid_name_tag][0]) / (input_oxygen+oxygen_data.loc['O'][fluid_name_tag])
+    else:
+        #fluid incoming but no fluid present in infiltrated rock
+        fluid_mix_d18O = input_deltaO
+
+    print(f"Fluid mix d18O is: {fluid_mix_d18O}")
+
+    #changing the fluid isotope composition after interaction with the rock
+    if fluid_name_tag in oxygen_data.columns:
+        #fluid incoming and fluid present in infiltrated rock
+        fluid_end_d18O = fluid_mix_d18O - (sum(phase_oxygen) - oxygen_data.loc['O'][fluid_name_tag]) / (input_oxygen+oxygen_data.loc['O'][fluid_name_tag]) * (new_O_bulk-bulk_deltaO)
+        free_fluid_oxygen = (input_oxygen+oxygen_data.loc['O'][fluid_name_tag]) # the oxygen of all the free fluid at the moment of interaction
+    else:
+        #fluid incoming but no fluid present in infiltrated rock
+        fluid_end_d18O = fluid_mix_d18O - (sum(phase_oxygen)) / (input_oxygen) * (new_O_bulk-bulk_deltaO)
+        free_fluid_oxygen = (input_oxygen) # the oxygen of all the free fluid at the moment of interaction
+
+    print(f"Fluid after interaction d18O is: {fluid_end_d18O}")
+    
+
     # test with append
     phase_oxygen = np.append(phase_oxygen, input_oxygen)
     phase_doxy = np.append(phase_doxy, input_deltaO)
     bulk_deltaO = sum(phase_oxygen*phase_doxy / sum(phase_oxygen))
     # print("New bulk oxygen isotope signature is: ", bulk_deltaO)
 
-    return new_O_bulk
+    return new_O_bulk, fluid_end_d18O, free_fluid_oxygen
 
 # Progressbar init
 def progress(percent=0, width=40):
@@ -1171,6 +1193,10 @@ class ThorPT_Routines():
                             internal_geometry = master_rock[item]['geometry']
                             internal_geometry = np.float64(internal_geometry[0])*np.float64(internal_geometry[1])*np.float64(internal_geometry[2])
 
+                            multiplicator_extern = external_rock_geometry/ external_rock_volume
+
+                            multiplicator_intern = internal_geometry / internal_volume
+
                             fluid_influx_factor = external_rock_geometry * internal_volume / external_rock_volume / internal_geometry
                             print(f"Fluid influx factor is {fluid_influx_factor}")
 
@@ -1182,7 +1208,7 @@ class ThorPT_Routines():
                             bulka['O'] += (master_rock[rock_react_item]['fluid_oxygen'][-1]*fluid_influx_factor)
                             print("Fluid influx added to bulk rock")
                             print(f"Fluid influx is H = {master_rock[rock_react_item]['fluid_hydrogen'][-1]*fluid_influx_factor} mol and O = {master_rock[rock_react_item]['fluid_oxygen'][-1]*fluid_influx_factor} mol")
-
+                            print(f"New calc H = {bulka['H']} mol and O = {bulka['O']} mol")
                             # save fluid influx to the rock for later use
                             master_rock[item]["fluid_influx_data"] = 0
 
@@ -1190,7 +1216,7 @@ class ThorPT_Routines():
                             master_rock[item]['new_bulk'] = whole_rock_convert_3(ready_mol_bulk=bulka)
 
                             # Recalculate bulk delta-oxygen after fluid input
-                            new_O_bulk = fluid_injection_isotope_recalculation(
+                            new_O_bulk, fluid_end_d18O, free_fluid_oxygen = fluid_injection_isotope_recalculation(
                                         master_rock[item]['save_oxygen'],
                                         master_rock[item]['df_element_total'],
                                         master_rock[rock_react_item]['save_oxygen'][-1],
@@ -1397,6 +1423,7 @@ class ThorPT_Routines():
                 # LINK - 5) Oxygen fractionation module
                 # isotope fractionation module
                 # print("-> Oxygen isotope module initiated")
+
                 print("d18O before oxygen isotope module")
                 print(f"Value is {master_rock[item]['bulk_oxygen']}")
                 master_rock[item]['model_oxygen'] = Isotope_calc(
@@ -1412,6 +1439,55 @@ class ThorPT_Routines():
                     master_rock[item]['bulk_oxygen'])
                 ### Backup dictionary - save oxygen data
                 rock_origin[item]['save_oxygen'].append(copy.deepcopy(master_rock[item]['model_oxygen'].oxygen_dic))
+
+                # !!! When fluid is consumed after interaction the d18O of the fluid in equilibirum with the system is defined by the equilibration calculation
+                # fluid volume new < fluid volume extern + fluid volume before
+                # taking the bulk rock elements and add the extracted fluid from layer below
+                if master_rock[rock_react_item]['reactivity'].react is True and num > 0 and tt != 0:
+                    if master_rock[item]['fluid_volume_new'
+                                        ] <= master_rock[item]['fluid_volume_before'
+                                                        ] + master_rock[rock_react_item]['extracted_fluid_data'
+                                                                ].loc['volume[ccm]'].iloc[-1] * fluid_influx_factor:
+                        pass
+
+                    else:
+                        if master_rock[item]['fluid_volume_new'
+                                            ] > master_rock[item]['fluid_volume_before'
+                                                        ] + master_rock[rock_react_item]['extracted_fluid_data'
+                                                                ].loc['volume[ccm]'].iloc[-1] * fluid_influx_factor:
+
+                            # internal oxygen moles and oxygen isotope signature
+                            oxygen_dic = master_rock[item]['model_oxygen'].oxygen_dic
+                            df_o_temp = pd.DataFrame(
+                                    oxygen_dic['delta_O'],
+                                    index=oxygen_dic['Phases']
+                                        )
+                            internal_fluid_d18o = df_o_temp.loc[fluid_name_tag][0]
+                            internal_fluid_oxy = master_rock[item]['df_element_total'][fluid_name_tag].loc['O']
+
+                            # external oxygen moles         = free_fluid_oxygen
+                            # interacted isotope signature  = fluid_end_d18O
+
+                            """oxygen_dic = master_rock[rock_react_item]['save_oxygen'][-1]
+                            df_o_temp = pd.DataFrame(
+                                    oxygen_dic['delta_O'],
+                                    index=oxygen_dic['Phases']
+                                    )
+                            input_fluid_d18o = df_o_temp.loc[fluid_name_tag][0]
+                            input_oxygen = master_rock[rock_react_item]['fluid_oxygen'][-1]*fluid_influx_factor"""
+
+
+                            fluid_mix_d18O = (free_fluid_oxygen*fluid_end_d18O + (internal_fluid_oxy-free_fluid_oxygen)*internal_fluid_d18o) / (free_fluid_oxygen+(internal_fluid_oxy-free_fluid_oxygen))
+                            print(f"Fluid mix update d18O is: {fluid_mix_d18O}")
+
+                            # index number of fluid_name_tag in Phases of oxygen_dic
+                            index = oxygen_dic['Phases'].index(fluid_name_tag)
+
+                            # overwriting the fluid oxygen isotope composition to the one calculated by the mixing
+                            rock_origin[item]['save_oxygen'][-1]['delta_O'][index] = fluid_mix_d18O
+
+
+
                 print("d18O after oxygen isotope module")
                 print(f"Value is {master_rock[item]['bulk_oxygen']}")
                 # //////////////////////////////////////////////////////////////////////////
