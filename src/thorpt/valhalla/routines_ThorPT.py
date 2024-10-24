@@ -194,8 +194,8 @@ def whole_rock_to_weight_normalizer(rock_bulk=[32.36, 0.4, 8.78, 2.91, 0.0, 0.0,
         # Normed rock bulk mol
         norm_mass = np.sum(mol_frame*element_mass)
         # - normalize rock mass to 1kg, conversion of the moles
-        mol_frame_norm = mol_frame*1/norm_mass
-        excess_oxy = excess_oxy*1/norm_mass
+        mol_frame_norm = mol_frame*0.01/norm_mass
+        excess_oxy = excess_oxy*0.01/norm_mass
 
         # Update bulk
         bulk = mol_frame_norm
@@ -1188,16 +1188,26 @@ class ThorPT_Routines():
                             external_rock_volume = (master_rock[rock_react_item]['st_solid'][-1] + master_rock[rock_react_item]['st_fluid_before'][-1])/1_000_000
                             external_rock_geometry = master_rock[rock_react_item]['geometry']
                             external_rock_geometry = np.float64(external_rock_geometry[0])*np.float64(external_rock_geometry[1])*np.float64(external_rock_geometry[2])
+                            external_volume_change_factor = (
+                                master_rock[rock_react_item]['st_solid'][-1] + master_rock[rock_react_item]['st_fluid_before'][-1]
+                                                             ) / (
+                                (master_rock[rock_react_item]['st_solid'][0] + master_rock[rock_react_item]['st_fluid_before'][0])
+                                                             )
 
                             internal_volume = (master_rock[item]['fluid_volume_new'] + master_rock[item]['solid_volume_new'])/1_000_000
                             internal_geometry = master_rock[item]['geometry']
                             internal_geometry = np.float64(internal_geometry[0])*np.float64(internal_geometry[1])*np.float64(internal_geometry[2])
+                            internal_volume_change_factor = (
+                                master_rock[item]['fluid_volume_new'] + master_rock[item]['solid_volume_new']
+                                                             ) / (
+                                (master_rock[item]['st_solid'][0] + master_rock[item]['st_fluid_before'][0])
+                                                             )
 
-                            multiplicator_extern = external_rock_geometry/ external_rock_volume
+                            multiplicator_extern = external_rock_geometry / external_rock_volume
 
                             multiplicator_intern = internal_geometry / internal_volume
 
-                            fluid_influx_factor = external_rock_geometry * internal_volume / external_rock_volume / internal_geometry
+                            fluid_influx_factor = external_rock_geometry * internal_volume / external_rock_volume / internal_geometry * external_volume_change_factor / internal_volume_change_factor
                             print(f"Fluid influx factor is {fluid_influx_factor}")
 
                             # test if 'H' and 'O' are in the bulk rock index

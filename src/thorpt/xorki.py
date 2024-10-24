@@ -32,7 +32,7 @@ import matplotlib.animation as animation
 
 import julia
 # julia.install()
-from julia import Main
+#from julia import Main
 
 def file_opener():
     """
@@ -544,7 +544,7 @@ def clean_frame(dataframe_to_clean, legend_phases, color_set):
 
     new_dataframe = new_dataframe.T
     new_dataframe.index = new_legend_phases
-    print('Cleaning done!')
+    """print('Cleaning done!')"""
 
     return new_dataframe, new_legend_phases, new_color_set2
 
@@ -2972,6 +2972,11 @@ class ThorPT_plots():
         # color_set = ["#91D7EA", "#DB7012", "#4E459B", "#B32026", "#2E83D0", "#B32026", "#FAEA64", "#2E83D0"]
         # color_set = ["#91D7EA", "#DB7012", "#FAEA64", "#2E83D0", "#4E459B", "#E724C5",  "#969696"]
         # plt.rcParams['font.family'] = 'arial'
+        print("Garnet diff = ")
+        print(oxyframe.loc['Garnet'].max() - oxyframe.loc['Garnet'].min())
+        if 'Phengite' in oxyframe.index:
+            print("Phengite diff = ")
+            print(oxyframe.loc['Phengite'].max() - oxyframe.loc['Phengite'].min())
         fig, ax211 = plt.subplots(1, 1, figsize=(8, 5))
         for t, phase in enumerate(list(oxyframe.index)):
             # print(t)
@@ -5524,9 +5529,11 @@ class ThorPT_plots():
         """
         
         bulks = []
+        bulks_pre = []
         garnets = []
         phengites = []
         water = []
+        fluid_transfer = []
 
         for rock_tag in self.rockdic.keys():
             group_key = self.rockdic[rock_tag].group_key
@@ -5582,13 +5589,53 @@ class ThorPT_plots():
             phengites.append(np.array(oxyframe.loc['Phengite']))
             water.append(np.array(oxyframe.loc['Water']))
             bulks.append(self.rockdic[rock_tag].bulk_deltao_post)
+            bulks_pre.append(self.rockdic[rock_tag].bulk_deltao_pre)
 
-        # Plotting
+
+            # fluid volume data
+            # second y axis
+            # free fluid content
+            fluid_porosity_color = "#4750d4"
+            # fluid content as vol% of total system volume
+            # compile data for plotting
+            system_vol_pre = self.rockdic[rock_tag].systemVolPre
+            system_vol_post = self.rockdic[rock_tag].systemVolPost
+            st_fluid_before = self.rockdic[rock_tag].fluidbefore
+            y2 = (st_fluid_before)/system_vol_pre*100
+            
+            geometry = self.rockdic[rock_tag].geometry
+            geometrical_volume = np.float64(geometry[0])*np.float64(geometry[1])*np.float64(geometry[2])
+            geometrical_factor = geometrical_volume / (system_vol_pre[0]/1_000_000)
+
+            # NOTE testing cumulative fluid volume
+            """y2 = st_fluid_before/system_vol_pre
+            mark_extr = np.array(system_vol_pre-system_vol_post, dtype='bool')
+            mark_extr = np.logical_not(mark_extr)
+            # masked array of system_vol_pre using mark_extr
+            y2 = np.ma.masked_array(y2, mark_extr)
+            # y2 = np.cumsum(y2)*100
+            # get array from masked array with False values be zero
+            y2 = np.ma.filled(y2, 0)
+            y2 = np.cumsum(y2)*100"""
+
+            y2 = st_fluid_before
+            mark_extr = np.array(system_vol_pre-system_vol_post, dtype='bool')
+            mark_extr = np.logical_not(mark_extr)
+            # masked array of system_vol_pre using mark_extr
+            y2 = np.ma.masked_array(y2, mark_extr)
+            # y2 = np.cumsum(y2)*100
+            # get array from masked array with False values be zero
+            y2 = np.ma.filled(y2, 0) * geometrical_factor /1_000_000
+
+            fluid_transfer.append(y2)
+
+        # Plotting oxygen isotopes
         # Apply seaborn style
         sns.set(style="whitegrid")
 
         # Create subplots
-        fig, axs = plt.subplots(3, 1, dpi=200, constrained_layout=True, figsize=(8, 6))
+        # fig, axs = plt.subplots(15+4, 1, dpi=200, constrained_layout=True, figsize=(4, 6))
+        fig, axs = plt.subplots(4, 1, dpi=200, constrained_layout=True, figsize=(4, 6))
 
         # Define colors and labels for the plots
         colors = {'Bulk': 'k', 'Garnet': 'r', 'Phengite': 'g', 'Water': 'b'}
@@ -5597,7 +5644,8 @@ class ThorPT_plots():
         # Plotting function
         def plot_data(ax, ts, data, start, end):
             for label in labels:
-                ax.plot(ts, np.array(data[label][start:end]).T, color=colors[label], markerstyle='O', linestyle='--', label=label)
+                ax.plot(ts, np.array(data[label][start:end]).T, color=colors[label], linestyle='--', label=label)
+                ax.plot(ts, np.array(data[label][start:end]).T, '.', color=colors[label], label=label)
             ax.set_xlabel('Temperature [°C]')
             ax.set_ylabel('δ$^{18}$O [‰]')
             ax.set_ylim(7, 15)
@@ -5605,11 +5653,28 @@ class ThorPT_plots():
             ax.grid(True)
 
         # Plot data in each subplot
-        plot_data(axs[2], ts, {'Bulk': bulks, 'Garnet': garnets, 'Phengite': phengites, 'Water': water}, 0, 8)
-        plot_data(axs[1], ts, {'Bulk': bulks, 'Garnet': garnets, 'Phengite': phengites, 'Water': water}, 8, 11)
-        plot_data(axs[0], ts, {'Bulk': bulks, 'Garnet': garnets, 'Phengite': phengites, 'Water': water}, 11, len(bulks))
+        """plot_data(axs[18], ts, {'Bulk': bulks, 'Garnet': garnets, 'Phengite': phengites, 'Water': water}, 0, 3)
+        plot_data(axs[17], ts, {'Bulk': bulks, 'Garnet': garnets, 'Phengite': phengites, 'Water': water}, 3, 8)
+        plot_data(axs[16], ts, {'Bulk': bulks, 'Garnet': garnets, 'Phengite': phengites, 'Water': water}, 8, 11)
+        plot_data(axs[15], ts, {'Bulk': bulks, 'Garnet': garnets, 'Phengite': phengites, 'Water': water}, 11, 11+5)
+        plot_data(axs[14], ts, {'Bulk': bulks, 'Garnet': garnets, 'Phengite': phengites, 'Water': water}, 11+5, 11+5+3)
+        plot_data(axs[13], ts, {'Bulk': bulks, 'Garnet': garnets, 'Phengite': phengites, 'Water': water}, 11+5+3, 11+5+3+5)
+        plot_data(axs[12], ts, {'Bulk': bulks, 'Garnet': garnets, 'Phengite': phengites, 'Water': water}, 11+5+3+5, 11+5+3+5+3)
+        plot_data(axs[11], ts, {'Bulk': bulks, 'Garnet': garnets, 'Phengite': phengites, 'Water': water}, 11+5+3+5+3, 11+5+3+5+3+5)
+        plot_data(axs[10], ts, {'Bulk': bulks, 'Garnet': garnets, 'Phengite': phengites, 'Water': water}, 11+5+3+5+3+5, 11+5+3+5+3+5+3)
+        plot_data(axs[9], ts, {'Bulk': bulks, 'Garnet': garnets, 'Phengite': phengites, 'Water': water}, 11+5+3+5+3+5+3, 11+5+3+5+3+5+3+5)
+        plot_data(axs[8], ts, {'Bulk': bulks, 'Garnet': garnets, 'Phengite': phengites, 'Water': water}, 11+5+3+5+3+5+3+5, 11+5+3+5+3+5+3+5+3)
+        plot_data(axs[7], ts, {'Bulk': bulks, 'Garnet': garnets, 'Phengite': phengites, 'Water': water}, 11+5+3+5+3+5+3+5+3, 11+5+3+5+3+5+3+5+3+5)
+        plot_data(axs[6], ts, {'Bulk': bulks, 'Garnet': garnets, 'Phengite': phengites, 'Water': water}, 11+5+3+5+3+5+3+5+3+5, 11+5+3+5+3+5+3+5+3+5+3)
+        plot_data(axs[5], ts, {'Bulk': bulks, 'Garnet': garnets, 'Phengite': phengites, 'Water': water}, 11+5+3+5+3+5+3+5+3+5+3, 11+5+3+5+3+5+3+5+3+5+3+5)
+        """
+        plot_data(axs[3], ts, {'Bulk': bulks, 'Garnet': garnets, 'Phengite': phengites, 'Water': water}, 0, 11+5+3+5+3+5+3+5+3+5+3+5+3)
+        
+        plot_data(axs[2], ts, {'Bulk': bulks, 'Garnet': garnets, 'Phengite': phengites, 'Water': water}, len(fluid_transfer)-7, len(fluid_transfer)-2)
+        plot_data(axs[1], ts, {'Bulk': bulks, 'Garnet': garnets, 'Phengite': phengites, 'Water': water}, len(fluid_transfer)-2, len(fluid_transfer)-1)
+        plot_data(axs[0], ts, {'Bulk': bulks, 'Garnet': garnets, 'Phengite': phengites, 'Water': water}, len(fluid_transfer)-1, len(fluid_transfer))
 
-
+        
         # Add a main title
         fig.suptitle('Oxygen Isotope Composition vs Temperature', fontsize=16)
 
@@ -5623,6 +5688,342 @@ class ThorPT_plots():
         plt.clf()
         plt.close()
 
+        # #########################################
+        # Plotting fluid volume transferred
+        # Apply seaborn style
+        sns.set(style="whitegrid")
+
+        # Create subplots
+        fig, axs = plt.subplots(4, 1, dpi=200, constrained_layout=True, figsize=(4, 6))
+
+        # Define colors and labels for the plots
+        colors = {'Transfer': "#4750d4"}
+        labels = ['Transfer']
+
+        # Plotting function
+        def plot_data(ax, ts, data, start, end):
+            for label in labels:
+                ax.plot(ts, np.array(data[label][start:end]).T, color=colors[label], linestyle='-', label=label)
+            ax.set_xlabel('Temperature [°C]')
+            ax.set_ylabel('m$^3$')
+            # ax.set_ylim(7, 15)
+            # ax.legend()
+            ax.grid(True)
+
+        # Plot data in each subplot
+        """plot_data(axs[18], ts, {'Transfer': fluid_transfer}, 0, 3)
+        plot_data(axs[17], ts, {'Transfer': fluid_transfer}, 3, 8)
+        plot_data(axs[16], ts, {'Transfer': fluid_transfer}, 8, 11)
+        plot_data(axs[15], ts, {'Transfer': fluid_transfer}, 11, 11+5)
+        plot_data(axs[14], ts, {'Transfer': fluid_transfer}, 11+5, 11+5+3)
+        plot_data(axs[13], ts, {'Transfer': fluid_transfer}, 11+5+3, 11+5+3+5)
+        plot_data(axs[12], ts, {'Transfer': fluid_transfer}, 11+5+3+5, 11+5+3+5+3)
+        plot_data(axs[11], ts, {'Transfer': fluid_transfer}, 11+5+3+5+3, 11+5+3+5+3+5)
+        plot_data(axs[10], ts, {'Transfer': fluid_transfer}, 11+5+3+5+3+5, 11+5+3+5+3+5+3)
+        plot_data(axs[9], ts, {'Transfer': fluid_transfer}, 11+5+3+5+3+5+3, 11+5+3+5+3+5+3+5)
+        plot_data(axs[8], ts, {'Transfer': fluid_transfer}, 11+5+3+5+3+5+3+5, 11+5+3+5+3+5+3+5+3)
+        plot_data(axs[7], ts, {'Transfer': fluid_transfer}, 11+5+3+5+3+5+3+5+3, 11+5+3+5+3+5+3+5+3+5)
+        plot_data(axs[6], ts, {'Transfer': fluid_transfer}, 11+5+3+5+3+5+3+5+3+5, 11+5+3+5+3+5+3+5+3+5+3)
+        plot_data(axs[5], ts, {'Transfer': fluid_transfer}, 11+5+3+5+3+5+3+5+3+5+3, 11+5+3+5+3+5+3+5+3+5+3+5)
+        plot_data(axs[4], ts, {'Transfer': fluid_transfer}, 11+5+3+5+3+5+3+5+3+5+3, 11+5+3+5+3+5+3+5+3+5+3+5+3)"""
+        
+        plot_data(axs[3], ts, {'Transfer': fluid_transfer}, 0, 11+5+3+5+3+5+3+5+3+5+3+5+3)
+        plot_data(axs[2], ts, {'Transfer': fluid_transfer}, len(fluid_transfer)-7, len(fluid_transfer)-2)
+        plot_data(axs[1], ts, {'Transfer': fluid_transfer}, len(fluid_transfer)-2, len(fluid_transfer)-1)
+        plot_data(axs[0], ts, {'Transfer': fluid_transfer}, len(fluid_transfer)-1, len(fluid_transfer))
+
+
+        # Add a main title
+        fig.suptitle('Fluid volume transferred', fontsize=16)
+
+        if img_save is True:
+            os.makedirs(
+                    f'{self.mainfolder}/img_{self.filename}/oxygen_interaction', exist_ok=True)
+            plt.savefig(f'{self.mainfolder}/img_{self.filename}/oxygen_interaction/fluid_transport.{img_type}',
+                            transparent=False, facecolor='white')
+        else:
+            plt.show()
+        plt.clf()
+        plt.close()
+
+    def oxygen_isotope_interaction_scenario3(self, img_save=False, img_type="pdf"):
+        """Plotting function for the modelled oxygen isotope data
+
+        Args:
+            rock_tag (str): the name of the rock such as "rock0", "rock1", ...
+            img_save (bool, optional): Optional argument to save the plot as an image to the directory. Defaults to False.
+        """
+        
+        bulks = []
+        bulks_pre = []
+        garnets = []
+        phengites = []
+        water = []
+        fluid_transfer = []
+        lawsonites = []
+        glaucophanes = []
+        chlorites = []
+        omphacites = []
+        antigorites = []
+
+        for rock_tag in self.rockdic.keys():
+            group_key = self.rockdic[rock_tag].group_key
+            subfolder = 'oxygen_plot'
+
+            # Read the oxygen data from the dictionary
+            summary = self.rockdic[rock_tag].oxygen_data.T.describe()
+            # oxyframe = Merge_phase_group(self.rockdic[rock_tag].oxygen_data)
+            oxyframe = self.rockdic[rock_tag].oxygen_data.T
+            oxyframe.columns = self.rockdic[rock_tag].temperature
+
+            # read metastable garnet data
+            garnet = self.rockdic[rock_tag].garnet[rock_tag]
+
+            # XMT naming and coloring
+            database = self.rockdic[rock_tag].database
+            phases2 = oxyframe.index
+            legend_phases, color_set = phases_and_colors_XMT(database, phases2)
+
+            # Plotting routine
+            for item in ['"H"', '"Si"', '"Ti"', '"Al"']:
+                if item in legend_phases:
+                    indi = legend_phases.index(item)
+                    del legend_phases[indi]
+
+            oxyframe.index = legend_phases
+
+            # cleaning dataframe from multiple phase names - combine rows into one
+            if len(legend_phases) == len(np.unique(legend_phases)):
+                pass
+            else:
+                oxyframe, legend_phases, color_set = clean_frame(oxyframe, legend_phases, color_set)
+
+            if 'Garnet' in oxyframe.index and len(garnet.name) > 0:
+                # y.loc['Garnet'][np.isnan(y.loc['Garnet'])] = 0
+                kk = 0
+                garnet_in = False
+                for k, xval in enumerate(oxyframe.loc['Garnet']):
+                    if xval == 0 and garnet_in is True:
+                        oxyframe.loc['Garnet'].iloc[k] = oxyframe.loc['Garnet'].iloc[k-1]
+                    elif xval == 0:
+                        pass
+                    else:
+                        garnet_in = True
+
+
+            # replace 0 in oxyframe with NaN
+            oxyframe = oxyframe.replace(0, np.nan)
+
+            ts = oxyframe.columns
+
+            if 'Garnet' in oxyframe.index:
+                garnets.append(np.array(oxyframe.loc['Garnet']))
+            else:
+                garnets.append(np.zeros(len(ts)))
+            if 'Phengite' in oxyframe.index:
+                phengites.append(np.array(oxyframe.loc['Phengite']))
+            else:
+                phengites.append(np.zeros(len(ts)))
+            water.append(np.array(oxyframe.loc['Water']))
+            bulks.append(self.rockdic[rock_tag].bulk_deltao_post)
+            bulks_pre.append(self.rockdic[rock_tag].bulk_deltao_pre)
+
+
+            # fluid volume data
+            # second y axis
+            # free fluid content
+            fluid_porosity_color = "#4750d4"
+            # fluid content as vol% of total system volume
+            # compile data for plotting
+            system_vol_pre = self.rockdic[rock_tag].systemVolPre
+            system_vol_post = self.rockdic[rock_tag].systemVolPost
+            st_fluid_before = self.rockdic[rock_tag].fluidbefore
+            y2 = (st_fluid_before)/system_vol_pre*100
+            
+            geometry = self.rockdic[rock_tag].geometry
+            geometrical_volume = np.float64(geometry[0])*np.float64(geometry[1])*np.float64(geometry[2])
+            geometrical_factor = geometrical_volume / (system_vol_pre[0]/1_000_000)
+
+            # NOTE testing cumulative fluid volume
+            """y2 = st_fluid_before/system_vol_pre
+            mark_extr = np.array(system_vol_pre-system_vol_post, dtype='bool')
+            mark_extr = np.logical_not(mark_extr)
+            # masked array of system_vol_pre using mark_extr
+            y2 = np.ma.masked_array(y2, mark_extr)
+            # y2 = np.cumsum(y2)*100
+            # get array from masked array with False values be zero
+            y2 = np.ma.filled(y2, 0)
+            y2 = np.cumsum(y2)*100"""
+
+            y2 = st_fluid_before
+            mark_extr = np.array(system_vol_pre-system_vol_post, dtype='bool')
+            mark_extr = np.logical_not(mark_extr)
+            # masked array of system_vol_pre using mark_extr
+            y2 = np.ma.masked_array(y2, mark_extr)
+            # y2 = np.cumsum(y2)*100
+            # get array from masked array with False values be zero
+            y2 = np.ma.filled(y2, 0) * geometrical_factor /1_000_000
+
+            fluid_transfer.append(y2)
+
+            # get phase volumes
+            # XMT naming and coloring
+            database = self.rockdic[rock_tag].database
+            phases2 = self.rockdic[rock_tag].phases2
+            legend_phases, color_set = phases_and_colors_XMT(database, phases2)
+
+            phase_data = self.rockdic[rock_tag].phase_data
+
+            y = phase_data['df_volume'].fillna(value=0)
+            y.columns = legend_phases
+            y = y.T
+
+            # cleaning dataframe from multiple phase names - combine rows into one
+            if len(legend_phases) == len(np.unique(legend_phases)):
+                pass
+            else:
+                y, legend_phases, color_set = clean_frame(y, legend_phases, color_set)
+            y = y/y.sum()[0]*100
+            
+            if 'Lawsonite' in y.index:
+                lawsonites.append(np.array(y.loc['Lawsonite']))
+            else:
+                lawsonites.append(np.zeros(len(ts)))
+
+            if 'Glaucophane' in y.index:
+                glaucophanes.append(np.array(y.loc['Glaucophane']))
+            else:
+                glaucophanes.append(np.zeros(len(ts)))
+
+            if 'Chlorite' in y.index:
+                chlorites.append(np.array(y.loc['Chlorite']))
+            else:
+                chlorites.append(np.zeros(len(ts)))
+
+            if 'Omphacite' in y.index:
+                omphacites.append(np.array(y.loc['Omphacite']))
+            else:
+                omphacites.append(np.zeros(len(ts)))
+
+            if 'Serp_Atg' in y.index:
+                antigorites.append(np.array(y.loc['Serp_Atg']))
+            else:
+                antigorites.append(np.zeros(len(ts)))
+
+
+        # Plotting oxygen isotopes
+        # Apply seaborn style
+        sns.set(style="whitegrid")
+
+        # Create subplots
+        # fig, axs = plt.subplots(15+4, 1, dpi=200, constrained_layout=True, figsize=(4, 6))
+        fig, axs = plt.subplots(1, 1, dpi=200, constrained_layout=True, figsize=(6, 6))
+
+        # Define colors and labels for the plots
+        colors = {'Bulk': 'k', 'Garnet': 'r', 'Phengite': 'g', 'Water': 'b'}
+        labels = ['Bulk', 'Garnet', 'Phengite', 'Water']
+
+        # Plotting function
+        def plot_data(ax, ts, data, start, end):
+            for label in labels:
+                ax.plot(ts, np.array(data[label][start:end]).T, color=colors[label], linestyle='--', label=label)
+                ax.plot(ts, np.array(data[label][start:end]).T, '.', color=colors[label], label=label)
+            ax.set_xlabel('Temperature [°C]')
+            ax.set_ylabel('δ$^{18}$O [‰]')
+            ax.set_ylim(7, 16)
+            # ax.legend()
+            ax.grid(True)
+
+        # Plot data in each subplot
+        plot_data(axs, ts, {'Bulk': bulks, 'Garnet': garnets, 'Phengite': phengites, 'Water': water}, len(bulks)-3, len(bulks))
+        # Add a main title
+        fig.suptitle('Oxygen Isotope Composition vs Temperature', fontsize=16)
+
+        if img_save is True:
+            os.makedirs(
+                    f'{self.mainfolder}/img_{self.filename}/oxygen_interaction', exist_ok=True)
+            plt.savefig(f'{self.mainfolder}/img_{self.filename}/oxygen_interaction/oxygen_isotope_interaction.{img_type}',
+                            transparent=False, facecolor='white')
+        else:
+            plt.show()
+        plt.clf()
+        plt.close()
+
+        # #########################################
+        # Plotting fluid volume transferred
+        # Apply seaborn style
+        sns.set(style="whitegrid")
+
+        # Create subplots
+        fig, axs = plt.subplots(1, 1, dpi=200, constrained_layout=True, figsize=(6, 6))
+
+        # Define colors and labels for the plots
+        colors = {'Transfer': "#4750d4"}
+        labels = ['Transfer']
+
+        # Plotting function
+        def plot_data(ax, ts, data, start, end):
+            for label in labels:
+                ax.plot(ts, np.array(data[label][start:end]).T, color=colors[label], linestyle='-', label=label)
+            ax.set_xlabel('Temperature [°C]')
+            ax.set_ylabel('m$^3$')
+            # ax.set_ylim(7, 15)
+            # ax.legend()
+            ax.grid(True)
+
+        # Plot data in each subplot
+        plot_data(axs, ts, {'Transfer': fluid_transfer}, len(fluid_transfer)-3, len(fluid_transfer))
+
+
+        # Add a main title
+        fig.suptitle('Fluid volume transferred', fontsize=16)
+
+        if img_save is True:
+            os.makedirs(
+                    f'{self.mainfolder}/img_{self.filename}/oxygen_interaction', exist_ok=True)
+            plt.savefig(f'{self.mainfolder}/img_{self.filename}/oxygen_interaction/fluid_transport.{img_type}',
+                            transparent=False, facecolor='white')
+        else:
+            plt.show()
+        plt.clf()
+        plt.close()
+
+
+        # #########################################!SECTION
+        fig, axs = plt.subplots(1, 1, dpi=200, constrained_layout=True, figsize=(6, 6))
+
+        # Define colors and labels for the plots
+        colors = {'Lawsonite': '#D878C5', 'Glaucophane': '#9383E8', 'Chlorite': '#A0D88F'}
+        labels = ['Lawsonite', 'Glaucophane', 'Chlorite']
+
+        # Plotting function
+        def plot_data(ax, ts, data, start, end):
+            for label in labels:
+                ax.plot(ts, np.array(data[label][start:end]).T, color=colors[label], linestyle='--', label=label)
+                # ax.plot(ts, np.array(data[label][start:end]).T, '.', color=colors[label], label=label)
+            ax.set_xlabel('Temperature [°C]')
+            ax.set_ylabel('Mineral phase [Vol. %]')
+            # ax.set_ylim(7, 16)
+            # ax.legend()
+            ax.grid(True)
+
+        # Plot data in each subplot
+        plot_data(axs, ts, {'Lawsonite': lawsonites, 'Glaucophane': glaucophanes, 'Chlorite': chlorites}, 0, len(bulks)-2)
+        # Add a main title
+        fig.suptitle('Hydrous phase stability', fontsize=16)
+
+        if img_save is True:
+            os.makedirs(
+                    f'{self.mainfolder}/img_{self.filename}/oxygen_interaction', exist_ok=True)
+            plt.savefig(f'{self.mainfolder}/img_{self.filename}/oxygen_interaction/hydrous_phases_interaction.{img_type}',
+                            transparent=False, facecolor='white')
+        else:
+            plt.show()
+        plt.clf()
+        plt.close()
+
+    
+
 
 if __name__ == '__main__':
 
@@ -5632,19 +6033,19 @@ if __name__ == '__main__':
     compPlot = ThorPT_plots(
         data.filename, data.mainfolder, data.rock, data.compiledrock)
 
-    compPlot.oxygen_isotope_interaction_scenario1(img_save=True, img_type='pdf')
+    compPlot.oxygen_isotope_interaction_scenario3(img_save=True, img_type='pdf')
 
     for key in data.rock.keys():
         print(key)
 
-        # compPlot.oxygen_isotopes_realtive(rock_tag=key, img_save=True, img_type='pdf')
+        #compPlot.oxygen_isotopes_realtive(rock_tag=key, img_save=True, img_type='pdf')
 
         compPlot.phases_stack_plot(rock_tag=key, img_save=True,
-                     val_tag='volume', transparent=False, fluid_porosity=True, cumulative=True, img_type='png')
+                     val_tag='volume', transparent=False, fluid_porosity=True, cumulative=True, img_type='pdf')
         
-        compPlot.oxygen_isotopes(rock_tag=key, img_save=True, img_type='png')
+        compPlot.oxygen_isotopes(rock_tag=key, img_save=True, img_type='pdf')
         
-    compPlot.fluid_distribution_sgm23(img_save=True, gif_save=True, x_axis_log=False)
+    # compPlot.fluid_distribution_sgm23(img_save=True, gif_save=True, x_axis_log=False)
 
     """compPlot.phases_stack_plot(rock_tag=key, img_save=True,
                  val_tag='volume', transparent=False, fluid_porosity=True, cumulative=True, img_type='pdf')

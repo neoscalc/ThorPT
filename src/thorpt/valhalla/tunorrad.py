@@ -1238,7 +1238,8 @@ class Therm_dyn_ther_looper:
                     new_bulk = {}
                     water_H = theriak_data['df_elements_in_phases'][self.fluid_name_tag]['H']
                     total = theriak_data['df_elements_in_phases']['total:']
-                    total['H'] = total['H'] - water_H
+                    # NOTE - rounding water hydrogen here - undersaturation now?
+                    total['H'] = total['H'] - round(water_H, 5)
                     for el in total.index:
                         if el == 'O' or el == 'E':
                             pass
@@ -2030,6 +2031,7 @@ class Ext_method_master:
         # fluid pressure close to mean stress
         if self.fluid_pressure_mode == 'mean stress':
             hydro = mean_stress/vol_t0 * (vol_t0+(vol_new-vol_t0))
+            # hydro = mean_stress * (self.solid_t0+(self.solid_t1-self.solid_t0))/self.solid_t0 * (vol_new-vol_t0)/self.fluid_t0
             delta_p = mean_stress - hydro
         elif self.fluid_pressure_mode == 'normal stress':
             # Duesterhoft 2019 method
