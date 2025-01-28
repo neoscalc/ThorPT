@@ -6058,10 +6058,10 @@ if __name__ == '__main__':
     # compPlot.oxygen_isotope_interaction_scenario3(img_save=True, img_type='pdf')
 
     
-    compPlot.bulk_rock_sensitivity_twin()
+    """compPlot.bulk_rock_sensitivity_twin()
 
     compPlot.tensile_strength_sensitivity_cumVol()
-    compPlot.tensile_strength_sensitivity()
+    compPlot.tensile_strength_sensitivity()"""
 
 
     for key in data.rock.keys():

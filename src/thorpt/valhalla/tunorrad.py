@@ -2190,7 +2190,16 @@ class Ext_method_master:
             print(self.diff_stress)
             self.frac_respo = 0
 
-        
+        # NOTE Treshold sequence
+        """
+        if self.frac_respo == 0:
+            print("No mechanical failure detected.")
+            print("Testing porosity and interconnectivity.")
+            print("P_f factor is {:.3f}".format(hydro/litho), "and porosity is {:.3f}".format(self.fluid_t1/(vol_t0-self.solid_t1)))
+            if hydro/litho > 0.7 and self.fluid_t1/(vol_t0-self.solid_t1) > 0.01:
+                self.frac_respo = 5
+        """
+
         self.failure_dictionary = {
             "sigma 1":copy.deepcopy(sig1),
             "sigma 3":copy.deepcopy(sig3),
