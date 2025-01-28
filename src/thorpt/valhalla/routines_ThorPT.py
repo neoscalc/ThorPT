@@ -794,6 +794,7 @@ class ThorPT_Routines():
             # Checking if free fluid is present. Stores this value, initializes
             # lowest_permeability = 1e-20
             print(f"Testing systems with the failure model")
+
             for jjj, item in enumerate(master_rock):
                 fluid_name_tag = master_rock[item]['database_fluid_name']
                 if fluid_name_tag in list(master_rock[item]['df_element_total'].columns):
@@ -809,7 +810,8 @@ class ThorPT_Routines():
 
                     # Start Extraction Master Module
                     master_rock[item]['fluid_calculation'] = Ext_method_master(
-                                        pressures[num],
+                                        pressures[num], temperature,
+                                        master_rock[item]['df_var_dictionary']['df_volume/mol'].loc[fluid_name_tag][-1],
                                         fluid_before, master_rock[item]['fluid_volume_new'],
                                         master_rock[item]['solid_volume_before'], master_rock[item]['solid_volume_new'],
                                         master_rock[item]['save_factor'], master_rock[item]['master_norm'][-1],
@@ -820,7 +822,6 @@ class ThorPT_Routines():
                                         fluid_pressure_mode= master_rock[item]['fluid_pressure_mode'],
                                         fluid_name_tag=fluid_name_tag ,subduction_angle=self.angle
                                         )
-
                     # //////////////////////////////////////////////////////////////////////////
                     # ////// Calculation for new whole rock /////////
                     # !!!!Assumption: fracturing of the system
@@ -828,107 +829,232 @@ class ThorPT_Routines():
                     fracturing_flag = False # Trigger by default False - active when coulomb module becomes positive
                     failure_mech = master_rock[item]['Extraction scheme']
                     # SECTION selection for fluid release
-                    if failure_mech in ['Factor', 'Dynamic', 'Steady', 'Mohr-Coulomb-Permea2', 'Mohr-Coulomb-Griffith']:
-                    # if factor_method is True or dynamic_method is True or steady_method is True or coulomb is True or coulomb_permea is True or coulomb_permea2 is True:
+                    if failure_mech in ['Factor', 'Dynamic', 'Steady', 'Mohr-Coulomb-Permea2', 'Mohr-Coulomb-Griffith'] and num > 0:
+                        # if factor_method is True or dynamic_method is True or steady_method is True or coulomb is True or coulomb_permea is True or coulomb_permea2 is True:
 
-                        # virtual momentary fluid flux and permeabiltiy test
-                        mü_water = 1e-4
+                            # virtual momentary fluid flux and permeabiltiy test
+                            mü_water = 1e-4
 
-                        # water data
-                        v_water = float(master_rock[item]['df_var_dictionary']['df_volume[ccm]'].loc[fluid_name_tag].iloc[-1])
-                        d_water = float(master_rock[item]['df_var_dictionary']['df_density[g/ccm]'].loc[fluid_name_tag].iloc[-1])
-                        weigth_water = master_rock[item]['df_var_dictionary']['df_wt[g]'].iloc[:, -1][fluid_name_tag]
-                        # system data
-                        master_rock[item]['meta_grt_weight']
-                        v_system = master_rock[item]['solid_volume_new'] + master_rock[item]['fluid_volume_new'] # modelling solid phases + metastable garnet + fluid
+                            # water data
+                            v_water = float(master_rock[item]['df_var_dictionary']['df_volume[ccm]'].loc[fluid_name_tag].iloc[-1])
+                            d_water = float(master_rock[item]['df_var_dictionary']['df_density[g/ccm]'].loc[fluid_name_tag].iloc[-1])
+                            weigth_water = master_rock[item]['df_var_dictionary']['df_wt[g]'].iloc[:, -1][fluid_name_tag]
+                            # system data
+                            master_rock[item]['meta_grt_weight']
+                            v_system = master_rock[item]['solid_volume_new'] + master_rock[item]['fluid_volume_new'] # modelling solid phases + metastable garnet + fluid
 
-                        if len(master_rock[item]['meta_grt_weight']) > 0:
-                            weight_sys = float(
-                                master_rock[item]['df_var_dictionary']['df_wt[g]'].iloc[:, -1].sum()
-                                ) + master_rock[item]['meta_grt_weight'][-1] # weight of solid + fluid + metastable garnet
+                            if len(master_rock[item]['meta_grt_weight']) > 0:
+                                weight_sys = float(
+                                    master_rock[item]['df_var_dictionary']['df_wt[g]'].iloc[:, -1].sum()
+                                    ) + master_rock[item]['meta_grt_weight'][-1] # weight of solid + fluid + metastable garnet
+                            else:
+                                weight_sys = float(
+                                    master_rock[item]['df_var_dictionary']['df_wt[g]'].iloc[:, -1].sum()
+                                    ) # weight of solid + fluid + metastable garnet
+
+                            d_system = float(master_rock[item]['df_var_dictionary']['df_wt[g]'].iloc[:, -1].sum())/v_system
+                            # solid rock data
+                            v_rock = master_rock[item]['solid_volume_new']
+                            weight_rock = weight_sys - weigth_water # weight of solids + metastable garnet
+                            d_rock = weight_rock/v_rock
+                            # density difference
+                            density_cont = (d_rock-d_water)*1000 # kg/m3
+
+                            # time interval
+                            if num < 1:
+                                tc_time_c = float(np.diff(track_time[num:num+2])*365*24*60*60)
+                            else:
+                                tc_time_c = float(np.diff(track_time[num-1:num+1])*365*24*60*60)
+
+                            # test 4
+                            """
+                            cubic_meter = 0.6
+                            xxx = np.power(1_000_000 * cubic_meter, 1/3) # length of x of cube (100cm for 1 m3)
+                            size = xxx**3 # cubic size
+                            area = xxx**2 # surface size
+                            # fluid flux = drainiage flux throughout a column
+                            volume_flux = v_water * size /v_system/area/tc_time_c # cm3 cm-2 s-1
+                            volume_flux = volume_flux/100 # m3 m-2 s-1
+                            # integrated permeability
+                            int_permea = volume_flux*mü_water/9.81/xxx/density_cont # permeability in m2"""
+
+                            # LINK Fluid flux and permeability
+                            # test 05
+                            bloc_a = np.float64(master_rock[item]['geometry'][0])
+                            bloc_b = np.float64(master_rock[item]['geometry'][1])
+                            bloc_c = np.float64(master_rock[item]['geometry'][2])
+                            area = bloc_b*bloc_c
+                            xxx = bloc_a
+                            size = bloc_a * bloc_b * bloc_c
+                            v_water1 = v_water/1000000 # cm3 to m3
+                            v_system1 = v_system/1000000 # cm3 to m3
+
+                            v_water*1_000_000/master_rock[item]['solid_volume_before']
+
+                            volume_flux = v_water1 * size/v_system1 /area/tc_time_c # m3 m-2 s-1
+                            volume_flux = v_water1/tc_time_c /area * 1/v_system1  # m3 m-2 s-1
+                            int_permea = volume_flux*mü_water/9.81/1/density_cont # permeability in m2
+
+                            # unit bloc
+                            """bloc_a = 1
+                            bloc_b = 1
+                            bloc_c = 1
+                            area = bloc_b*bloc_c
+                            xxx = bloc_a
+                            size = bloc_a * bloc_b * bloc_c
+                            v_water1 = v_water/1000000 # cm3 to m3
+                            v_system1 = v_system/1000000 # cm3 to m3
+                            volume_flux = v_water1 * size/v_system1 /area/tc_time_c # m3 m-2 s-1
+                            int_permea = volume_flux*mü_water/9.81/density_cont # permeability in m2"""
+
+                            # udpate to virtual test
+                            v_permea = int_permea
+                            # translation to rock dictionary
+                            master_rock[item]['live_fluid-flux'].append(volume_flux)
+                            master_rock[item]['live_permeability'].append(int_permea)
+
+                            # old version
+                            # v_permea = v_flux/100 * mü_water / tc_time_c / 9.81 / density_cont  # in m2
+                            print(f"-> Virtual permeability test results: {v_permea}")
+
+                            # ##############################################
+                            # LINK Coulomb method tests
+
+                            if num > 0:
+
+                                if failure_mech == 'Mohr-Coulomb-Permea2':
+                                    print("\t===== Mohr-Couloumb.Permea2 method active =====")
+                                    # Call the coulomb method no 2 - fixed diff stress failure test
+                                    # LINK - diff stress input here
+                                    master_rock[item]['fluid_calculation'].couloumb_method2(
+                                        shear_stress=master_rock[item]['shear'],
+                                        friction=master_rock[item]['friction'],
+                                        cohesion=master_rock[item]['cohesion']
+                                        )
+                                elif failure_mech == 'Mohr-Coulomb-Griffith':
+                                    print("\t===== Mohr-Coulomb-Griffith method active =====")
+                                    #test if differntial stress is in master_rock[item] keys
+                                    if 'diff. stress' in master_rock[item].keys():
+                                        master_rock[item]['fluid_calculation'].mohr_cloulomb_griffith()
+                                    else:
+                                        master_rock[item]['fluid_calculation'].mohr_cloulomb_griffith(
+                                            shear_stress=master_rock[item]['shear']
+                                        )
+
+                                    master_rock[item]['failure module'].append(
+                                        master_rock[item]['fluid_calculation'].failure_dictionary)
+
+                                # LINK ii) Steady state fluid extraction
+                                elif failure_mech == 'Steady':
+                                    print("===== steady method active =====")
+                                    master_rock[item]['fluid_calculation'].frac_respo = 5
+                                    fracturing_flag = True
+                                    master_rock[item]['fluid_calculation'].fracture = True
+                                    master_rock[item]['failure module'].append("Steady")
+
+                                else:
+                                    fracturing_flag = False
+                                    master_rock[item]['fracture bool'].append(
+                                            master_rock[item]['fluid_calculation'].frac_respo)
+
+                            else:
+                                fracturing_flag = False
+                                master_rock[item]['fracture bool'].append(
+                                        master_rock[item]['fluid_calculation'].frac_respo)
+
+                            # ##############################################
+                            # LINK Coulomb mechanical trigger - use trigger here 
+                            # Tracking fracturing from coulomb approach methods
+                            # Editing trigger
+                            # if coulomb is True or coulomb_permea2 is True or coulomb_permea is True:
+
+                            if failure_mech in ['Factor', 'Dynamic', 'Steady', 'Mohr-Coulomb-Permea2', 'Mohr-Coulomb-Griffith']:
+
+                                """# store the differential stresses
+                                master_rock[item]['diff. stress'].append(
+                                    master_rock[item]['fluid_calculation'].diff_stress)"""
+
+                                # store a bool index for the type of fracturing
+                                master_rock[item]['fracture bool'].append(
+                                    master_rock[item]['fluid_calculation'].frac_respo)
+                                master_rock[item]['fracture_value'] = 1 + \
+                                    master_rock[item]['tensile strength'] / \
+                                    (pressures[num]/10)
+
+                                # Fracture flag trigger
+                                fracturing_flag = master_rock[item]['fluid_calculation'].fracture
+                                # print(f"\nThe calculated extensional fracturing fator is: .... {fracture_value}\n")
+                                # print(f"Check factor: {fluid_fac}")
+
+                                # ##############################################
+                                # LINK Release criteria
+                                # Fluid Extraction when the modules before give true fracturing
+                                # checking with the mohr-coloumb model and decision for fracturing or not
+
+                                """if fracturing_flag is True and v_permea > lowest_permeability[jjj]:
+                                    print("!!! Below minimum permeability!")"""
+                                # # FIXME modified extraction criteria - minimum permeability is never reached 06.03.2023
+                                if fracturing_flag is True:
+                                    print("Enter fluid extraction")
+                                    master_rock[item]['fluid_extraction'] = Fluid_master(
+                                        phase_data=master_rock[item]['minimization'].df_phase_data.loc[:, fluid_name_tag],
+                                        ext_data=master_rock[item]['extracted_fluid_data'],
+                                        temperature=num+1,
+                                        new_fluid_V=master_rock[item]['fluid_volume_new'],
+                                        sys_H=master_rock[item]['total_hydrogen'],
+                                        element_frame=master_rock[item]['df_element_total'],
+                                        st_fluid_post=master_rock[item]['st_fluid_after'],
+                                        fluid_name_tag=fluid_name_tag
+                                        )
+                                    # print("Call extraction function")
+                                    print(f"*** Extracting fluid from {item}")
+                                    master_rock[item]['fluid_extraction'].hydrogen_ext_all()
+                                    # print("Write data of extracted fluid")
+                                    master_rock[item]['extracted_fluid_data'] = master_rock[item]['fluid_extraction'].ext_data
+                                    # save time and system volume to list at extraction
+                                    master_rock[item]['df_element_total'] = master_rock[item]['fluid_extraction'].element_frame
+                                    master_rock[item]['extr_time'].append(track_time[num])
+                                    # step system total volume (for surface ---> time integrated fluid flux)
+                                    master_rock[item]['extr_svol'].append(
+                                        np.sum(master_rock[item]['df_var_dictionary']['df_volume[ccm]'].iloc[:, -1]))
+                                    master_rock[item]['track_refolidv'] = []
+                                else:
+                                    master_rock[item]['track_refolidv'].append(
+                                        master_rock[item]['solid_volume_before'])
+                                    master_rock[item]['fracture bool'][-1] = 0
+                    # Starts no extraction scheme
+                    else:
+                        print("////// %s No extraction enabled! %s //////")
+                    # //////////////////////////////////////////////////////////////////////////
+                    # LINK Static: Recalculate bulk delta O after extraction
+                    # Recalculate bulk rock oxygen value after possible extraction
+                    new_O_bulk = oxygen_isotope_recalculation(master_rock[item]['save_oxygen'], master_rock[item]['df_element_total'])
+                    master_rock[item]['bulk_oxygen'] = new_O_bulk
+                    # bulk_oxygen = (rockOxy*bulk_oxygen - oxy_mole_fluid *
+                    #                 fluid_oxygen)/(rockOxy - oxy_mole_fluid)
+                
+                else:
+                        # No fluid in the system
+                        if len(master_rock[item]['st_fluid_after']) > 1:
+                            fluid_before = master_rock[item]['st_fluid_after'][-2]
                         else:
-                            weight_sys = float(
-                                master_rock[item]['df_var_dictionary']['df_wt[g]'].iloc[:, -1].sum()
-                                ) # weight of solid + fluid + metastable garnet
+                            fluid_before = master_rock[item]['st_fluid_after'][-1]
 
-                        d_system = float(master_rock[item]['df_var_dictionary']['df_wt[g]'].iloc[:, -1].sum())/v_system
-                        # solid rock data
-                        v_rock = master_rock[item]['solid_volume_new']
-                        weight_rock = weight_sys - weigth_water # weight of solids + metastable garnet
-                        d_rock = weight_rock/v_rock
-                        # density difference
-                        density_cont = (d_rock-d_water)*1000 # kg/m3
+                        master_rock[item]['fluid_calculation'] = Ext_method_master(
+                            pressures[num], temperature,
+                            0,
+                            fluid_before, master_rock[item]['fluid_volume_new'],
+                            master_rock[item]['solid_volume_before'], master_rock[item]['solid_volume_new'],
+                            master_rock[item]['save_factor'], master_rock[item]['master_norm'][-1],
+                            master_rock[item]['minimization'].df_phase_data,
+                            master_rock[item]['tensile strength'],
+                            differential_stress= master_rock[item]['diff. stress'],
+                            friction= master_rock[item]['friction'],
+                            fluid_pressure_mode= master_rock[item]['fluid_pressure_mode'],
+                            fluid_name_tag=fluid_name_tag, subduction_angle=self.angle
+                            )
 
-                        # time interval
-                        if num < 1:
-                            tc_time_c = float(np.diff(track_time[num:num+2])*365*24*60*60)
-                        else:
-                            tc_time_c = float(np.diff(track_time[num-1:num+1])*365*24*60*60)
-
-                        # test 4
-                        """
-                        cubic_meter = 0.6
-                        xxx = np.power(1_000_000 * cubic_meter, 1/3) # length of x of cube (100cm for 1 m3)
-                        size = xxx**3 # cubic size
-                        area = xxx**2 # surface size
-                        # fluid flux = drainiage flux throughout a column
-                        volume_flux = v_water * size /v_system/area/tc_time_c # cm3 cm-2 s-1
-                        volume_flux = volume_flux/100 # m3 m-2 s-1
-                        # integrated permeability
-                        int_permea = volume_flux*mü_water/9.81/xxx/density_cont # permeability in m2"""
-
-                        # LINK Fluid flux and permeability
-                        # test 05
-                        bloc_a = np.float64(master_rock[item]['geometry'][0])
-                        bloc_b = np.float64(master_rock[item]['geometry'][1])
-                        bloc_c = np.float64(master_rock[item]['geometry'][2])
-                        area = bloc_b*bloc_c
-                        xxx = bloc_a
-                        size = bloc_a * bloc_b * bloc_c
-                        v_water1 = v_water/1000000 # cm3 to m3
-                        v_system1 = v_system/1000000 # cm3 to m3
-
-                        v_water*1_000_000/master_rock[item]['solid_volume_before']
-
-                        volume_flux = v_water1 * size/v_system1 /area/tc_time_c # m3 m-2 s-1
-                        volume_flux = v_water1/tc_time_c /area * 1/v_system1  # m3 m-2 s-1
-                        int_permea = volume_flux*mü_water/9.81/1/density_cont # permeability in m2
-
-                        # unit bloc
-                        """bloc_a = 1
-                        bloc_b = 1
-                        bloc_c = 1
-                        area = bloc_b*bloc_c
-                        xxx = bloc_a
-                        size = bloc_a * bloc_b * bloc_c
-                        v_water1 = v_water/1000000 # cm3 to m3
-                        v_system1 = v_system/1000000 # cm3 to m3
-                        volume_flux = v_water1 * size/v_system1 /area/tc_time_c # m3 m-2 s-1
-                        int_permea = volume_flux*mü_water/9.81/density_cont # permeability in m2"""
-
-                        # udpate to virtual test
-                        v_permea = int_permea
-                        # translation to rock dictionary
-                        master_rock[item]['live_fluid-flux'].append(volume_flux)
-                        master_rock[item]['live_permeability'].append(int_permea)
-
-                        # old version
-                        # v_permea = v_flux/100 * mü_water / tc_time_c / 9.81 / density_cont  # in m2
-                        print(f"-> Virtual permeability test results: {v_permea}")
-
-                        # ##############################################
-                        # LINK Coulomb method tests
-
-                        if failure_mech == 'Mohr-Coulomb-Permea2':
-                            print("\t===== Mohr-Couloumb.Permea2 method active =====")
-                            # Call the coulomb method no 2 - fixed diff stress failure test
-                            # LINK - diff stress input here
-                            master_rock[item]['fluid_calculation'].couloumb_method2(
-                                shear_stress=master_rock[item]['shear'],
-                                friction=master_rock[item]['friction'],
-                                cohesion=master_rock[item]['cohesion']
-                                )
-                        elif failure_mech == 'Mohr-Coulomb-Griffith':
+                        if master_rock[item]['Extraction scheme'] == 'Mohr-Coulomb-Griffith':
                             print("\t===== Mohr-Coulomb-Griffith method active =====")
                             #test if differntial stress is in master_rock[item] keys
                             if 'diff. stress' in master_rock[item].keys():
@@ -938,139 +1064,19 @@ class ThorPT_Routines():
                                     shear_stress=master_rock[item]['shear']
                                 )
 
-                            master_rock[item]['failure module'].append(
-                                master_rock[item]['fluid_calculation'].failure_dictionary)
-
-                        # LINK ii) Steady state fluid extraction
-                        elif failure_mech == 'Steady':
-                            print("===== steady method active =====")
-                            master_rock[item]['fluid_calculation'].frac_respo = 5
-                            fracturing_flag = True
-                            master_rock[item]['fluid_calculation'].fracture = True
-                            master_rock[item]['failure module'].append("Steady")
-
-                        else:
-                            fracturing_flag = False
-                            master_rock[item]['fracture bool'].append(
-                                    master_rock[item]['fluid_calculation'].frac_respo)
-                        # ##############################################
-                        # LINK Coulomb mechanical trigger
-                        # Tracking fracturing from coulomb approach methods
-                        # Editing trigger
-                        # if coulomb is True or coulomb_permea2 is True or coulomb_permea is True:
-
-                        if failure_mech in ['Factor', 'Dynamic', 'Steady', 'Mohr-Coulomb-Permea2', 'Mohr-Coulomb-Griffith']:
-
-                            """# store the differential stresses
-                            master_rock[item]['diff. stress'].append(
-                                master_rock[item]['fluid_calculation'].diff_stress)"""
-
-                            # store a bool index for the type of fracturing
-                            master_rock[item]['fracture bool'].append(
-                                master_rock[item]['fluid_calculation'].frac_respo)
-                            master_rock[item]['fracture_value'] = 1 + \
-                                master_rock[item]['tensile strength'] / \
-                                (pressures[num]/10)
-
-                            # Fracture flag trigger
-                            fracturing_flag = master_rock[item]['fluid_calculation'].fracture
-                            # print(f"\nThe calculated extensional fracturing fator is: .... {fracture_value}\n")
-                            # print(f"Check factor: {fluid_fac}")
-
-                            # ##############################################
-                            # LINK Release criteria
-                            # Fluid Extraction when the modules before give true fracturing
-                            # checking with the mohr-coloumb model and decision for fracturing or not
-
-                            """if fracturing_flag is True and v_permea > lowest_permeability[jjj]:
-                                print("!!! Below minimum permeability!")"""
-                            # # FIXME modified extraction criteria - minimum permeability is never reached 06.03.2023
-                            if fracturing_flag is True:
-                                print("Enter fluid extraction")
-                                master_rock[item]['fluid_extraction'] = Fluid_master(
-                                    phase_data=master_rock[item]['minimization'].df_phase_data.loc[:, fluid_name_tag],
-                                    ext_data=master_rock[item]['extracted_fluid_data'],
-                                    temperature=num+1,
-                                    new_fluid_V=master_rock[item]['fluid_volume_new'],
-                                    sys_H=master_rock[item]['total_hydrogen'],
-                                    element_frame=master_rock[item]['df_element_total'],
-                                    st_fluid_post=master_rock[item]['st_fluid_after'],
-                                    fluid_name_tag=fluid_name_tag
-                                    )
-                                # print("Call extraction function")
-                                print(f"*** Extracting fluid from {item}")
-                                master_rock[item]['fluid_extraction'].hydrogen_ext_all()
-                                # print("Write data of extracted fluid")
-                                master_rock[item]['extracted_fluid_data'] = master_rock[item]['fluid_extraction'].ext_data
-                                # save time and system volume to list at extraction
-                                master_rock[item]['df_element_total'] = master_rock[item]['fluid_extraction'].element_frame
-                                master_rock[item]['extr_time'].append(track_time[num])
-                                # step system total volume (for surface ---> time integrated fluid flux)
-                                master_rock[item]['extr_svol'].append(
-                                    np.sum(master_rock[item]['df_var_dictionary']['df_volume[ccm]'].iloc[:, -1]))
-                                master_rock[item]['track_refolidv'] = []
-                            else:
-                                master_rock[item]['track_refolidv'].append(
-                                    master_rock[item]['solid_volume_before'])
-                                master_rock[item]['fracture bool'][-1] = 0
-
-                    # Starts no extraction scheme
-                    else:
-                        print("////// %s No extraction enabled! %s //////")
-
-                    # //////////////////////////////////////////////////////////////////////////
-                    # LINK Static: Recalculate bulk delta O after extraction
-                    # Recalculate bulk rock oxygen value after possible extraction
-                    new_O_bulk = oxygen_isotope_recalculation(master_rock[item]['save_oxygen'], master_rock[item]['df_element_total'])
-                    master_rock[item]['bulk_oxygen'] = new_O_bulk
-                    # bulk_oxygen = (rockOxy*bulk_oxygen - oxy_mole_fluid *
-                    #                 fluid_oxygen)/(rockOxy - oxy_mole_fluid)
-
-                else:
-                    # No fluid in the system
-                    if len(master_rock[item]['st_fluid_after']) > 1:
-                        fluid_before = master_rock[item]['st_fluid_after'][-2]
-                    else:
-                        fluid_before = master_rock[item]['st_fluid_after'][-1]
-
-                    master_rock[item]['fluid_calculation'] = Ext_method_master(
-                        pressures[num],
-                        fluid_before, master_rock[item]['fluid_volume_new'],
-                        master_rock[item]['solid_volume_before'], master_rock[item]['solid_volume_new'],
-                        master_rock[item]['save_factor'], master_rock[item]['master_norm'][-1],
-                        master_rock[item]['minimization'].df_phase_data,
-                        master_rock[item]['tensile strength'],
-                        differential_stress= master_rock[item]['diff. stress'],
-                        friction= master_rock[item]['friction'],
-                        fluid_pressure_mode= master_rock[item]['fluid_pressure_mode'],
-                        fluid_name_tag=fluid_name_tag, subduction_angle=self.angle
-                        )
-
-                    if master_rock[item]['Extraction scheme'] == 'Mohr-Coulomb-Griffith':
-                        print("\t===== Mohr-Coulomb-Griffith method active =====")
-                        #test if differntial stress is in master_rock[item] keys
-                        if 'diff. stress' in master_rock[item].keys():
-                            master_rock[item]['fluid_calculation'].mohr_cloulomb_griffith()
-                        else:
-                            master_rock[item]['fluid_calculation'].mohr_cloulomb_griffith(
-                                shear_stress=master_rock[item]['shear']
-                            )
-
-                        # TODO - double asignment in output data, one is nan one the dry value - no solution found yet
-                        """master_rock[item]['failure module'].append(
-                                master_rock[item]['fluid_calculation'].failure_dictionary)"""
+                            # TODO - double asignment in output data, one is nan one the dry value - no solution found yet
+                            """master_rock[item]['failure module'].append(
+                                    master_rock[item]['fluid_calculation'].failure_dictionary)"""
 
 
-                    master_rock[item]['save_factor'].append(0)
-                    # master_rock[item]['diff. stress'].append(0)
-                    master_rock[item]['fracture bool'].append(0)
-                    master_rock[item]['live_fluid-flux'].append(np.nan)
-                    master_rock[item]['live_permeability'].append(np.nan)
-                    # master_rock[item]['failure module'].append("None activated, no fluid.")
-                    print(
-                        f"No free water in the system for {item} - no fracturing model")
-
-
+                        master_rock[item]['save_factor'].append(0)
+                        # master_rock[item]['diff. stress'].append(0)
+                        master_rock[item]['fracture bool'].append(0)
+                        master_rock[item]['live_fluid-flux'].append(np.nan)
+                        master_rock[item]['live_permeability'].append(np.nan)
+                        # master_rock[item]['failure module'].append("None activated, no fluid.")
+                        print(
+                            f"No free water in the system for {item} - no fracturing model")
                 # save bulk oxygen after extraction
                 master_rock[item]['save_bulk_oxygen_post'].append(
                     master_rock[item]['bulk_oxygen'])
@@ -1607,7 +1613,8 @@ class ThorPT_Routines():
 
                     # Start Extraction Master Module
                     master_rock[item]['fluid_calculation'] = Ext_method_master(
-                        pressures[num],
+                        pressures[num], temperature,
+                        master_rock[item]['df_var_dictionary']['df_volume/mol'].loc[fluid_name_tag][-1],
                         fluid_before, master_rock[item]['fluid_volume_new'],
                         master_rock[item]['solid_volume_before'], master_rock[item]['solid_volume_new'],
                         master_rock[item]['save_factor'], master_rock[item]['master_norm'][-1],
@@ -2306,7 +2313,8 @@ class ThorPT_Routines():
 
                     # Start Extraction Master Module
                     master_rock[item]['fluid_calculation'] = Ext_method_master(
-                        pressures[num][tt],
+                        pressures[num][tt], temperature,
+                        master_rock[item]['df_var_dictionary']['df_volume/mol'].loc[fluid_name_tag][-1],
                         fluid_before, master_rock[item]['fluid_volume_new'],
                         master_rock[item]['solid_volume_before'], master_rock[item]['solid_volume_new'],
                         master_rock[item]['save_factor'], master_rock[item]['master_norm'][-1],
@@ -2701,8 +2709,12 @@ class ThorPT_Routines():
                 boolean = np.invert(boolean)
 
                 # real modelled fluid-fluxes and permeability
-                master_rock[rock]['time-int flux'] = np.ma.masked_array(master_rock[rock]['virtual time-int flux'], boolean)
-                master_rock[rock]['permeability'] = np.ma.masked_array(master_rock[rock]['virtual permeability'], boolean)
+                if len(boolean) == len(master_rock[rock]['live_fluid-flux']):
+                    master_rock[rock]['time-int flux'] = np.ma.masked_array(master_rock[rock]['live_fluid-flux'], boolean)
+                    master_rock[rock]['permeability'] = np.ma.masked_array(master_rock[rock]['live_permeability'], boolean)
+                else:
+                    master_rock[rock]['time-int flux'] = np.ma.masked_array(master_rock[rock]['virtual time-int flux'], boolean[1:])
+                    master_rock[rock]['permeability'] = np.ma.masked_array(master_rock[rock]['virtual permeability'], boolean[1:])
 
             else:
                 pass

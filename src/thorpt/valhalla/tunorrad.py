@@ -1552,7 +1552,8 @@ class Ext_method_master:
     """
 
     def __init__(
-            self, pressure,
+            self, pressure, temperature,
+            moles_vol_fluid,
             fluid_volume_before, fluid_volume_new,
             solid_volume_before, solid_volume_new,
             save_factor, master_norm, phase_data,
@@ -1580,6 +1581,8 @@ class Ext_method_master:
         self.phase_data = phase_data
         self.unlock_freewater = False
         self.pressure = pressure
+        self.temperature = temperature
+        self.moles_vol_fluid = moles_vol_fluid
         # assumption and connected to main code - should be sent by input
         self.tensile_strength = tensile_s
         self.fracture = False
@@ -2027,12 +2030,74 @@ class Ext_method_master:
         vol_t0 = self.solid_t0 + self.fluid_t0
         vol_new = self.solid_t1 + self.fluid_t1
 
+
+        # CORK-real - Calculate P2/P1
+
+        R = 0.083144621  # cm³kbarK⁻¹mol⁻¹ (gas constant)
+        T = 298+self.temperature  # K (temperature)
+        #n = self.moles_fluid  # moles
+        #V1 = self.fluid_t1  # cm^3 (initial volume)
+        Vm1 = self.moles_vol_fluid
+        P0 = 2 # in kbar
+        P = 20 # in kbar
+
+        a0 = 113.4
+        a4 = -0.22291
+        a5 = -3.8022 * 10**-4
+        a6 = 1.7791 * 10**-4
+        a = a0 + a4 * (T-673) + a5 * (T-673)**2 + a6 * (T-673)**3
+
+        b = 1.465  # kJ kbar^-1 mol^-1, converted to L/mol
+
+        """c0 = -3.025650 * 10**-2
+        c1 = -5.343144*10**-6
+        c = c0 + c1 * T
+
+        d0 = -3.2297554*10**-3
+        d1 = 2.2215221*10**-6
+        d = d0 + d1 * T
+
+        Vm1 = Vm1 + c * np.sqrt(P-P0) + d*(P-P0)"""
+
+        V2 = 1/(self.fluid_t1/(vol_t0-self.solid_t1)) * (Vm1) # - c * np.sqrt(P-P0) - d*(P-P0)
+        p2_p1_cork_real = ( (R * T) / (V2 - b) - (a) / (V2 * (V2 + b) * np.sqrt(T)) ) / \
+                ( (R * T) / (Vm1 - b) - (a) / (Vm1 * (Vm1 + b) * np.sqrt(T)) )
+
+
         # Fluid pressure calculation
         # fluid pressure close to mean stress
         if self.fluid_pressure_mode == 'mean stress':
-            hydro = mean_stress/vol_t0 * (vol_t0+(vol_new-vol_t0))
+            # NOTE Modification here after revision 14.05.2025
+            # hydro = mean_stress/vol_t0 * (vol_t0+(vol_new-vol_t0))
+            # NOTE new equation here
+            # ideal fluid
+            hydro = litho * self.fluid_t1/(vol_t0-self.solid_t1)
+            # real fluid factor
+            hydro = litho * self.fluid_t1/(vol_t0-self.solid_t1) * (0.0651 * self.fluid_t1/(vol_t0-self.solid_t1) + 0.936)
+            hydro_CORK = litho * p2_p1_cork_real
+
+            hydro = hydro_CORK
+
+            sig3 = litho - self.diff_stress/2
+            sig1 = litho + self.diff_stress/2
             # hydro = mean_stress * (self.solid_t0+(self.solid_t1-self.solid_t0))/self.solid_t0 * (vol_new-vol_t0)/self.fluid_t0
-            delta_p = mean_stress - hydro
+            delta_p = litho - hydro
+
+        elif self.fluid_pressure_mode == 'sig3':
+            # NOTE Modification here after revision 14.05.2025
+            # hydro = mean_stress/vol_t0 * (vol_t0+(vol_new-vol_t0))
+            # NOTE new equation here
+            hydro = sig3 * self.fluid_t1/(vol_t0-self.solid_t1)
+            # hydro = sig3 * self.fluid_t1/(vol_t0-self.solid_t1)
+            # real fluid factor
+            hydro = sig3 * self.fluid_t1/(vol_t0-self.solid_t1) * (0.0651 * self.fluid_t1/(vol_t0-self.solid_t1) + 0.936)
+            hydro_CORK = sig3 * p2_p1_cork_real
+
+            hydro = hydro_CORK
+
+            # hydro = mean_stress * (self.solid_t0+(self.solid_t1-self.solid_t0))/self.solid_t0 * (vol_new-vol_t0)/self.fluid_t0
+            delta_p = sig3 - hydro
+
         elif self.fluid_pressure_mode == 'normal stress':
             # Duesterhoft 2019 method
             hydro = normal_stress/vol_t0 * (vol_t0+(vol_new-vol_t0))
@@ -2159,6 +2224,10 @@ class Ext_method_master:
             fracturing = False
         else:
             print("The fracturing response failed. Thorsten has to work more here.")
+
+        # !!!!
+        #REVIEW - fluid is pressureized or expands into new volume
+        # self.fluid_t1 = vol_t0 - self.solid_t1
 
 
         # Update system condition of fracturing

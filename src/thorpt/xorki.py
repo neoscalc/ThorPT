@@ -2403,6 +2403,9 @@ class ThorPT_plots():
         phases = self.rockdic[rock_tag].phases
         phase_data = self.rockdic[rock_tag].phase_data
         frac_bool = self.rockdic[rock_tag].frac_bool
+        # prepend a zero to frac_bool to prevent indexing problems (first itertion cannot fail)
+        frac_bool = np.insert(frac_bool, 0, 0)
+
         garnet = self.rockdic[rock_tag].garnet[rock_tag]
         garnet_bool = self.rockdic[rock_tag].garnets_bools[rock_tag]
         # Input for the variable of interest
@@ -2427,6 +2430,10 @@ class ThorPT_plots():
         temperatures = self.rockdic[rock_tag].temperature
         pressures = self.rockdic[rock_tag].pressure
         line = np.arange(1, len(temperatures)+1, 1)
+
+        # test indexing, when frac_bool is longer than the temperature array we have to remove the zero again
+        if len(frac_bool) > len(temperatures):
+            frac_bool = frac_bool[1:]
 
         y = phase_data[tag].fillna(value=0)
         y.columns = legend_phases
@@ -2664,6 +2671,10 @@ class ThorPT_plots():
                         twin1.plot(temperatures[extend_shear_bool], y2[extend_shear_bool], 'Dg')
                         twin1.plot(temperatures[compress_shear_bool], y2[compress_shear_bool], 'Db')
                         twin1.plot(temperatures[ten_bool], y2[ten_bool], 'D', c='violet')
+                        # twin1.plot(temperatures[extension_bool[1:]], y2[extension_bool[1:]], 'Dr')
+                        # twin1.plot(temperatures[extend_shear_bool[1:]], y2[extend_shear_bool[1:]], 'Dg')
+                        # twin1.plot(temperatures[compress_shear_bool[1:]], y2[compress_shear_bool[1:]], 'Db')
+                        # twin1.plot(temperatures[ten_bool[1:]], y2[ten_bool[1:]], 'D', c='violet')
                 else:
                     pass
 
@@ -3966,6 +3977,8 @@ class ThorPT_plots():
         all_porosity = all_porosity*100
         # extraction boolean list
         all_boolean = np.array(self.comprock.all_extraction_boolean)
+        # prepend a zero to the boolean list to avoid indexing error
+        all_boolean = np.insert(all_boolean, 0, 0)
         color_palette = sns.color_palette("viridis", len(all_porosity))
         # read the applied differential stress and tensile strength
         applied_diff_stress = np.array(self.comprock.all_diffs)
@@ -4107,6 +4120,9 @@ class ThorPT_plots():
         all_porosity = np.array(self.comprock.all_porosity)
         # extraction boolean list
         all_boolean = np.array(self.comprock.all_extraction_boolean)
+        # prepend a zero to the boolean list to avoid indexing error
+        all_boolean = np.insert(all_boolean, 0, 0)
+
         color_palette = sns.color_palette("viridis", len(all_porosity))
         # read the applied differential stress and tensile strength
         applied_diff_stress = np.array(self.comprock.all_diffs)
@@ -4191,6 +4207,9 @@ class ThorPT_plots():
         all_porosity = np.array(self.comprock.all_porosity)
         # extraction boolean list
         all_boolean = np.array(self.comprock.all_extraction_boolean)
+        # prepend a zero to the boolean list to avoid indexing error
+        all_boolean = np.insert(all_boolean, 0, 0)
+
         color_palette = sns.color_palette("viridis", len(all_porosity))
         # read the applied differential stress and tensile strength
         applied_diff_stress = np.array(self.comprock.all_diffs)
@@ -4356,6 +4375,9 @@ class ThorPT_plots():
         all_porosity = np.array(self.comprock.all_porosity)
         # extraction boolean list
         all_boolean = np.array(self.comprock.all_extraction_boolean)
+        # prepend a zero to the boolean list to avoid indexing error
+        all_boolean = np.insert(all_boolean, 0, 0)
+
         color_palette = sns.color_palette("viridis", len(all_porosity))
         # read the applied differential stress and tensile strength
         applied_diff_stress = np.array(self.comprock.all_diffs)
@@ -6022,7 +6044,7 @@ class ThorPT_plots():
         plt.clf()
         plt.close()
 
-    
+
 
 
 if __name__ == '__main__':
@@ -6033,17 +6055,24 @@ if __name__ == '__main__':
     compPlot = ThorPT_plots(
         data.filename, data.mainfolder, data.rock, data.compiledrock)
 
-    compPlot.oxygen_isotope_interaction_scenario3(img_save=True, img_type='pdf')
+    # compPlot.oxygen_isotope_interaction_scenario3(img_save=True, img_type='pdf')
+
+    
+    compPlot.bulk_rock_sensitivity_twin()
+
+    compPlot.tensile_strength_sensitivity_cumVol()
+    compPlot.tensile_strength_sensitivity()
+
 
     for key in data.rock.keys():
         print(key)
 
         #compPlot.oxygen_isotopes_realtive(rock_tag=key, img_save=True, img_type='pdf')
-
+        # compPlot.mohr_coulomb_diagram(rock_tag=key)
         compPlot.phases_stack_plot(rock_tag=key, img_save=True,
-                     val_tag='volume', transparent=False, fluid_porosity=True, cumulative=True, img_type='pdf')
+                     val_tag='volume', transparent=False, fluid_porosity=True, cumulative=True, img_type='png')
         
-        compPlot.oxygen_isotopes(rock_tag=key, img_save=True, img_type='pdf')
+        # compPlot.oxygen_isotopes(rock_tag=key, img_save=True, img_type='png')
         
     # compPlot.fluid_distribution_sgm23(img_save=True, gif_save=True, x_axis_log=False)
 
