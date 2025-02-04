@@ -1340,7 +1340,6 @@ class ThorPT_hdf5_reader():
                 element_record[group_key].index = td_data_tag02
 
 
-
                 #######################################################
                 # Write the dataclass
                 self.rock[group_key] = Rock(
@@ -6066,7 +6065,62 @@ class ThorPT_plots():
         plt.clf()
         plt.close()
 
+    def plot_heatmap(self, plot_type='porosity'):
+        # Assuming all_porosity is a 2D numpy array
+        all_porosity = np.array(self.comprock.all_porosity)
+        all_boolean = self.comprock.all_extraction_boolean
+        all_boolean_array = []
+        extraction_volumes = []
+        extraction_volumes_cum = []
 
+        # collecting differential stress, extraction number and tensile strength for all rocks
+        for i, item in enumerate(self.comprock.all_diffs):
+            # create the cumulative volume of extracted fluid
+            take_bool = np.array(all_boolean[i])
+            if len(take_bool) == len(all_porosity[i]):
+                pass
+            else:
+                take_bool = np.insert(take_bool, 0, 0)
+            
+            all_boolean_array.append(take_bool)
+
+            extractionVol = np.ma.masked_array(all_porosity[i], take_bool)
+            extractionVol = np.ma.filled(extractionVol, 0)
+
+            extraction_volumes.append(extractionVol)
+
+            extractionVol = np.cumsum(extractionVol)*100
+            extraction_volumes_cum.append(extractionVol)
+
+        # format to arrays
+        all_boolean_array = np.array(all_boolean_array)
+        extraction_volumes = np.array(extraction_volumes)
+        extraction_volumes_cum = np.array(extraction_volumes_cum)
+
+        # Select data to plot based on plot_type
+        if plot_type == 'porosity':
+            data_to_plot = all_porosity * 100
+            title = 'Heatmap of Porosity Values'
+        elif plot_type == 'extracted':
+            data_to_plot = extraction_volumes
+            title = 'Heatmap of Extracted Fluid Volumes'
+        elif plot_type == 'cumulative':
+            data_to_plot = extraction_volumes_cum
+            title = 'Heatmap of Cumulative Extracted Fluid Volumes'
+        else:
+            raise ValueError("Invalid plot_type. Options are 'porosity', 'extracted', 'cumulative'.")
+
+        # Create a heatmap
+        plt.figure(figsize=(10, 8))
+        sns.heatmap(data_to_plot, cmap='viridis', cbar=True)
+
+        # Add labels and title
+        plt.xlabel('Time Steps')
+        plt.ylabel('Rock Samples')
+        plt.title(title)
+
+        # Show the plot
+        plt.show()
 
 
 if __name__ == '__main__':
@@ -6079,15 +6133,18 @@ if __name__ == '__main__':
 
     # compPlot.oxygen_isotope_interaction_scenario3(img_save=True, img_type='pdf')
 
-    compPlot.bulk_rock_sensitivity_cumVol()
+    # compPlot.bulk_rock_sensitivity_cumVol()
     
-    #compPlot.bulk_rock_sensitivity_twin()
+    # compPlot.bulk_rock_sensitivity_twin()
 
     """compPlot.tensile_strength_sensitivity_cumVol()
     compPlot.tensile_strength_sensitivity()"""
     # compPlot.mohr_coulomb_diagram(rock_tag='rock079')
 
-    for key in data.rock.keys()[:74]:
+    
+    compPlot.plot_heatmap(plot_type="cumulative")
+
+    for key in data.rock.keys():
         print(key)
 
         #compPlot.oxygen_isotopes_realtive(rock_tag=key, img_save=True, img_type='pdf')
@@ -6098,7 +6155,8 @@ if __name__ == '__main__':
         
     # compPlot.fluid_distribution_sgm23(img_save=True, gif_save=True, x_axis_log=False)
 
-    """compPlot.phases_stack_plot(rock_tag=key, img_save=True,
+    """
+    compPlot.phases_stack_plot(rock_tag=key, img_save=True,
                  val_tag='volume', transparent=False, fluid_porosity=True, cumulative=True, img_type='pdf')
     
     compPlot.oxygen_isotopes(rock_tag=key, img_save=True, img_type='pdf')
