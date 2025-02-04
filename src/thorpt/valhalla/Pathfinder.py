@@ -201,16 +201,17 @@ def crust2layer_model(pressure_array, time, speed, angle, dt=10000):
         print("Error: 'layermodel.txt' not found.")
         return
 
-    depth = []
-    c_p_zero += density_list[i] * layer_thickness_list[i] * 9.81 / 10**5
-    c_p_list = []
-    # calculated pressure with the layer model
     c_p_zero = 0
+    crust_depth = 0
+    depth = []
+    c_p_list = []
+
+    # calculated pressure with the layer model
     for i in range(len(layer_thickness_list)):
         c_p_zero += density_list[i] * layer_thickness_list[i] * 9.81 / 10**5
-    current_pressure = c_p_zero
 
-    c_p = c_p_zero + (density_list[-1]*(crust_depth) * 9.81 / 10**5)
+    c_p = c_p_zero
+    # c_p = c_p_zero + (density_list[-1]*(crust_depth) * 9.81 / 10**5)
     d_step = speed * dt * abs(np.sin(angle/180*np.pi))
 
     while c_p < pressure_array[-1]:
@@ -292,6 +293,9 @@ class Pathfinder_Theoule:
         """
         spl = self.prepare_spline()
         c_p_list = self.construct_layer_model()
+        self.depth = c_p_list[2]
+        self.depth_store = c_p_list[2]
+        self.time_store = c_p_list[1]
         yinterp = self.fit_model_to_path(c_p_list, spl)
         yinterp, c_p_list = self.filter_steps(yinterp, c_p_list)
         self.select_steps(yinterp, c_p_list)
@@ -325,7 +329,8 @@ class Pathfinder_Theoule:
         Returns:
             yinterp (numpy.ndarray): Interpolated temperature values.
         """
-        return splev(c_p_list, spl)
+
+        return splev(c_p_list[0], spl) 
 
     def filter_steps(self, yinterp, c_p_list):
         """
@@ -339,30 +344,29 @@ class Pathfinder_Theoule:
             yinterp (numpy.ndarray): Filtered temperature values.
             c_p_list (numpy.ndarray): Filtered pressure values.
         """
-        f_option = 3
-        if f_option == 3:
-            new_x = [yinterp[0]]
-            new_y = [c_p_list[0]]
-            new_d = [self.depth[0]]
-            new_t = [self.time[0]]
-            for i, val in enumerate(c_p_list):
-                step_p = val - new_y[-1]
-                step_t = yinterp[i] - new_x[-1]
-                if step_p >= self.p_increment:
-                    if step_t >= self.t_increment:
-                        new_y.append(val)
-                        new_x.append(yinterp[i])
-                        new_d.append(self.depth[i])
-                        new_t.append(self.time[i])
-                elif step_t >= self.t_increment:
+        new_x = [yinterp[0]]
+        new_y = [c_p_list[0][0]]
+        new_d = [self.depth[0]]
+        new_t = [self.time[0]]
+
+        for i, val in enumerate(c_p_list[0]):
+            step_p = val - new_y[-1]
+            step_t = yinterp[i] - new_x[-1]
+            if step_p >= self.p_increment:
+                if step_t >= self.t_increment:
                     new_y.append(val)
                     new_x.append(yinterp[i])
                     new_d.append(self.depth[i])
                     new_t.append(self.time[i])
-            yinterp = np.array(new_x)
-            c_p_list = np.array(new_y)
-            self.time = new_t
-            self.depth = new_d
+            elif step_t >= self.t_increment:
+                new_y.append(val)
+                new_x.append(yinterp[i])
+                new_d.append(self.depth[i])
+                new_t.append(self.time[i])
+        yinterp = np.array(new_x)
+        c_p_list = np.array(new_y)
+        self.time = new_t
+        self.depth = new_d
         return yinterp, c_p_list
 
     def select_steps(self, yinterp, c_p_list):
@@ -376,7 +380,8 @@ class Pathfinder_Theoule:
         Returns:
             None
         """
-        frame = pd.DataFrame([yinterp, c_p_list, self.time, self.depth])
+
+        frame = pd.DataFrame([yinterp, c_p_list, self.time_store, self.depth_store])
         cut_T = self.lower_t_bound
         yinterp = np.array(frame.iloc[0][frame.iloc[0] >= cut_T])
         c_p_list = np.array(frame.iloc[1][frame.iloc[0] >= cut_T])

@@ -6522,6 +6522,118 @@ class ThorPT_plots():
         # Show the plot
         plt.show()
 
+    def plot_heatmap_PT(self, plot_type='porosity'):
+        
+        """Plot heatmap of extraction volumes in P-T space (T on x-axis).
+
+        Args:
+            plot_type (str): Type of data to plot. Options are 'porosity', 'extracted', 'cumulative'.
+        """
+        # Assuming all_porosity is a 2D numpy array
+        all_porosity = self.comprock.all_porosity
+        all_boolean = self.comprock.all_extraction_boolean
+        all_boolean_array = []
+        extraction_volumes = []
+        extraction_volumes_cum = []
+
+        # Collecting differential stress, extraction number, and tensile strength for all rocks
+        for i, item in enumerate(self.comprock.all_diffs):
+            # Create the cumulative volume of extracted fluid
+            take_bool = np.array(all_boolean[i])
+            if len(take_bool) != len(all_porosity[i]):
+                take_bool = np.insert(take_bool, 0, 0)
+            
+            all_boolean_array.append(take_bool)
+
+            extractionVol = np.ma.masked_array(all_porosity[i], take_bool)
+            extractionVol = np.ma.filled(extractionVol, 0)
+
+            extraction_volumes.append(extractionVol)
+
+            extractionVol = np.cumsum(extractionVol) * 100
+            extraction_volumes_cum.append(extractionVol)
+
+        # Format to arrays
+        # extraction_volumes = np.array(extraction_volumes)
+        # extraction_volumes_cum = np.array(extraction_volumes_cum)
+
+        """# Select data to plot based on plot_type
+        if plot_type == 'porosity':
+            data_to_plot = all_porosity * 100
+            title = 'Heatmap of Porosity Values'
+        elif plot_type == 'extracted':
+            data_to_plot = extraction_volumes
+            title = 'Heatmap of Extracted Fluid Volumes'
+        elif plot_type == 'cumulative':
+            data_to_plot = extraction_volumes_cum
+            title = 'Heatmap of Cumulative Extracted Fluid Volumes'
+        else:
+            raise ValueError("Invalid plot_type. Options are 'porosity', 'extracted', 'cumulative'.")"""
+
+        # Assuming self.comprock.temperature and self.comprock.pressure are 1D arrays
+        rock_keys = list(data.rock.keys())
+        temperatures = data.rock[rock_keys[0]].temperature
+        pressures = data.rock[rock_keys[0]].pressure
+
+        # Upsample the temperature and pressure arrays
+        fine_temperatures = np.linspace(temperatures.min()-50, temperatures.max()+50, len(temperatures) * 100)
+        fine_pressures = np.linspace(pressures.min()-1000, pressures.max()+1000, len(pressures) * 100)
+
+        # Create a meshgrid for P-T space
+        T, P = np.meshgrid(fine_temperatures, fine_pressures)
+
+        # Initialize an array to hold the interpolated data
+        data_to_plot_fine = np.zeros_like(T)
+
+        # Create a heatmap
+        plt.figure(figsize=(10, 8))
+        """sns.heatmap(data_to_plot_fine, cmap='viridis', cbar=True, 
+                    xticklabels=fine_temperatures, 
+                    yticklabels=np.around(fine_pressures / 10000, 1))"""
+
+        # Overlay markers where boolean array is False
+        _log_T = []
+        _log_P = []
+        _log_Z_ = []
+        for j, arr in enumerate(all_boolean_array):
+            temperatures = data.rock[rock_keys[j]].temperature
+            pressures = data.rock[rock_keys[j]].pressure
+            extractionVol = extraction_volumes[j]
+            # plot the pt path
+            plt.plot(temperatures, pressures/10000, color='black', linestyle='--', linewidth=1, alpha=0.5)
+            for i, val in enumerate(arr):
+                if val == 0:
+                    _log_T.append(temperatures[i])
+                    _log_P.append(pressures[i])
+                    _log_Z_.append(extractionVol[i])
+                
+                    # scatter plot of extraction volume as transparent square with color representing the value between 0 and max value in extractionVol
+                    plt.scatter(temperatures[i], pressures[i] / 10000, 
+                                color=plt.cm.viridis(extractionVol[i] / extractionVol.max()), 
+                                s=100, alpha=0.8, marker='s')
+                    plt.scatter(temperatures[i], pressures[i]/10000, color='red', s=5)
+
+        # Add labels and title
+        plt.xlabel('Temperature [°C]')
+        plt.ylabel('Pressure [GPa]')
+        #plt.title(title)
+
+        # Show the plot
+        plt.show()
+        
+        # Interpolate the data in 3D
+        Z_grid = griddata((np.array(_log_T), np.array(_log_P)), np.array(_log_Z_), 
+                          (T, P), method='cubic', fill_value=0)
+
+        # Create a heatmap
+        plt.figure(figsize=(10, 8))
+        sns.heatmap(Z_grid, cmap='viridis', cbar=True)
+
+        # Add labels and title
+        plt.xlabel('Temperature [°C]')
+        plt.ylabel('Pressure [GPa]')
+        plt.title('Interpolated Z values in P-T space')
+
 
 if __name__ == '__main__':
 
@@ -6543,6 +6655,7 @@ if __name__ == '__main__':
 
     
     # compPlot.plot_heatmap(plot_type="cumulative")
+    compPlot.plot_heatmap_PT(plot_type="cumulative")
 
     for key in data.rock.keys():
         print(key)
