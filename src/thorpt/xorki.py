@@ -29,6 +29,7 @@ from dataclasses import fields
 from scipy import interpolate
 from scipy.interpolate import griddata
 import matplotlib.animation as animation
+from tqdm import tqdm
 
 import julia
 # julia.install()
@@ -2554,15 +2555,17 @@ class ThorPT_plots():
                 twin1.set_ymargin(0)
 
                 if len(frac_bool) > 0:
-                    if 1 in frac_bool or 2 in frac_bool or 3 in frac_bool or 10 in frac_bool:
+                    if 1 in frac_bool or 2 in frac_bool or 3 in frac_bool or 10 in frac_bool or 5 in frac_bool:
                         extension_bool = np.isin(frac_bool, 1)
                         extend_shear_bool = np.isin(frac_bool, 2)
                         compress_shear_bool = np.isin(frac_bool, 3)
                         ten_bool = np.isin(frac_bool, 10)
+                        treshhold_model_bool = np.isin(frac_bool, 5)
                         twin1.plot(line[extension_bool], y2[extension_bool], 'Dr')
                         twin1.plot(line[extend_shear_bool], y2[extend_shear_bool], 'Dg')
                         twin1.plot(line[compress_shear_bool], y2[compress_shear_bool], 'Db')
                         twin1.plot(line[ten_bool], y2[ten_bool], 'D', c='violet')
+                        twin1.plot(temperatures[treshhold_model_bool], y2[treshhold_model_bool], 'D', c='#397dad')
                 else:
                     pass
 
@@ -2662,15 +2665,17 @@ class ThorPT_plots():
                 twin1.set_ymargin(0)
 
                 if len(frac_bool) > 0:
-                    if 1 in frac_bool or 2 in frac_bool or 3 in frac_bool or 10 in frac_bool:
+                    if 1 in frac_bool or 2 in frac_bool or 3 in frac_bool or 10 in frac_bool or 5 in frac_bool:
                         extension_bool = np.isin(frac_bool, 1)
                         extend_shear_bool = np.isin(frac_bool, 2)
                         compress_shear_bool = np.isin(frac_bool, 3)
                         ten_bool = np.isin(frac_bool, 10)
+                        treshhold_model_bool = np.isin(frac_bool, 5)
                         twin1.plot(temperatures[extension_bool], y2[extension_bool], 'Dr')
                         twin1.plot(temperatures[extend_shear_bool], y2[extend_shear_bool], 'Dg')
                         twin1.plot(temperatures[compress_shear_bool], y2[compress_shear_bool], 'Db')
                         twin1.plot(temperatures[ten_bool], y2[ten_bool], 'D', c='violet')
+                        twin1.plot(temperatures[treshhold_model_bool], y2[treshhold_model_bool], 'D', c='#397dad')
                         # twin1.plot(temperatures[extension_bool[1:]], y2[extension_bool[1:]], 'Dr')
                         # twin1.plot(temperatures[extend_shear_bool[1:]], y2[extend_shear_bool[1:]], 'Dg')
                         # twin1.plot(temperatures[compress_shear_bool[1:]], y2[compress_shear_bool[1:]], 'Db')
@@ -4119,9 +4124,7 @@ class ThorPT_plots():
         # read all porosity values for each rock in the model
         all_porosity = np.array(self.comprock.all_porosity)
         # extraction boolean list
-        all_boolean = np.array(self.comprock.all_extraction_boolean)
-        # prepend a zero to the boolean list to avoid indexing error
-        all_boolean = np.insert(all_boolean, 0, 0)
+        all_boolean = self.comprock.all_extraction_boolean
 
         color_palette = sns.color_palette("viridis", len(all_porosity))
         # read the applied differential stress and tensile strength
@@ -4151,7 +4154,12 @@ class ThorPT_plots():
             track_tensile.append(used_tensile_strengths[i])
 
             # create the cumulative volume of extracted fluid
-            extractionVol = np.ma.masked_array(all_porosity[i], all_boolean[i])
+            take_bool = np.array(all_boolean[i])
+            if len(take_bool) == len(all_porosity[i]):
+                pass
+            else:
+                take_bool = np.insert(take_bool, 0, 0)
+            extractionVol = np.ma.masked_array(all_porosity[i], take_bool)
             extractionVol = np.ma.filled(extractionVol, 0)
             extractionVol = np.cumsum(extractionVol)*100
             extraction_volumes.append(extractionVol)
@@ -4206,9 +4214,10 @@ class ThorPT_plots():
         # read all porosity values for each rock in the model
         all_porosity = np.array(self.comprock.all_porosity)
         # extraction boolean list
-        all_boolean = np.array(self.comprock.all_extraction_boolean)
+        # all_boolean = np.array(self.comprock.all_extraction_boolean)
+        all_boolean = self.comprock.all_extraction_boolean
         # prepend a zero to the boolean list to avoid indexing error
-        all_boolean = np.insert(all_boolean, 0, 0)
+        # all_boolean = np.insert(all_boolean, 0, 0)
 
         color_palette = sns.color_palette("viridis", len(all_porosity))
         # read the applied differential stress and tensile strength
@@ -4238,7 +4247,12 @@ class ThorPT_plots():
             track_tensile.append(used_tensile_strengths[i])
 
             # create the cumulative volume of extracted fluid
-            extractionVol = np.ma.masked_array(all_porosity[i], all_boolean[i])
+            take_bool = np.array(all_boolean[i])
+            if len(take_bool) == len(all_porosity[i]):
+                pass
+            else:
+                take_bool = np.insert(take_bool, 0, 0)
+            extractionVol = np.ma.masked_array(all_porosity[i], take_bool)
             extractionVol = np.ma.filled(extractionVol, 0)
             extractionVol = np.cumsum(extractionVol)*100
             extraction_volumes.append(extractionVol)
@@ -4306,7 +4320,8 @@ class ThorPT_plots():
         all_porosity = np.array(self.comprock.all_porosity)
         all_porosity = all_porosity*100
         # extraction boolean list
-        all_boolean = np.array(self.comprock.all_extraction_boolean)
+        all_boolean = self.comprock.all_extraction_boolean
+        # all_boolean = np.array(self.comprock.all_extraction_boolean)
         color_palette = sns.color_palette("viridis", len(all_porosity))
         # read the applied differential stress and tensile strength
         applied_diff_stress = np.array(self.comprock.all_diffs)
@@ -4331,6 +4346,13 @@ class ThorPT_plots():
             track_num_ext.append(num_ext)
             # tracking used tensile strength
             track_tensile.append(used_tensile_strengths[i])
+
+            # create the cumulative volume of extracted fluid
+            take_bool = np.array(all_boolean[i])
+            if len(take_bool) == len(all_porosity[i]):
+                pass
+            else:
+                take_bool = np.insert(take_bool, 0, 0)
 
         # prepare plot
         plt.figure(104, dpi=150)
@@ -5324,7 +5346,7 @@ class ThorPT_plots():
         # plt.plot(stress_line, t_coulomb, 'r-')
         plt.plot(stress_line, tau_griffith, 'r--')
 
-        for i in range(len(ts)):
+        for i in range(len(mechanical_data["sigma 1"])):
 
             # basic mechanical data
             sigma1 = mechanical_data["sigma 1"][i]
@@ -6057,20 +6079,20 @@ if __name__ == '__main__':
 
     # compPlot.oxygen_isotope_interaction_scenario3(img_save=True, img_type='pdf')
 
+    compPlot.bulk_rock_sensitivity_cumVol()
     
-    """compPlot.bulk_rock_sensitivity_twin()
+    #compPlot.bulk_rock_sensitivity_twin()
 
-    compPlot.tensile_strength_sensitivity_cumVol()
+    """compPlot.tensile_strength_sensitivity_cumVol()
     compPlot.tensile_strength_sensitivity()"""
+    # compPlot.mohr_coulomb_diagram(rock_tag='rock079')
 
-
-    for key in data.rock.keys():
+    for key in data.rock.keys()[:74]:
         print(key)
 
         #compPlot.oxygen_isotopes_realtive(rock_tag=key, img_save=True, img_type='pdf')
-        # compPlot.mohr_coulomb_diagram(rock_tag=key)
         compPlot.phases_stack_plot(rock_tag=key, img_save=True,
-                     val_tag='volume', transparent=False, fluid_porosity=True, cumulative=True, img_type='png')
+                     val_tag='volume', transparent=False, fluid_porosity=True, cumulative=False, img_type='png')
         
         # compPlot.oxygen_isotopes(rock_tag=key, img_save=True, img_type='png')
         

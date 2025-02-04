@@ -16,6 +16,8 @@ tc55_AngiRaim.txt
 tc55_no_grt.txt
 tc55_italy.txt
 ds62mp_italy_backup.txt
+differential_stress_input.txt
+output_Pathfinder.txt
 
 src/thorpt/ThkOut.txt
 meta.json
