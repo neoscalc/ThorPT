@@ -2742,6 +2742,292 @@ class ThorPT_plots():
         plt.clf()
         plt.close()
 
+    def phases_stack_plot_v2(self, rock_tag, img_save=False, val_tag=False,
+                      transparent=False, fluid_porosity=True, cumulative=False, img_type='png'):
+        """
+        Plot the phase changes for P-T-t.
+
+        Parameters:
+        rock_tag (str): The tag of the rock.
+        img_save (bool, optional): Whether to save the plot as an image. Defaults to False.
+        val_tag (bool, optional): The value tag for the stack plot input. Defaults to False.
+        transparent (bool, optional): Whether to make the plot transparent. Defaults to False.
+        fluid_porosity (bool, optional): Whether to include the fluid-filled porosity in the plot. Defaults to True.
+        """
+
+        group_key = self.rockdic[rock_tag].group_key
+        subfolder = 'stack_plot'
+
+        # XMT naming and coloring
+        database = self.rockdic[rock_tag].database
+        phases2 = self.rockdic[rock_tag].phases2
+        legend_phases, color_set = phases_and_colors_XMT(database, phases2)
+
+        phases = self.rockdic[rock_tag].phases
+        phase_data = self.rockdic[rock_tag].phase_data
+        frac_bool = self.rockdic[rock_tag].frac_bool
+        frac_bool = np.insert(frac_bool, 0, 0)
+
+        garnet = self.rockdic[rock_tag].garnet[rock_tag]
+        garnet_bool = self.rockdic[rock_tag].garnets_bools[rock_tag]
+
+        # Input for the variable of interest
+        if not val_tag:
+            tag_in = input("Please provide what you want to convert to a stack. ['vol%', 'volume', 'wt%', 'wt']")
+            tag = 'df_' + tag_in
+        else:
+            if val_tag in ['vol%', 'volume', 'wt%', 'wt']:
+                tag = 'df_' + val_tag
+            else:
+                print("Try again and select a proper value for stack plot input")
+                quit()
+
+        # Compile data for plotting
+        system_vol_pre = self.rockdic[rock_tag].systemVolPre
+        system_vol_post = self.rockdic[rock_tag].systemVolPost
+        st_fluid_before = self.rockdic[rock_tag].fluidbefore
+        temperatures = self.rockdic[rock_tag].temperature
+        pressures = self.rockdic[rock_tag].pressure
+        line = np.arange(1, len(temperatures) + 1, 1)
+
+        if len(frac_bool) > len(temperatures):
+            frac_bool = frac_bool[1:]
+
+        y = phase_data[tag].fillna(value=0)
+        y.columns = legend_phases
+        y = y.T
+
+        if len(legend_phases) != len(np.unique(legend_phases)):
+            y, legend_phases, color_set = clean_frame(y, legend_phases, color_set)
+
+        if 'Water' in legend_phases:
+            y, legend_phases, color_set = resort_frame(y, legend_phases, color_set)
+
+        new_list = y.loc[(y != 0).any(axis=1)].index.tolist()
+        new_color_set = [color_set[y.index.tolist().index(phase)] for phase in y.index if phase in new_list]
+        y = y.loc[(y != 0).any(axis=1)]
+        legend_phases = new_list
+        color_set = new_color_set
+
+        if 'Garnet' in y.index and len(garnet.name) > 0:
+            y.loc['Garnet', y.loc['Garnet'].isna()] = 0
+            kk = 0
+            garnet_in = False
+            for k, xval in enumerate(y.loc['Garnet']):
+                if xval == 0 and garnet_in:
+                    y.loc['Garnet', k] = np.cumsum(garnet.volume[:1 + kk])[-1]
+                elif xval != 0:
+                    garnet_in = True
+                    y.loc['Garnet', k] = np.cumsum(garnet.volume[:1 + kk])[-1]
+                    kk += 1
+
+        y = y / y.sum()[0]
+
+        def plot_stack(ax, x, y, legend_phases, color_set, transparent):
+            alpha = 0.35 if transparent else 0.7
+            ax.stackplot(x, y, labels=legend_phases, colors=color_set, alpha=alpha, edgecolor='black')
+
+        def plot_fluid_porosity(ax, x, y2, frac_bool, fluid_porosity_color):
+            twin1 = ax.twinx()
+            twin1.plot(x, y2, 'o--', c=fluid_porosity_color, linewidth=2, markeredgecolor='black')
+            twin1.set_ylabel("Vol% of fluid-filled porosity", color=fluid_porosity_color, fontsize=15, weight='bold')
+            twin1.set_ymargin(0)
+            if len(frac_bool) > 0:
+                extension_bool = np.isin(frac_bool, 1)
+                extend_shear_bool = np.isin(frac_bool, 2)
+                compress_shear_bool = np.isin(frac_bool, 3)
+                ten_bool = np.isin(frac_bool, 10)
+                treshhold_model_bool = np.isin(frac_bool, 5)
+                twin1.plot(x[extension_bool], y2[extension_bool], 'Dr')
+                twin1.plot(x[extend_shear_bool], y2[extend_shear_bool], 'Dg')
+                twin1.plot(x[compress_shear_bool], y2[compress_shear_bool], 'Db')
+                twin1.plot(x[ten_bool], y2[ten_bool], 'D', c='violet')
+                twin1.plot(x[treshhold_model_bool], y2[treshhold_model_bool], 'D', c='#397dad')
+            return twin1
+
+        def set_labels(ax2, ax3, twin1, tag, temperatures, pressures, line, step, fluid_porosity_color):
+            ax2.set_xticks(line[::step])
+            ax2.set_xticklabels(np.around(temperatures[::step], 0).astype(int))
+            ax2.xaxis.set_minor_locator(AutoMinorLocator())
+            ax3.set_xticks(line[::step])
+            ax3.set_xticklabels(np.around(np.array(pressures[::step]) / 10000, 1))
+            ax2.set_ylabel("Relative volume" if tag[3:] == 'volume[ccm]' else tag[3:])
+            ax2.set_xlabel('Temperature [°C]')
+            ax3.set_xlabel('Pressure [GPa]')
+            ax3.axis["right"].major_ticklabels.set_visible(False)
+            ax3.axis["right"].major_ticks.set_visible(False)
+            twin1.tick_params(colors=fluid_porosity_color)
+            twin1.set_yticklabels(twin1.get_yticks(), weight='heavy', size=14)
+            ymax = np.round(max(y2), 2)
+            twin1.set_ylim(0, np.round(ymax + ymax * 0.05, 2))
+
+        def finalize_plot(ax2, twin1, line, legend):
+            ax2.hlines(1, -2, max(line) + 5, 'black', linewidth=1.5, linestyle='--')
+            ax2.set_xlim(0, max(line) + 1)
+            ax2.set_facecolor("#fcfcfc")
+            ax2.set_alpha(0.5)
+            ax2.set_ylim(0, 1.1)
+            plt.tight_layout(rect=[0, 0, 1, 1])
+            # ax2.legend(legend, bbox_to_anchor=(1.4, 0.9))
+            ax2.legend(legend)
+
+        plt.rc('axes', labelsize=16)
+        plt.rc('xtick', labelsize=12)
+        plt.rc('ytick', labelsize=12)
+        plt.figure(111, figsize=(8, 6), facecolor=None)
+        ax2 = host_subplot(111)
+
+        if np.any(np.diff(temperatures)[np.diff(temperatures) < 0]):
+            plot_stack(ax2, line, y, legend_phases, color_set, transparent)
+            con = round(10 / len(line), 2)
+            con = round(len(line) * con)
+            step = max(round(len(line) / con), 1)
+            fluid_porosity_color = "#4750d4"
+            y2 = (st_fluid_before) / system_vol_pre * 100
+            twin1 = plot_fluid_porosity(ax2, line, y2, frac_bool, fluid_porosity_color)
+            ax3 = ax2.twin()
+            set_labels(ax2, ax3, twin1, tag, temperatures, pressures, line, step, fluid_porosity_color)
+            finalize_plot(ax2, twin1, line, legend_phases)
+        else:
+            plot_stack(ax2, temperatures, y, legend_phases, color_set, transparent)
+            fluid_porosity_color = "#4750d4"
+            y2 = (st_fluid_before) / system_vol_pre * 100
+            if cumulative:
+                y2 = st_fluid_before / system_vol_pre
+                mark_extr = np.array(system_vol_pre - system_vol_post, dtype='bool')
+                mark_extr = np.logical_not(mark_extr)
+                y2 = np.ma.masked_array(y2, mark_extr)
+                y2 = np.ma.filled(y2, 0)
+                y2 = np.cumsum(y2) * 100
+            twin1 = plot_fluid_porosity(ax2, temperatures, y2, frac_bool, fluid_porosity_color)
+            ax3 = ax2.twiny()
+            ax3.plot(np.zeros(len(pressures)), pressures, alpha=0)
+            set_labels(ax2, ax3, twin1, tag, temperatures, pressures, temperatures, 1, fluid_porosity_color)
+            finalize_plot(ax2, twin1, temperatures, legend_phases)
+
+        if img_save:
+            os.makedirs(f'{self.mainfolder}/img_{self.filename}/{subfolder}', exist_ok=True)
+            filename = f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}_stack_plot'
+            plt.savefig(f'{filename}_transparent.{img_type}', transparent=True) if transparent else plt.savefig(f'{filename}.{img_type}', transparent=False)
+        else:
+            plt.show()
+        plt.clf()
+        plt.close()
+
+    def oxygen_isotopes_realtive_v2(self, rock_tag, img_save=False, img_type="png"):
+        """Plotting function for the modelled oxygen isotope data
+
+        Args:
+            rock_tag (str): the name of the rock such as "rock0", "rock1", ...
+            img_save (bool, optional): Optional argument to save the plot as an image to the directory. Defaults to False.
+        """
+
+        group_key = self.rockdic[rock_tag].group_key
+        subfolder = 'oxygen_plot'
+
+        # Read the oxygen data from the dictionary
+        summary = self.rockdic[rock_tag].oxygen_data.T.describe()
+        oxyframe = self.rockdic[rock_tag].oxygen_data.T
+        oxyframe.columns = self.rockdic[rock_tag].temperature
+
+        # Read metastable garnet data
+        garnet = self.rockdic[rock_tag].garnet[rock_tag]
+
+        # XMT naming and coloring
+        database = self.rockdic[rock_tag].database
+        phases2 = oxyframe.index
+        legend_phases, color_set = phases_and_colors_XMT(database, phases2)
+
+        # Remove unwanted items from legend_phases
+        for item in ['"H"', '"Si"', '"Ti"', '"Al"']:
+            if item in legend_phases:
+                legend_phases.remove(item)
+
+        oxyframe.index = legend_phases
+
+        # Clean dataframe from multiple phase names - combine rows into one
+        if len(legend_phases) != len(np.unique(legend_phases)):
+            oxyframe, legend_phases, color_set = clean_frame(oxyframe, legend_phases, color_set)
+
+        # Handle metastable garnet data
+        if 'Garnet' in oxyframe.index and len(garnet.name) > 0:
+            garnet_in = False
+            for k, xval in enumerate(oxyframe.loc['Garnet']):
+                if xval == 0 and garnet_in:
+                    oxyframe.loc['Garnet'].iloc[k] = oxyframe.loc['Garnet'].iloc[k-1]
+                elif xval != 0:
+                    garnet_in = True
+
+        # Replace 0 in oxyframe with NaN
+        oxyframe.replace(0, np.nan, inplace=True)
+
+        # Print differences for Garnet and Phengite
+        print("Garnet diff =", oxyframe.loc['Garnet'].max() - oxyframe.loc['Garnet'].min())
+        if 'Phengite' in oxyframe.index:
+            print("Phengite diff =", oxyframe.loc['Phengite'].max() - oxyframe.loc['Phengite'].min())
+
+        # Create line array
+        line = np.arange(1, len(self.rockdic[rock_tag].temperature) + 1, 1)
+
+        # Plotting routine
+        fig, ax211 = plt.subplots(1, 1, figsize=(8, 5))
+        for t, phase in enumerate(oxyframe.index):
+            ax211.plot(line, oxyframe.loc[phase] - self.rockdic[rock_tag].bulk_deltao_post, '--d',
+                    color=color_set[t], linewidth=0.7, markeredgecolor='black', markersize=9)
+
+        ax211.plot(line,
+                self.rockdic[rock_tag].bulk_deltao_post - self.rockdic[rock_tag].bulk_deltao_post, '-', c='black')
+
+        legend_list = list(oxyframe.index) + ["bulk"]
+        ax211.legend(legend_list, bbox_to_anchor=(1.28, 0.9))
+
+        min_min = min(summary.loc['min'] - self.rockdic[rock_tag].bulk_deltao_post)
+        max_max = max(summary.loc['max'] - self.rockdic[rock_tag].bulk_deltao_post)
+        min_val = min_min - (max_max - min_min) * 0.05
+        max_val = max_max + (max_max - min_min) * 0.05
+        ax211.set_ylim(min_val, max_val)
+        ax211.set_ylabel("$\delta^{18}$O [‰ vs. VSMOW]")
+        ax211.set_xlabel("Temperature [°C]")
+
+        # Add second x-axis for pressure
+        ax212 = ax211.twiny()
+        ax212.set_xlabel('Pressure [GPa]')
+        ax212.set_xlim(ax211.get_xlim())
+        ax212.set_xticks(line)
+        pressures = self.rockdic[rock_tag].pressure
+        pressure_labels = np.around(np.array(pressures) / 10000, 1)
+
+        # Ensure the number of ticks matches the number of labels
+        if len(line) == len(pressure_labels):
+            ax212.set_xticklabels(pressure_labels, fontsize=9)
+        else:
+            # Adjust the number of ticks and labels to match
+            tick_indices = np.linspace(0, len(pressure_labels) - 1, len(line), dtype=int)
+            ax212.set_xticks(line)
+            ax212.set_xticklabels(pressure_labels[tick_indices], fontsize=9)
+
+        # Set temperature labels on the bottom x-axis with font size 12
+        ax211.set_xticks(line)
+        temperature_labels = np.around(self.rockdic[rock_tag].temperature, 0).astype(int)
+        if len(line) == len(temperature_labels):
+            ax211.set_xticklabels(temperature_labels, fontsize=9)
+        else:
+            tick_indices = np.linspace(0, len(temperature_labels) - 1, len(line), dtype=int)
+            ax211.set_xticks(line)
+            ax211.set_xticklabels(temperature_labels[tick_indices], fontsize=9)
+
+        plt.subplots_adjust(right=0.8)
+
+        # Save or show the plot
+        if img_save:
+            os.makedirs(f'{self.mainfolder}/img_{self.filename}/{subfolder}', exist_ok=True)
+            plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}_oxygen_isotope_plot_bulkn.{img_type}',
+                        transparent=False, facecolor='white')
+        else:
+            plt.show()
+        plt.clf()
+        plt.close()
+
     def binary_plot(self, rock_tag, img_save=False):
         """
         Generates a binary plot based on the provided rock tag and user input for x-axis and y-axis data.
@@ -2921,6 +3207,120 @@ class ThorPT_plots():
                     f'{self.mainfolder}/img_{self.filename}/{subfolder}', exist_ok=True)
             plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}_oxygen_isotope_plot.{img_type}',
                             transparent=False, facecolor='white')
+        else:
+            plt.show()
+        plt.clf()
+        plt.close()
+
+    def oxygen_isotopes_v2(self, rock_tag, img_save=False, img_type="png"):
+        """Plotting function for the modelled oxygen isotope data
+
+        Args:
+            rock_tag (str): the name of the rock such as "rock0", "rock1", ...
+            img_save (bool, optional): Optional argument to save the plot as an image to the directory. Defaults to False.
+        """
+
+        group_key = self.rockdic[rock_tag].group_key
+        subfolder = 'oxygen_plot'
+
+        # Read the oxygen data from the dictionary
+        summary = self.rockdic[rock_tag].oxygen_data.T.describe()
+        oxyframe = self.rockdic[rock_tag].oxygen_data.T
+        oxyframe.columns = self.rockdic[rock_tag].temperature
+
+        # Read metastable garnet data
+        garnet = self.rockdic[rock_tag].garnet[rock_tag]
+
+        # XMT naming and coloring
+        database = self.rockdic[rock_tag].database
+        phases2 = oxyframe.index
+        legend_phases, color_set = phases_and_colors_XMT(database, phases2)
+
+        # Remove unwanted items from legend_phases
+        for item in ['"H"', '"Si"', '"Ti"', '"Al"']:
+            if item in legend_phases:
+                legend_phases.remove(item)
+
+        oxyframe.index = legend_phases
+
+        # Clean dataframe from multiple phase names - combine rows into one
+        if len(legend_phases) != len(np.unique(legend_phases)):
+            oxyframe, legend_phases, color_set = clean_frame(oxyframe, legend_phases, color_set)
+
+        # Handle metastable garnet data
+        if 'Garnet' in oxyframe.index and len(garnet.name) > 0:
+            garnet_in = False
+            for k, xval in enumerate(oxyframe.loc['Garnet']):
+                if xval == 0 and garnet_in:
+                    oxyframe.loc['Garnet'].iloc[k] = oxyframe.loc['Garnet'].iloc[k-1]
+                elif xval != 0:
+                    garnet_in = True
+
+        # Replace 0 in oxyframe with NaN
+        oxyframe.replace(0, np.nan, inplace=True)
+
+        # Print differences for Garnet and Phengite
+        print("Garnet diff =", oxyframe.loc['Garnet'].max() - oxyframe.loc['Garnet'].min())
+        if 'Phengite' in oxyframe.index:
+            print("Phengite diff =", oxyframe.loc['Phengite'].max() - oxyframe.loc['Phengite'].min())
+
+        # Create line array
+        line = np.arange(1, len(self.rockdic[rock_tag].temperature) + 1, 1)
+
+        # Plotting routine
+        fig, ax211 = plt.subplots(1, 1, figsize=(8, 5))
+        for t, phase in enumerate(oxyframe.index):
+            ax211.plot(line, oxyframe.loc[phase], '--d',
+                    color=color_set[t], linewidth=0.7, markeredgecolor='black', markersize=9)
+
+        ax211.plot(line,
+                self.rockdic[rock_tag].bulk_deltao_post, '-', c='black')
+
+        legend_list = list(oxyframe.index) + ["bulk"]
+        ax211.legend(legend_list, bbox_to_anchor=(1.28, 0.9))
+
+        min_min = min(summary.loc['min'])
+        max_max = max(summary.loc['max'])
+        min_val = min_min - (max_max - min_min) * 0.05
+        max_val = max_max + (max_max - min_min) * 0.05
+        ax211.set_ylim(min_val, max_val)
+        ax211.set_ylabel("$\delta^{18}$O [‰ vs. VSMOW]")
+        ax211.set_xlabel("Temperature [°C]")
+
+        # Add second x-axis for pressure
+        ax212 = ax211.twiny()
+        ax212.set_xlabel('Pressure [GPa]')
+        ax212.set_xlim(ax211.get_xlim())
+        ax212.set_xticks(line)
+        pressures = self.rockdic[rock_tag].pressure
+        pressure_labels = np.around(np.array(pressures) / 10000, 1)
+
+        # Ensure the number of ticks matches the number of labels
+        if len(line) == len(pressure_labels):
+            ax212.set_xticklabels(pressure_labels)
+        else:
+            # Adjust the number of ticks and labels to match
+            tick_indices = np.linspace(0, len(pressure_labels) - 1, len(line), dtype=int)
+            ax212.set_xticks(line)
+            ax212.set_xticklabels(pressure_labels[tick_indices])
+
+        # Set temperature labels on the bottom x-axis
+        ax211.set_xticks(line)
+        temperature_labels = np.around(self.rockdic[rock_tag].temperature, 0).astype(int)
+        if len(line) == len(temperature_labels):
+            ax211.set_xticklabels(temperature_labels)
+        else:
+            tick_indices = np.linspace(0, len(temperature_labels) - 1, len(line), dtype=int)
+            ax211.set_xticks(line)
+            ax211.set_xticklabels(temperature_labels[tick_indices])
+
+        plt.subplots_adjust(right=0.8)
+
+        # Save or show the plot
+        if img_save:
+            os.makedirs(f'{self.mainfolder}/img_{self.filename}/{subfolder}', exist_ok=True)
+            plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}_oxygen_isotope_plot.{img_type}',
+                        transparent=False, facecolor='white')
         else:
             plt.show()
         plt.clf()
@@ -6142,14 +6542,20 @@ if __name__ == '__main__':
     # compPlot.mohr_coulomb_diagram(rock_tag='rock079')
 
     
-    compPlot.plot_heatmap(plot_type="cumulative")
+    # compPlot.plot_heatmap(plot_type="cumulative")
 
     for key in data.rock.keys():
         print(key)
+        compPlot.phases_stack_plot_v2(
+            rock_tag=key, img_save=True,
+                val_tag='volume', transparent=False, 
+                fluid_porosity=True, cumulative=False, img_type='png'
+                          )
 
-        #compPlot.oxygen_isotopes_realtive(rock_tag=key, img_save=True, img_type='pdf')
-        compPlot.phases_stack_plot(rock_tag=key, img_save=True,
-                     val_tag='volume', transparent=False, fluid_porosity=True, cumulative=False, img_type='png')
+        compPlot.oxygen_isotopes_v2(rock_tag=key, img_save=True, img_type='png')
+        # compPlot.oxygen_isotopes_realtive_v2(rock_tag=key, img_save=True, img_type='pdf')
+        #compPlot.phases_stack_plot(rock_tag=key, img_save=True,
+        #             val_tag='volume', transparent=False, fluid_porosity=True, cumulative=False, img_type='png')
         
         # compPlot.oxygen_isotopes(rock_tag=key, img_save=True, img_type='png')
         
