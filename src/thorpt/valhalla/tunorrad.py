@@ -20,6 +20,7 @@ from typing import List
 from scipy.optimize import minimize
 import copy
 from collections.abc import Iterable
+import keyboard
 
 
 @dataclass
@@ -652,7 +653,7 @@ def read_theriak(theriak_path, database, temperature, pressure, whole_rock):
         volume_density_values_fluids = 1
         gases_fluids = False
         del volume_density_values_fluids
-        print("=1= No gases and fluids in the system detected.")
+        # print("=1= No gases and fluids in the system detected.")
     # checks if gases and fluids were stable in the system
     fluid_check = (
         '  gases and fluids       N       '
@@ -1268,7 +1269,7 @@ class Therm_dyn_ther_looper:
                 # print("=3=== free water is present.")
             else:
                 content_h2o = False
-                print("3=== only hydrous solid phases, no free water.")
+                # print("3=== only hydrous solid phases, no free water.")
         else:
             content_h2o = False
             # Option for - No free water present in calculation
@@ -1973,14 +1974,14 @@ class Ext_method_master:
 
 
         print("M-C-G test module answer:")
-        print('\tsolid_t0:{}\n\tsolid_t1:{}\n\tfluid_t0:{}\n\tfluid_t1:{}'.format(self.solid_t0,
-              self.solid_t1, self.fluid_t0, self.fluid_t1))
+        # print('\tsolid_t0:{}\n\tsolid_t1:{}\n\tfluid_t0:{}\n\tfluid_t1:{}'.format(self.solid_t0,
+        #       self.solid_t1, self.fluid_t0, self.fluid_t1))
 
         # test before executing module - phase data fluid volume should be equal the self.fluid_t1
         if self.fluid_name_tag in self.phase_data.columns:
             if self.phase_data[self.fluid_name_tag]['volume[ccm]'] != self.fluid_t1:
                 print("Inconsistency in new fluid volume")
-                # keyboard.wait('esc')
+                keyboard.wait('esc')
         else:
             print("No fluid phase data available")
 
@@ -2141,14 +2142,14 @@ class Ext_method_master:
         if self.diff_stress >= self.tensile_strength*5.66:
 
             print("Compressive shear failure test")
-            print(f"Diff.-stress is {self.diff_stress} and > than T*5.66")
+            # print(f"Diff.-stress is {self.diff_stress} and > than T*5.66")
 
             # Test possible extensional fracturing
             output, minimum = checkCollision_linear(a, b, c, x=pos, y=0, radius=r)
-            print(f"Maximum differential stress calculated as {minimum*2} MPa, but is {self.diff_stress}.")
+            # print(f"Maximum differential stress calculated as {minimum*2} MPa, but is {self.diff_stress}.")
 
             # Critical fluid pressure
-            print(f"Difference of fluid pressure and critical fluid pressure is:\n{crit_fluid_pressure-hydro} (Pf_crit - Pf)")
+            # print(f"Difference of fluid pressure and critical fluid pressure is:\n{crit_fluid_pressure-hydro} (Pf_crit - Pf)")
 
             if output is True:
                 print("---> Failure due to compressive shear.")
@@ -2160,10 +2161,10 @@ class Ext_method_master:
 
         elif self.diff_stress < self.tensile_strength*5.66 and self.diff_stress > 4*self.tensile_strength:
             print("Extensional shear failure test")
-            print(f"Diff.-stress is {self.diff_stress} and < than T*5.66 and > T*4")
+            #print(f"Diff.-stress is {self.diff_stress} and < than T*5.66 and > T*4")
             output, minimum = checkCollision_curve(pos=pos, diff=self.diff_stress, tensile=self.tensile_strength)
-            print(f"Maximum differential stress calculated as {minimum*2} MPa, but is {self.diff_stress}.")
-            print(f"Difference of fluid pressure and critical fluid pressure is:\n{pf_crit_griffith-hydro} (Pf_crit - Pf)")
+            #print(f"Maximum differential stress calculated as {minimum*2} MPa, but is {self.diff_stress}.")
+            #print(f"Difference of fluid pressure and critical fluid pressure is:\n{pf_crit_griffith-hydro} (Pf_crit - Pf)")
 
             if output is True:
                 print("---> Failure due to extensional shear.")
@@ -2175,7 +2176,7 @@ class Ext_method_master:
 
         elif self.diff_stress <= 4*self.tensile_strength:
             print("Pure extensional failure test")
-            print(f"Diff.-stress is {self.diff_stress} and < T*4")
+            # print(f"Diff.-stress is {self.diff_stress} and < T*4")
 
             if sig3-hydro <= -cohesion/2:
                 print("---> Failure due to pure extensional fail.")

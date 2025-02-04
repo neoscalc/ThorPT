@@ -23,6 +23,7 @@ from pathlib import Path
 from .tunorrad import *
 from .Pathfinder import *
 from dataclasses import dataclass
+from tqdm import tqdm
 
 
 
@@ -463,13 +464,13 @@ class ThorPT_Routines():
         # /////////////////////////////////////////////////
         # ////////////////////////////////////////////////
         count = 0
-        k = 0
+        """k = 0
         kk = len(temperatures)*len(master_rock)
-        progress(int(k/kk)*100)
-        for num, temperature in enumerate(temperatures):
+        progress(int(k/kk)*100)"""
+        for num, temperature in enumerate(tqdm(temperatures, desc="Processing modelling steps")):
 
             print('\n')
-            print("New calculation")
+            print("New calculation iteration")
             print("Script: unreactive_multi_rock")
             print("===================")
             print(f"==== 1) time = {track_time[num]} years,\n==== 2) depth = {track_depth[num]}.")
@@ -494,8 +495,8 @@ class ThorPT_Routines():
                 rock_origin[item]['bulk'].append(master_rock[item]['new_bulk'])
 
                 # print(f"{item} Bulk rock composition checked.")
-            print(f"All bulk rock compositions were checked. No error found")
-            print("\n")
+            # print(f"All bulk rock compositions were checked. No error found")
+            # print("\n")
 
             # LINK 1) Initialisation of the rock system
             # Initialize thermodynamic conditions called from P-T-t path - for each rock in the dictionary
@@ -504,14 +505,15 @@ class ThorPT_Routines():
                 print("\n")
                 # print("¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦")
                 # print("v v v v v v v v v v v v v v v v v v v v v v v v")
-                print("\N{Runic Letter Mannaz Man M}\N{Runic Letter Isaz Is Iss I}\N{Runic Letter Naudiz Nyd Naud N}\N{Runic Letter Isaz Is Iss I}\N{Runic Letter Mannaz Man M}\N{Runic Letter Isaz Is Iss I}\N{Runic Letter Algiz Eolhx}\N{Runic Letter Ansuz A}\N{Runic Letter Tiwaz Tir Tyr T}\N{Runic Letter Isaz Is Iss I}\N{Runic Letter Othalan Ethel O}\N{Runic Letter Naudiz Nyd Naud N}")
+                # print("\N{Runic Letter Mannaz Man M}\N{Runic Letter Isaz Is Iss I}\N{Runic Letter Naudiz Nyd Naud N}\N{Runic Letter Isaz Is Iss I}\N{Runic Letter Mannaz Man M}\N{Runic Letter Isaz Is Iss I}\N{Runic Letter Algiz Eolhx}\N{Runic Letter Ansuz A}\N{Runic Letter Tiwaz Tir Tyr T}\N{Runic Letter Isaz Is Iss I}\N{Runic Letter Othalan Ethel O}\N{Runic Letter Naudiz Nyd Naud N}")
                 print(f"-> Forward modeling step initiated - {item}")
                 # display modelling progress
-                ic = k/kk*100
+                """ic = k/kk*100
                 k += 1
                 progress(ic)
-                print("\n")
-                print(master_rock[item]['new_bulk'])
+                print("\n")"""
+
+                # print(master_rock[item]['new_bulk'])
                 """master_rock[item]['new_bulk'] = 'AL(0.0325)MG(1.212)FE(0.045)SI(0.6598)H(10)O(?)    * PierreBulk'"""
 
                 # tracking theriak input before minimization
@@ -596,10 +598,10 @@ class ThorPT_Routines():
 
                 # updating dictionary with newly calculated data
                 master_rock[item]['minimization'].merge_dataframe_dic()
-                print("\n")
+                # print("\n")
 
                 print("////// Energy minimization executed //////")
-                print("\n")
+                # print("\n")
 
                 # //////////////////////////////////////////////////////////////////////////
                 # multi-rock loop for updating data storage, MicaPotassium, SystemFluidTest, init oxygen-isotope module, mineral fractionation
@@ -668,8 +670,8 @@ class ThorPT_Routines():
                     master_rock[item]['fluid_volume_before'] = master_rock[item]['minimization'].free_water_before
                     master_rock[item]['fluid_volume_new'] = master_rock[item]['minimization'].new_fluid_Vol
 
-                    if master_rock[item]['minimization'].solid_vol_before != master_rock[item]['st_solid'][-1]:
-                        print("\nWARNING: solid volume mismatch\n")
+                    """if master_rock[item]['minimization'].solid_vol_before != master_rock[item]['st_solid'][-1]:
+                        print("\nWARNING: solid volume mismatch\n")"""
                     master_rock[item]['solid_volume_before'] = master_rock[item]['minimization'].solid_vol_before
                     master_rock[item]['solid_volume_before'] = master_rock[item]['st_solid'][-1]
 
@@ -731,7 +733,7 @@ class ThorPT_Routines():
                                 # print(
                                 #     f"Bulk deltaO changed from {round(master_rock[item]['bulk_oxygen'], 3)} to {round(new_bulk_oxygen, 3)}")
                                 # print temperature, pressure and new_bulk_oxygen
-                                print(f"Fractionation of {name} at {temperature} and {pressures[num]}. Bulk oxygen changed from {master_rock[item]['bulk_oxygen']} to {new_bulk_oxygen}")
+                                # print(f"Fractionation of {name} at {temperature} and {pressures[num]}. Bulk oxygen changed from {master_rock[item]['bulk_oxygen']} to {new_bulk_oxygen}")
                                 master_rock[item]['bulk_oxygen'] = new_bulk_oxygen
                                 print("_______________________")
                                 master_rock[item]['garnet_check'].append(1)
@@ -759,11 +761,11 @@ class ThorPT_Routines():
                         master_rock[item]['meta_grt_weight'].append(metastable_garnet.recalc_weight)
                     if len(master_rock[item]['garnet']) > 1 and master_rock[item]['garnet_check'][-1] == 1:
                         # take all garnets but last one
-                        print(f"2MStab-Grt {temperature} --- {pressures[num]}")
+                        # print(f"2MStab-Grt {temperature} --- {pressures[num]}")
                         metastable_garnet = Garnet_recalc(self.theriak, master_rock[item]['garnet'][:-1], temperature, pressures[num])
                         metastable_garnet.recalculation_of_garnets(database=master_rock[item]['database'], garnet_name=garnet_name)
-                        print(f"Fluid volume = {master_rock[item]['fluid_volume_new']} ccm")
-                        print(f"Solid volume = {master_rock[item]['solid_volume_new']} ccm")
+                        # print(f"Fluid volume = {master_rock[item]['fluid_volume_new']} ccm")
+                        # print(f"Solid volume = {master_rock[item]['solid_volume_new']} ccm")
                         volume = metastable_garnet.recalc_volume
                         # Adding the metastable volume of the fractionated garnet to the current minimized solied volume!
                         master_rock[item]['solid_volume_new'] += volume
@@ -915,7 +917,7 @@ class ThorPT_Routines():
 
                             # old version
                             # v_permea = v_flux/100 * mü_water / tc_time_c / 9.81 / density_cont  # in m2
-                            print(f"-> Virtual permeability test results: {v_permea}")
+                            # print(f"-> Virtual permeability test results: {v_permea}")
 
                             # ##############################################
                             # LINK Coulomb method tests
@@ -1025,6 +1027,8 @@ class ThorPT_Routines():
                     # Starts no extraction scheme
                     else:
                         print("////// %s No extraction enabled! %s //////")
+
+
                     # //////////////////////////////////////////////////////////////////////////
                     # LINK Static: Recalculate bulk delta O after extraction
                     # Recalculate bulk rock oxygen value after possible extraction
@@ -1075,18 +1079,17 @@ class ThorPT_Routines():
                         master_rock[item]['live_fluid-flux'].append(np.nan)
                         master_rock[item]['live_permeability'].append(np.nan)
                         # master_rock[item]['failure module'].append("None activated, no fluid.")
-                        print(
-                            f"No free water in the system for {item} - no fracturing model")
+                        # print(f"No free water in the system for {item} - no fracturing model")
                 # save bulk oxygen after extraction
                 master_rock[item]['save_bulk_oxygen_post'].append(
                     master_rock[item]['bulk_oxygen'])
-                print("\n")
+                # print("\n")
 
             count += 1
             #k += 1
-            ic = k/kk*100
+            """ic = k/kk*100
             print("=====Progress=====")
-            progress(ic)
+            progress(ic)"""
             print("\n")
 
         ar_flow = np.array(v_fluid_cubic_track)
@@ -1300,7 +1303,7 @@ class ThorPT_Routines():
                     master_rock[item]['theriak_input_record']['temperature'] = [temperature]
                     master_rock[item]['theriak_input_record']['pressure'] = [pressures[num]]
                     master_rock[item]['theriak_input_record']['bulk'] = [master_rock[item]['new_bulk']]
-                    print("Tracking theriak -> Create dictionary -> first entry")
+                    # print("Tracking theriak -> Create dictionary -> first entry")
 
                 # test for empty dictionary
                 elif isinstance(master_rock[item]['theriak_input_record'], dict) == True:
@@ -1375,7 +1378,7 @@ class ThorPT_Routines():
                 # 3)
                 # LINK - 3) Data storage & merge
                 # calling dictionaries and dataframe for up-to-date usage
-                print(f"Running data re-storage, MicaPotassium, SystemFluidTest, oxy-module and mineral fractionation")
+                # print(f"Running data re-storage, MicaPotassium, SystemFluidTest, oxy-module and mineral fractionation")
                 # for item in master_rock:
                 master_rock[item]['df_var_dictionary'], master_rock[item]['df_h2o_content_dic'], master_rock[item]['df_element_total'] = (
                     master_rock[item]['minimization'].df_var_dictionary,
@@ -1429,8 +1432,8 @@ class ThorPT_Routines():
                 else:
                     master_rock[item]['fluid_volume_before'] = master_rock[item]['minimization'].free_water_before
                     master_rock[item]['fluid_volume_new'] = master_rock[item]['minimization'].new_fluid_Vol
-                    if master_rock[item]['minimization'].solid_vol_before != master_rock[item]['st_solid'][-1]:
-                        print("\nWARNING: solid volume mismatch\n")
+                    # if master_rock[item]['minimization'].solid_vol_before != master_rock[item]['st_solid'][-1]:
+                    #     print("\nWARNING: solid volume mismatch\n")
                     master_rock[item]['solid_volume_before'] = master_rock[item]['minimization'].solid_vol_before
                     master_rock[item]['solid_volume_before'] = master_rock[item]['st_solid'][-1]
                     master_rock[item]['solid_volume_new'] = master_rock[item]['minimization'].new_solid_Vol
