@@ -1208,7 +1208,7 @@ class Therm_dyn_ther_looper:
         # passing the fluid name tag based on the database used
         self.fluid_name_tag = fluid_name_tag
 
-    def thermodynamic_looping_station(self, marco=False):
+    def thermodynamic_looping_station(self, marco=False, oversaturation=True):
         """
         Calls theriak and passes T, P and bulk rock. Resulting data is read and formatted.
         First check for 'water.fluid' is included.
@@ -1232,7 +1232,7 @@ class Therm_dyn_ther_looper:
             self.theriak_path, self.database, self.temperature, self.pressure, self.bulk_rock)
 
         # recalculation to delete for oversaturation of water
-        if marco is False:
+        if marco is False and oversaturation is False:
             if self.num < 1:
                 if self.fluid_name_tag in theriak_data['df_elements_in_phases'].columns:
                     # print("333333 - First step free fluid detected - recalc initialized")
@@ -2059,9 +2059,16 @@ class Ext_method_master:
         d = d0 + d1 * T
 
         Vm1 = Vm1 + c * np.sqrt(P-P0) + d*(P-P0)"""
-
-        V2 = 1/(self.fluid_t1/(vol_t0-self.solid_t1)) * (Vm1) # - c * np.sqrt(P-P0) - d*(P-P0)
-        p2_p1_cork_real = ( (R * T) / (V2 - b) - (a) / (V2 * (V2 + b) * np.sqrt(T)) ) / \
+        if self.solid_t1 == vol_t0 and self.fluid_t1 == 0:
+            V2 = self.fluid_t1
+            p2_p1_cork_real = 0
+        elif self.fluid_t1 == 0:
+            V2 = vol_t0-self.solid_t1
+            p2_p1_cork_real = 0
+        else:
+            V2 = 1/(self.fluid_t1/(vol_t0-self.solid_t1)) * (Vm1) # - c * np.sqrt(P-P0) - d*(P-P0)
+        
+            p2_p1_cork_real = ( (R * T) / (V2 - b) - (a) / (V2 * (V2 + b) * np.sqrt(T)) ) / \
                 ( (R * T) / (Vm1 - b) - (a) / (Vm1 * (Vm1 + b) * np.sqrt(T)) )
 
 
@@ -2074,7 +2081,7 @@ class Ext_method_master:
             # ideal fluid
             hydro = litho * self.fluid_t1/(vol_t0-self.solid_t1)
             # real fluid factor
-            hydro = litho * self.fluid_t1/(vol_t0-self.solid_t1) * (0.0651 * self.fluid_t1/(vol_t0-self.solid_t1) + 0.936)
+            # hydro = litho * self.fluid_t1/(vol_t0-self.solid_t1) * (0.0651 * self.fluid_t1/(vol_t0-self.solid_t1) + 0.936)
             hydro_CORK = litho * p2_p1_cork_real
 
             hydro = hydro_CORK
@@ -2644,7 +2651,7 @@ class Isotope_calc():
         # print(f"Bulk oxygen is {self.start_bulk}")
 
         # deep copy moles of oxygen in the phase to not modifiy data
-        oxygen_moles = copy.deepcopy(np.array(self.element_oxy))
+        oxygen_moles = copy.deepcopy(np.asarray(self.element_oxy))
         # delete the excluded values from phases such as ("SI", ...)
         oxygen_moles = np.delete(oxygen_moles, excluded_phases_index, 0)
 
@@ -2672,7 +2679,7 @@ class Isotope_calc():
         d = np.hstack((n0, d))
         d = np.hstack((d, np.zeros((n, 1))))
         # moles_frac[-2] = 0
-        moles_frac = list(np.nan_to_num(moles_frac, 0))
+        moles_frac = list(np.nan_to_num(np.asarray(moles_frac), 0))
         if len(list(flatten(database_names))) == len(moles_frac):
             moles_frac.append(-sum(moles_frac))
         else:

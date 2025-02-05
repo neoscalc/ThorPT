@@ -795,11 +795,11 @@ class ThorPT_Routines():
             # Physical fracture model section - active if free fluid is present
             # Checking if free fluid is present. Stores this value, initializes
             # lowest_permeability = 1e-20
-            print(f"Testing systems with the failure model")
+            # print(f"Testing systems with the failure model")
 
             for jjj, item in enumerate(master_rock):
                 fluid_name_tag = master_rock[item]['database_fluid_name']
-                if fluid_name_tag in list(master_rock[item]['df_element_total'].columns):
+                if fluid_name_tag in list(master_rock[item]['df_element_total'].columns) and master_rock[item]['fluid_volume_new'] > 0:
                     print("-> Fluid extraction test")
                     master_rock[item]['fluid_hydrogen'] = master_rock[item]['df_element_total'][fluid_name_tag]['H']
 
@@ -813,7 +813,7 @@ class ThorPT_Routines():
                     # Start Extraction Master Module
                     master_rock[item]['fluid_calculation'] = Ext_method_master(
                                         pressures[num], temperature,
-                                        master_rock[item]['df_var_dictionary']['df_volume/mol'].loc[fluid_name_tag][-1],
+                                        master_rock[item]['df_var_dictionary']['df_volume/mol'].loc[fluid_name_tag].iloc[-1],
                                         fluid_before, master_rock[item]['fluid_volume_new'],
                                         master_rock[item]['solid_volume_before'], master_rock[item]['solid_volume_new'],
                                         master_rock[item]['save_factor'], master_rock[item]['master_norm'][-1],
@@ -893,9 +893,12 @@ class ThorPT_Routines():
 
                             v_water*1_000_000/master_rock[item]['solid_volume_before']
 
-                            volume_flux = v_water1 * size/v_system1 /area/tc_time_c # m3 m-2 s-1
+                            """volume_flux = v_water1 * size/v_system1 /area/tc_time_c # m3 m-2 s-1
                             volume_flux = v_water1/tc_time_c /area * 1/v_system1  # m3 m-2 s-1
-                            int_permea = volume_flux*mü_water/9.81/1/density_cont # permeability in m2
+                            int_permea = volume_flux*mü_water/9.81/1/density_cont # permeability in m2"""
+                            volume_flux = 0
+                            volume_flux = 0
+                            int_permea = 0
 
                             # unit bloc
                             """bloc_a = 1

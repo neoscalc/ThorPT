@@ -6595,12 +6595,30 @@ class ThorPT_plots():
         _log_T = []
         _log_P = []
         _log_Z_ = []
+
+        # get largest extraction volume in inhomogeneous list of arrays extraction_volumes (cannot do array because it is inhomogeneous)
+        # Initialize a variable to hold the largest extraction volume
+        largest_extraction_volume = float('-inf')
+        smallest_extraction_volume = float('inf')
+        # Iterate through each array in the list
+        for array in extraction_volumes:
+            # Find the maximum value in the current array
+            max_value = np.max(array)
+            min_value = np.min(array)
+            # Update the largest extraction volume if the current max_value is larger
+            if max_value > largest_extraction_volume:
+                largest_extraction_volume = max_value
+            if min_value < smallest_extraction_volume:
+                smallest_extraction_volume = min_value
+
+
         for j, arr in enumerate(all_boolean_array):
             temperatures = data.rock[rock_keys[j]].temperature
             pressures = data.rock[rock_keys[j]].pressure
             extractionVol = extraction_volumes[j]
             # plot the pt path
             plt.plot(temperatures, pressures/10000, color='black', linestyle='--', linewidth=1, alpha=0.5)
+            plt.scatter(temperatures, pressures/10000, color='black', alpha=0.5)
             for i, val in enumerate(arr):
                 if val == 0:
                     _log_T.append(temperatures[i])
@@ -6609,22 +6627,55 @@ class ThorPT_plots():
                 
                     # scatter plot of extraction volume as transparent square with color representing the value between 0 and max value in extractionVol
                     plt.scatter(temperatures[i], pressures[i] / 10000, 
-                                color=plt.cm.viridis(extractionVol[i] / extractionVol.max()), 
+                                color=plt.cm.viridis(extractionVol[i] / largest_extraction_volume), 
                                 s=100, alpha=0.8, marker='s')
                     plt.scatter(temperatures[i], pressures[i]/10000, color='red', s=5)
+                else:
+                    _log_T.append(temperatures[i])
+                    _log_P.append(pressures[i])
+                    _log_Z_.append(0)
 
         # Add labels and title
         plt.xlabel('Temperature [°C]')
         plt.ylabel('Pressure [GPa]')
         #plt.title(title)
+        # save the plot
+        os.makedirs(
+            f'{self.mainfolder}/img_{self.filename}/fracture_mesh', exist_ok=True)
+        plt.savefig(f'{self.mainfolder}/img_{self.filename}/fracture_mesh/heat_map_PT.png',
+                    transparent=False, facecolor='white')
 
-        # Show the plot
-        plt.show()
+        # do a colobar based for extraction volume in separate plot
+        # Create a separate colorbar plot
+        fig, ax = plt.subplots(figsize=(6, 1))
+        fig.subplots_adjust(bottom=0.5)
+        # Create a colorbar based on the viridis colormap
+        norm = plt.Normalize(vmin=0, vmax=largest_extraction_volume)
+        sm = plt.cm.ScalarMappable(cmap='viridis', norm=norm)
+        sm.set_array([])
+        # Add the colorbar to the plot
+        cbar = fig.colorbar(sm, cax=ax, orientation='horizontal')
+        cbar.set_label('Extraction Volume')
+        # Show the colorbar plot
+        plt.savefig(f'{self.mainfolder}/img_{self.filename}/fracture_mesh/heat_map_PT_colorbar.png',
+                    transparent=False, facecolor='white')
+
+
+        """sm = plt.cm.ScalarMappable(cmap='viridis', norm=plt.Normalize(vmin=0, vmax=extraction_volumes[0].max()+1))
+        sm._A = []
+        cbar = plt.colorbar(sm)
+        cbar.set_label('Extraction Volume [%]')"""
+
+        
+        
         
         # Interpolate the data in 3D
         Z_grid = griddata((np.array(_log_T), np.array(_log_P)), np.array(_log_Z_), 
-                          (T, P), method='cubic', fill_value=0)
-
+                          (T, P), method='cubic', fill_value=np.nan)
+        
+        # flip y axis to match the plot
+        Z_grid = np.flipud(Z_grid)
+        
         # Create a heatmap
         plt.figure(figsize=(10, 8))
         sns.heatmap(Z_grid, cmap='viridis', cbar=True)
@@ -6633,6 +6684,12 @@ class ThorPT_plots():
         plt.xlabel('Temperature [°C]')
         plt.ylabel('Pressure [GPa]')
         plt.title('Interpolated Z values in P-T space')
+        
+        # save the plot
+        os.makedirs(
+            f'{self.mainfolder}/img_{self.filename}/fracture_mesh', exist_ok=True)
+        plt.savefig(f'{self.mainfolder}/img_{self.filename}/fracture_mesh/heat_map_PT_interpolated.png',
+                    transparent=False, facecolor='white')
 
 
 if __name__ == '__main__':
