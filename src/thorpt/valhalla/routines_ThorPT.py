@@ -352,6 +352,23 @@ def progress(percent=0, width=40):
     percents = f"{percent:.1f}%"
     print("\r[", tags, spaces, "]", percents, sep="", end="", flush=True)
 
+
+def read_trace_element_content():
+    # get script file path
+    # Get the script file location
+    script_path = os.path.dirname(os.path.abspath(__file__))
+    # Navigate one folder back
+    # parent_folder = os.path.dirname(script_path)
+    # Enter DataFiles folder
+    new_folder_path = os.path.join(script_path, 'DataFiles')
+
+    # read txt file trace_element_budget.txt
+    trace_element_bulk = pd.read_csv(
+        os.path.join(new_folder_path, 'trace_element_budget.txt'),
+        sep=', ', header=0, index_col=0
+    )
+    return trace_element_bulk
+
 @dataclass
 class rockactivity:
     """
@@ -383,7 +400,8 @@ class ThorPT_Routines():
     def __init__(self,
             temperatures, pressures, master_rock, rock_origin,
             track_time, track_depth, garnet_fractionation, path_methods,
-            lowest_permeability, speed, angle, time_step, theriak, debugging_recorder):
+            lowest_permeability, speed, angle, time_step, theriak, debugging_recorder
+            ):
         """
         Initialize the ThorPT class.
 
@@ -418,6 +436,9 @@ class ThorPT_Routines():
         self.time_step = time_step
         self.theriak = theriak
         self.debugging_recorder = debugging_recorder
+
+        # trace element bulk by default
+        self.trace_element_bulk = read_trace_element_content()
 
     def unreactive_multi_rock(self):
         """
@@ -702,6 +723,17 @@ class ThorPT_Routines():
                 ### Backup dictionary - save oxygen data
                 rock_origin[item]['save_oxygen'].append(copy.deepcopy(master_rock[item]['model_oxygen'].oxygen_dic))
 
+                # //////////////////////////////////////////////////////////////////////////
+                # LINK - 5-2) Trace element module
+                master_rock[item]['model_tracers'] = TraceElementDistribution(
+                    master_rock[item]['df_var_dictionary']['df_N'],
+                    master_rock[item]['minimization'].sol_sol_base,
+                    master_rock[item]['df_element_total'],
+                    self.trace_element_bulk,
+                    database=master_rock[item]['database'])
+                master_rock[item]['model_tracers'].distribute_tracers(temperature)
+                
+                
                 # //////////////////////////////////////////////////////////////////////////
                 # LINK - 6) Mineral Fractionation
                 # mineral (garnet) fractionation - coupled oxygen bulk modification

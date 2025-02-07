@@ -21,6 +21,7 @@ from scipy.optimize import minimize
 import copy
 from collections.abc import Iterable
 import keyboard
+import os
 
 
 @dataclass
@@ -1084,6 +1085,25 @@ def boron_fraction(fluidV, rockV, conc_TE_rock, Frac_fac_whitemica=1.4, conc_flu
         np.exp(-Ratio_FR*Frac_fac_whitemica)
 
     return conc_TE_rock, Ratio_FR
+
+
+def read_trace_element_content():
+    # get script file path
+    # Get the script file location
+    script_path = os.path.dirname(os.path.abspath(__file__))
+    # Enter DataFiles folder
+    new_folder_path = os.path.join(script_path, 'DataFiles')
+    # read txt file distribution_coeff_tracers.txt with pandas
+    file_to_open = os.path.join(new_folder_path, 'distribution_coeff_tracers.txt')
+    
+    # read the txt file with pandas, only the first 7 rows are needed, space as separator
+    df = pd.read_csv(file_to_open, sep=', ', nrows=6, engine='python')
+    df.index = df['Ratio']
+    df = df.iloc[:,2:]
+
+    return df
+
+    
 
 
 def garnet_bulk_from_dataframe(frame, moles, volumePermole, volume):
@@ -2717,6 +2737,306 @@ class Isotope_calc():
         print("Oxygen fractionation calculation done.")
 
 
+class TraceElementDistribution():
+
+    def __init__(self, data_mol_from_frame, eq_data, element_data, bulk_trace_elements, database):
+        """
+        Initilization of datasets, frames and values
+
+        Args:
+            data_mol_from_frame (Dataframe): Data with information about the moles for each phase
+            eq_data (Dataframe): Information about the phases and sthe solid solutions
+            element_data (Dataframe): Element distribution in moles for the stable phases
+            bulk_trace_elements (int): Bulk rock trace element value at input condition
+        """
+
+        self.tracer_dic = {}
+        self.phase_data = data_mol_from_frame
+        self.eq_data = eq_data
+        self.element_data = element_data
+        self.start_bulk = bulk_trace_elements
+        self.distribution_coefficients = read_trace_element_content()
+        self.database = database
+        
+        if "tc55" in database:
+            self.garnet_name = ['GARNET']
+            self.amph_name = ['ClAMP']
+            self.ep_name = ['zoisite']
+            self.cpx_name = ['CPX', "OMPH"]
+            self.fluid_name = ['water.fluid']
+            self.chl_name = ['CHLR']
+            self.ttn_name = ['sphene']
+        elif "ds62" in database:
+            self.garnet_name = ['GARNET', 'GRT']
+        else:
+            print("No database found for name selection for trace element distribution. Use tc55 name convention. Good luck.")
+
+    def distribute_tracers(self, temperature):
+        """
+        runs the distribution of trace elements between the stable phases
+        """
+
+        # name list is self.distribution_coefficients.index but clip /Grt from each name
+        name_list = [name[:-4] for name in self.distribution_coefficients.index]
+        phase_list = self.phase_data.index
+        element_list = self.distribution_coefficients.columns
+
+        # Assuming self.distribution_coefficients is a DataFrame
+        distribution_coefficients = self.distribution_coefficients
+        distribution_coefficients.index = name_list
+        # add 'Grt' to distribution_coefficients with array of ones
+        distribution_coefficients.loc['Grt'] = np.ones(len(distribution_coefficients.columns))
+
+        # collecting stable phases moles and names
+        assembled_distribution_coefficients = pd.DataFrame([])
+        for name in name_list:
+            if name == 'Amph':
+                # test if any entry in self.amph_name is in the names of phase_list
+                for entry in self.amph_name:
+                    e_num = 0
+                    for phase in phase_list:
+                        if entry in phase:
+                            e_num += 1
+                if e_num > 0:
+                    assembled_distribution_coefficients = pd.concat([
+                        assembled_distribution_coefficients, 
+                        distribution_coefficients.loc[name]], axis=1)
+            
+            if name == 'Ep':
+                # test if any entry in self.ep_name is in the names of phase_list
+                for entry in self.ep_name:
+                    e_num = 0
+                    for phase in phase_list:
+                        if entry in phase:
+                            e_num += 1
+                if e_num > 0:
+                    assembled_distribution_coefficients = pd.concat([
+                        assembled_distribution_coefficients, 
+                    distribution_coefficients.loc[name]], axis=1)
+                    
+            if name == 'Cpx':
+                # test if any entry in self.cpx_name is in the names of phase_list
+                for entry in self.cpx_name:
+                    e_num = 0
+                    for phase in phase_list:
+                        if entry in phase:
+                            e_num += 1
+                if e_num > 0:
+                    assembled_distribution_coefficients = pd.concat([
+                        assembled_distribution_coefficients, 
+                    distribution_coefficients.loc[name]], axis=1)
+            #NOTE - what to do with garnet?
+            if name == 'Grt':
+                # test if any entry in self.garnet_name is in the names of phase_list
+                for entry in self.garnet_name:
+                    e_num = 0
+                    for phase in phase_list:
+                        if entry in phase:
+                            e_num += 1
+                if e_num > 0:
+                    assembled_distribution_coefficients = pd.concat([
+                        assembled_distribution_coefficients, 
+                    distribution_coefficients.loc[name]], axis=1)
+                    
+            if name == 'Fluid':
+                # test if any entry in self.fluid_name is in the names of phase_list
+                for entry in self.fluid_name:
+                    e_num = 0
+                    for phase in phase_list:
+                        if entry in phase:
+                            e_num += 1
+                if e_num > 0:
+                    assembled_distribution_coefficients = pd.concat([
+                        assembled_distribution_coefficients, 
+                    distribution_coefficients.loc[name]], axis=1)
+                    
+            if name == 'Chl':
+                # test if any entry in self.chl_name is in the names of phase_list
+                for entry in self.chl_name:
+                    e_num = 0
+                    for phase in phase_list:
+                        if entry in phase:
+                            e_num += 1
+                if e_num > 0:
+                    assembled_distribution_coefficients = pd.concat([
+                        assembled_distribution_coefficients, 
+                    distribution_coefficients.loc[name]], axis=1)
+                    
+            if name == 'Ttn':
+                # test if any entry in self.ttn_name is in the names of phase_list
+                for entry in self.ttn_name:
+                    e_num = 0
+                    for phase in phase_list:
+                        if entry in phase:
+                            e_num += 1
+                if e_num > 0:
+                    assembled_distribution_coefficients = pd.concat([
+                        assembled_distribution_coefficients, 
+                    distribution_coefficients.loc[name]], axis=1)
+        
+        # final assembled distribution coefficients based on predicted stable phases
+        assembled_distribution_coefficients = assembled_distribution_coefficients.T
+        # update name_list to the names of the phases that are present
+        name_list = assembled_distribution_coefficients.index
+        
+        # Calculating mineral/matrix distribution coefficients 
+        # (D_min-grt_e / sum(D_min-grt_e) = D_min-mtrx_e)
+        # -----------------------------------------------------------
+
+        # Convert the DataFrame to a numpy array for faster operations
+        coeff_array = assembled_distribution_coefficients.values
+
+        # Calculate the sum of each column
+        column_sums = np.sum(coeff_array, axis=0)
+
+        # Calculate the coefficient values
+        _m_min_matrix_coeff = coeff_array / column_sums.T
+        #TODO - check if this is correct if not all mineral phases are present
+
+        _m_min_matrix_coeff_df = pd.DataFrame(
+            _m_min_matrix_coeff,
+            index=name_list,
+            columns=element_list)
+
+        matrix_coeff = _m_min_matrix_coeff_df.values
+
+        # Calculating k-matrix coefficients
+        # (c_bulk_e / sum(moles_min *D_min-mtrx_e) = K_e)
+        # -----------------------------------------------------------
+        # create empty dataframe to be filled with k values
+        mass_balanced_trace_elements = pd.DataFrame([])
+        selected_phase_moles = pd.DataFrame([])
+        assembled_matrix_coeff = pd.DataFrame([])
+        #assembling the trace element distribution matrix
+        for name in name_list:
+            if name == 'Amph':
+                sel_phases = []
+                # Read how many phases having "ClAMP" in the name are in self.phase_data.index and add to sel_phases
+                for item in self.amph_name:
+                    sel_phases += [phase for phase in self.phase_data.index if item in phase]
+                # read the moles
+                sel_moles = self.phase_data.loc[sel_phases].iloc[:,-1]
+                # add sel_moles to selected_phase_moles
+                selected_phase_moles = pd.concat([selected_phase_moles, sel_moles], axis=0)
+
+                # add to assembled_matrix_coeff
+                multiplied_matrix_coeff = pd.DataFrame(_m_min_matrix_coeff_df.loc[name].values * np.ones(len(sel_phases))[:, np.newaxis],
+                                                       index=sel_phases,
+                                                       columns=element_list)
+                assembled_matrix_coeff = pd.concat([assembled_matrix_coeff, multiplied_matrix_coeff], axis=0)
+
+
+
+
+            if name == 'Ep':
+                sel_phases = []
+                # Read how many phases having "ClAMP" in the name are in self.phase_data.index and add to sel_phases
+                for item in self.ep_name:
+                    sel_phases += [phase for phase in self.phase_data.index if item in phase]
+                # read the moles
+                sel_moles = self.phase_data.loc[sel_phases].iloc[:,-1]
+                # add sel_moles to selected_phase_moles
+                selected_phase_moles = pd.concat([selected_phase_moles, sel_moles], axis=0)
+                
+                # add to assembled_matrix_coeff
+                multiplied_matrix_coeff = pd.DataFrame(_m_min_matrix_coeff_df.loc[name].values * np.ones(len(sel_phases))[:, np.newaxis],
+                                                       index=sel_phases,
+                                                       columns=element_list)
+                assembled_matrix_coeff = pd.concat([assembled_matrix_coeff, multiplied_matrix_coeff], axis=0)
+
+
+
+            if name =='Cpx':
+                sel_phases = []
+                # Read how many phases having "ClAMP" in the name are in self.phase_data.index and add to sel_phases
+                for item in self.cpx_name:
+                    sel_phases += [phase for phase in self.phase_data.index if item in phase]
+                # read the moles
+                sel_moles = self.phase_data.loc[sel_phases].iloc[:,-1]
+                # add sel_moles to selected_phase_moles
+                selected_phase_moles = pd.concat([selected_phase_moles, sel_moles], axis=0)
+                
+                # add to assembled_matrix_coeff
+                multiplied_matrix_coeff = pd.DataFrame(_m_min_matrix_coeff_df.loc[name].values * np.ones(len(sel_phases))[:, np.newaxis],
+                                                       index=sel_phases,
+                                                       columns=element_list)
+                assembled_matrix_coeff = pd.concat([assembled_matrix_coeff, multiplied_matrix_coeff], axis=0)
+
+
+
+            if name =='Fluid':
+                sel_phases = []
+                # Read how many phases having "ClAMP" in the name are in self.phase_data.index and add to sel_phases
+                for item in self.fluid_name:
+                    sel_phases += [phase for phase in self.phase_data.index if item in phase]
+                # read the moles
+                sel_moles = self.phase_data.loc[sel_phases].iloc[:,-1]
+                # add sel_moles to selected_phase_moles
+                selected_phase_moles = pd.concat([selected_phase_moles, sel_moles], axis=0)
+                
+                # add to assembled_matrix_coeff
+                multiplied_matrix_coeff = pd.DataFrame(_m_min_matrix_coeff_df.loc[name].values * np.ones(len(sel_phases))[:, np.newaxis],
+                                                       index=sel_phases,
+                                                       columns=element_list)
+                assembled_matrix_coeff = pd.concat([assembled_matrix_coeff, multiplied_matrix_coeff], axis=0)
+
+
+            if name =='Chl':
+                sel_phases = []
+                # Read how many phases having "ClAMP" in the name are in self.phase_data.index and add to sel_phases
+                for item in self.chl_name:
+                    sel_phases += [phase for phase in self.phase_data.index if item in phase]
+                # read the moles
+                sel_moles = self.phase_data.loc[sel_phases].iloc[:,-1]
+                # add sel_moles to selected_phase_moles
+                selected_phase_moles = pd.concat([selected_phase_moles, sel_moles], axis=0)
+                
+                # add to assembled_matrix_coeff
+                multiplied_matrix_coeff = pd.DataFrame(_m_min_matrix_coeff_df.loc[name].values * np.ones(len(sel_phases))[:, np.newaxis],
+                                                       index=sel_phases,
+                                                       columns=element_list)
+                assembled_matrix_coeff = pd.concat([assembled_matrix_coeff, multiplied_matrix_coeff], axis=0)
+
+
+
+            if name =='Ttn':
+                sel_phases = []
+                # Read how many phases having "ClAMP" in the name are in self.phase_data.index and add to sel_phases
+                for item in self.ttn_name:
+                    sel_phases += [phase for phase in self.phase_data.index if item in phase]
+                # read the moles
+                sel_moles = self.phase_data.loc[sel_phases].iloc[:,-1]
+                # add sel_moles to selected_phase_moles
+                selected_phase_moles = pd.concat([selected_phase_moles, sel_moles], axis=0)
+                
+                # add to assembled_matrix_coeff
+                multiplied_matrix_coeff = pd.DataFrame(_m_min_matrix_coeff_df.loc[name].values * np.ones(len(sel_phases))[:, np.newaxis],
+                                                       index=sel_phases,
+                                                       columns=element_list)
+                assembled_matrix_coeff = pd.concat([assembled_matrix_coeff, multiplied_matrix_coeff], axis=0)
+
+        # Calculating the mass balanced distribution coefficients
+        mass_balanced_trace_elements = selected_phase_moles.values * assembled_matrix_coeff.values
+        # mass_balanced_trace_elements = pd.DataFrame(selected_phase_moles.values * assembled_matrix_coeff.values)
+        # mass_balanced_trace_elements.columns = element_list
+        # mass_balanced_trace_elements.index = selected_phase_moles.index
+        
+        
+        # Calculate the sum of each column
+        column_sums = np.sum(mass_balanced_trace_elements, axis=0)
+        
+        # Calculate the coefficient values by dividing the bulk values by the sum of the column
+        k_factor = self.start_bulk.values[0] / column_sums
+
+        # Calculating the content of element e in mineral
+        # content = K_e * moles_min * D_min-mtrx_e
+        # -----------------------------------------------------------
+
+        content =  k_factor * selected_phase_moles.values  * assembled_matrix_coeff.values
+        
+        #build dataframe of content
+        content_df = pd.DataFrame(content, index=selected_phase_moles.index, columns=element_list)
+        
 class Garnet_recalc():
     """
     Class for performing recalculation of garnets.
