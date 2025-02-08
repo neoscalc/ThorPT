@@ -1140,4 +1140,4 @@ ClAMP  tremolite   8.49194094E-01  tschermakite2  -1.38865763E-01  pargasite2   
 ClAMP  tremolite   2.60077517E-02  tschermakite2  -1.30506043E-01  pargasite2   1.30506115E-01  glaucophane2   9.73931023E-01  cummingtonite2   2.67750120E-06  grunerite2   5.17730436E-01  acam  -4.89493235E-01  bcam  -2.81787249E-02
 
  exit THERIAK
- CPU time:    0h 00m 09.73s
+ CPU time:    0h 00m 08.77s
