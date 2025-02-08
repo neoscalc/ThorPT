@@ -514,6 +514,10 @@ def run_main_routine():
             master_rock[tag]['bulk_oxygen_before_influx'] = []
             master_rock[tag]['bulk_oxygen_after_influx'] = []
 
+            # trace element data
+            master_rock[tag]['trace_element_data'] = {}
+            master_rock[tag]['trace_element_bulk'] = {}
+
             # fluid extraction
             master_rock[tag]['extr_time'] = []
             master_rock[tag]['extr_svol'] = []

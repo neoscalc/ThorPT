@@ -365,8 +365,27 @@ def read_trace_element_content():
     # read txt file trace_element_budget.txt
     trace_element_bulk = pd.read_csv(
         os.path.join(new_folder_path, 'trace_element_budget.txt'),
-        sep=', ', header=0, index_col=0
+        sep=', ', header=0, index_col=0, engine='python'
     )
+    return trace_element_bulk
+
+def modify_trace_element_content(trace_element_bulk, trace_element_distirbution, min_name):
+    """
+    Modifies the trace element content based on the given modification.
+
+    Args:
+        trace_element_bulk (pandas.DataFrame): The trace element content.
+        trace_element_distirbution (dict): The trace element distribution.
+        min_name (str): The mineral name.
+    Returns:
+        pandas.DataFrame: The modified trace element content.
+    """
+
+    # subtract the trace element content from the bulk from the mineral defined by min_name
+    # first search the name of min_name in the trace_element_bulk
+    if min_name in trace_element_distirbution.index:
+        trace_element_bulk = trace_element_bulk - np.array(trace_element_distirbution.loc[min_name])
+    
     return trace_element_bulk
 
 @dataclass
@@ -731,9 +750,12 @@ class ThorPT_Routines():
                     master_rock[item]['df_element_total'],
                     self.trace_element_bulk,
                     database=master_rock[item]['database'])
-                master_rock[item]['model_tracers'].distribute_tracers(temperature)
-                
-                
+                # call the distribution of tracers
+                trace_df = master_rock[item]['model_tracers'].distribute_tracers(temperature, pressure=pressures[num], iteration=num)
+                # save the tracer data
+                master_rock[item]['trace_element_data'][(num, pressures[num], temperature)] = trace_df
+                master_rock[item]['trace_element_bulk'][(num, pressures[num], temperature)] = self.trace_element_bulk
+
                 # //////////////////////////////////////////////////////////////////////////
                 # LINK - 6) Mineral Fractionation
                 # mineral (garnet) fractionation - coupled oxygen bulk modification
@@ -752,8 +774,40 @@ class ThorPT_Routines():
                             if name == garnet_name:
                                 # Michelles atigorite fractionation
                                 # # if name=='GARNET' or name=='SERP' or name=='BR':
+
+                                # modify the oxygen signature of the bulk rock
                                 new_bulk_oxygen = master_rock[item]['minimization'].mineral_fractionation(
                                     master_rock[item]['save_oxygen'][-1], name)
+                                
+
+                                """
+                                plt.figure()
+                                norming = np.array([
+                                    0.3670, 0.9570, 0.1370, 0.7110, 0.2310, 0.0870, 0.3060, 
+                                    0.0580, 0.3810, 0.0851, 0.2490, 0.0356, 0.2480, 0.0381])
+                                for i, value in enumerate(master_rock[item]['trace_element_bulk'].values()):
+                                    test = value/norming
+                                    plt.plot(test.T, '.-', label=i)
+                                # plt.xlabel(test.columns)
+                                plt.ylabel('Normalized values')
+                                plt.yscale('log')
+                                plt.legend()
+                                """
+
+                                # modify the trace element content
+                                # last entry of the trace element data
+                                #data_storage_keys = list(master_rock[item]['data_storage'].keys())
+                                # Check if there are any entries
+                                if np.size(trace_df) > 0:
+                                    #last_entry_key = data_storage_keys[-1]
+                                    #last_entry_value = master_rock[item]['data_storage'][last_entry_key]
+
+                                    self.trace_element_bulk = modify_trace_element_content(
+                                        trace_element_bulk=self.trace_element_bulk,
+                                        trace_element_distirbution=trace_df,
+                                        min_name = phase
+                                    )
+
                                 master_rock[item]['garnet'].append(
                                     master_rock[item]['minimization'].separate)
 
@@ -1055,6 +1109,19 @@ class ThorPT_Routines():
                                     master_rock[item]['extr_svol'].append(
                                         np.sum(master_rock[item]['df_var_dictionary']['df_volume[ccm]'].iloc[:, -1]))
                                     master_rock[item]['track_refolidv'] = []
+
+
+                                    # fractionate trace elements from the bulk
+                                    if np.size(trace_df) > 0:
+                                        #last_entry_key = data_storage_keys[-1]
+                                        #last_entry_value = master_rock[item]['data_storage'][last_entry_key]
+
+                                        self.trace_element_bulk = modify_trace_element_content(
+                                            trace_element_bulk=self.trace_element_bulk,
+                                            trace_element_distirbution=trace_df,
+                                            min_name = fluid_name_tag
+                                        )
+
                                 else:
                                     master_rock[item]['track_refolidv'].append(
                                         master_rock[item]['solid_volume_before'])
@@ -1129,6 +1196,20 @@ class ThorPT_Routines():
 
         ar_flow = np.array(v_fluid_cubic_track)
         ar_perma = np.array(v_fluid_cubicp_track)
+
+        """
+        plt.figure()
+        norming = np.array([
+            0.3670, 0.9570, 0.1370, 0.7110, 0.2310, 0.0870, 0.3060, 
+            0.0580, 0.3810, 0.0851, 0.2490, 0.0356, 0.2480, 0.0381])
+        for i, value in enumerate(master_rock[item]['trace_element_bulk'].values()):
+            test = value/norming
+            plt.plot(test.T, '.-', label=i)
+        # plt.xlabel(test.columns)
+        plt.ylabel('Normalized values')
+        plt.yscale('log')
+        plt.legend()
+        """
 
     def transmitting_multi_rock(self):
         """
@@ -2643,7 +2724,6 @@ class ThorPT_Routines():
             # shear_stress = master_rock[item]['shear']
             # ---> Initializing module to format data
             # Chronological dataframe (IMPORTANT for prograde + retrograde)
-
             line = np.arange(1, len(temperatures)+1, 1)
             ref_len = len(master_rock[item]['df_var_dictionary']['df_N'].columns)
 
@@ -2708,6 +2788,9 @@ class ThorPT_Routines():
                 o_chache = pd.concat([o_chache, cc], axis=0)
             o_chache.index = line
             master_rock[item]['save_oxygen'] = o_chache
+
+            # reorganise the trace element data
+            keyboard
 
             # Store some information of the dataframes
             master_rock[item]['phase_order'] = list(master_rock[item][

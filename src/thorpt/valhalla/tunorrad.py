@@ -2780,6 +2780,9 @@ def phases_translated(database, phases):
 
     return phase_set, phase_original
 
+# Function to check if a variable is np.float64 and NaN
+def is_float64_nan(value):
+    return isinstance(value, np.float64) and np.isnan(value)
 
 class TraceElementDistribution():
 
@@ -2794,7 +2797,6 @@ class TraceElementDistribution():
             bulk_trace_elements (int): Bulk rock trace element value at input condition
         """
 
-        self.tracer_dic = {}
         self.phase_data = data_mol_from_frame
         self.eq_data = eq_data
         self.element_data = element_data
@@ -2802,38 +2804,24 @@ class TraceElementDistribution():
         self.distribution_coefficients = read_trace_element_content()
         self.database = database
 
-        self.phase_set, self.phase_original = phases_translated(self.database, self.eq_data['Name'])
+        self.phase_set, self.phase_original = phases_translated(self.database, self.phase_data.index)
 
-        self.garnet_name = []
-        
-        if "tc55" in database:
-            self.garnet_name = ['GARNET']
-            self.amph_name = ['ClAMP']
-            self.ep_name = ['zoisite']
-            self.cpx_name = ['CPX', "OMPH"]
-            self.fluid_name = ['water.fluid']
-            self.chl_name = ['CHLR']
-            self.ttn_name = ['sphene']
-        elif "ds62" in database:
-            self.garnet_name = ['GARNET', 'GRT']
-        else:
-            print("No database found for name selection for trace element distribution. Use tc55 name convention. Good luck.")
-
-    def distribute_tracers(self, temperature):
+    def distribute_tracers(self, temperature, pressure, iteration):
         """
         runs the distribution of trace elements between the stable phases
         """
 
         # name list is self.distribution_coefficients.index but clip /Grt from each name
         name_list = [name[:-4] for name in self.distribution_coefficients.index]
+        name_list.append('Garnet')
         phase_list = self.phase_data.index
         element_list = self.distribution_coefficients.columns
 
         # Assuming self.distribution_coefficients is a DataFrame
-        distribution_coefficients = self.distribution_coefficients
-        distribution_coefficients.index = name_list
         # add 'Grt' to distribution_coefficients with array of ones
-        distribution_coefficients.loc['Grt'] = np.ones(len(distribution_coefficients.columns))
+        distribution_coefficients = self.distribution_coefficients
+        distribution_coefficients.loc['Garnet'] = np.ones(len(distribution_coefficients.columns))
+        distribution_coefficients.index = name_list
 
         # collecting stable phases moles and names
         assembled_distribution_coefficients = pd.DataFrame([])
@@ -2872,27 +2860,29 @@ class TraceElementDistribution():
         # -----------------------------------------------------------
         # create empty dataframe to be filled with k values
         mass_balanced_trace_elements = pd.DataFrame([])
-        selected_phase_moles = pd.DataFrame([])
-        selected_phase_moles_2 = []
+        selected_phase_moles = []
         assembled_matrix_coeff = pd.DataFrame([])
         selected_phase_name_original = []
         #assembling the trace element distribution matrix
         for i, name in enumerate(self.phase_set):
             if name in name_list:
-                selected_phase_moles_2.append(self.phase_data.iloc[i,-1])
-                selected_phase_name_original.append(self.phase_original[i])
-                assembled_matrix_coeff = pd.concat([assembled_matrix_coeff, _m_min_matrix_coeff_df.loc[name]], axis=1)
+                if is_float64_nan(self.phase_data.iloc[i,-1]):
+                    pass
+                else:
+                    selected_phase_moles.append(self.phase_data.iloc[i,-1])
+                    selected_phase_name_original.append(self.phase_original[i])
+                    assembled_matrix_coeff = pd.concat([
+                        assembled_matrix_coeff, _m_min_matrix_coeff_df.loc[name]], axis=1)
 
         assembled_matrix_coeff = assembled_matrix_coeff.T
-        selected_phase_moles_2 = np.array(selected_phase_moles_2)
+        selected_phase_moles = np.array(selected_phase_moles)
 
         # Calculating the mass balanced distribution coefficients
         # mass_balanced_trace_elements = selected_phase_moles.values * assembled_matrix_coeff.values
-        mass_balanced_trace_elements = selected_phase_moles_2[:, np.newaxis] * assembled_matrix_coeff.values
+        mass_balanced_trace_elements = selected_phase_moles[:, np.newaxis] * assembled_matrix_coeff.values
         # mass_balanced_trace_elements = pd.DataFrame(selected_phase_moles.values * assembled_matrix_coeff.values)
         # mass_balanced_trace_elements.columns = element_list
         # mass_balanced_trace_elements.index = selected_phase_moles.index
-        
         
         # Calculate the sum of each column
         column_sums = np.sum(mass_balanced_trace_elements, axis=0)
@@ -2905,7 +2895,7 @@ class TraceElementDistribution():
         # -----------------------------------------------------------
 
         #content =  k_factor * selected_phase_moles.values  * assembled_matrix_coeff.values
-        content =  k_factor * selected_phase_moles_2[:, np.newaxis]  * assembled_matrix_coeff.values
+        content =  k_factor * selected_phase_moles[:, np.newaxis]  * assembled_matrix_coeff.values
         
         #build dataframe of content
         #content_df = pd.DataFrame(content, index=selected_phase_moles.index, columns=element_list)
@@ -2914,21 +2904,22 @@ class TraceElementDistribution():
         content_df.columns = element_list
         content_df.index = selected_phase_name_original
         
+        """
         norming = np.array([
             0.3670, 0.9570, 0.1370, 0.7110, 0.2310, 0.0870, 0.3060, 
             0.0580, 0.3810, 0.0851, 0.2490, 0.0356, 0.2480, 0.0381])
         test = content_df/norming
 
         # test plot in log scale on the y axis, y_label is REE/Chondrite and x_label is elements
-        """for phase in test.index:
+        for phase in test.index:
             plt.plot(test.loc[phase], 'D--' , label=phase)
         plt.yscale('log')
         plt.xlabel('Elements')
         plt.ylabel('REE/Chondrite')
-        plt.legend()"""
+        plt.legend()
+        """
+        return content_df
 
-
-        
 
 class Garnet_recalc():
     """
