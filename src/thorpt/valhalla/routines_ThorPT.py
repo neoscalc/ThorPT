@@ -2790,8 +2790,40 @@ class ThorPT_Routines():
             master_rock[item]['save_oxygen'] = o_chache
 
             # reorganise the trace element data
-            keyboard
+            # Initialize an empty list to store the rows
+            rows = []
+            for (num, pressure, temperature), df in master_rock[item]['trace_element_bulk'].items():
+                # Combine the tuple and the DataFrame into a single row
+                for index, row in df.iterrows():
+                    row_data = [num, pressure, temperature] + row.tolist()
+                    rows.append(row_data)
+            # Define the column names
+            columns = ['num', 'pressure', 'temperature'] + df.columns.tolist()
+            # Convert the list to a DataFrame
+            master_rock[item]['trace_element_bulk'] = pd.DataFrame(rows, columns=columns)
 
+            # Initialize an empty dictionary to store the DataFrames for each mineral phase
+            mineral_phase_dict = {}
+
+            # Iterate through the dictionary
+            for (num, pressure, temperature), df in master_rock[item]['trace_element_data'].items():
+                # Iterate through the rows of the DataFrame
+                for phase, row in df.iterrows():
+                    row_data = [num, pressure, temperature] + row.tolist()
+                    
+                    # Append the row data to the corresponding list in the dictionary
+                    if phase not in mineral_phase_dict:
+                        mineral_phase_dict[phase] = []
+                    mineral_phase_dict[phase].append(row_data)
+
+            # Convert the lists to DataFrames
+            for phase in mineral_phase_dict:
+                columns = ['num', 'pressure', 'temperature'] + df.columns.tolist()
+                mineral_phase_dict[phase] = pd.DataFrame(mineral_phase_dict[phase], columns=columns)
+
+            master_rock[item]['trace_element_data'] = mineral_phase_dict
+
+            # -----------------------------------------------------
             # Store some information of the dataframes
             master_rock[item]['phase_order'] = list(master_rock[item][
                 'df_var_dictionary']['df_N'].columns)
