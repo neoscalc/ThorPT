@@ -24,6 +24,8 @@ Dolomite	CCDO
 Epidote	EPI
 Epidote	epidote
 Epidote	Fe-epidote
+Epidote	zoisite
+Epidote	clinozoisite
 Garnet	GARNET
 Hematite	hematite
 Ilmenite	ilmenite
@@ -48,5 +50,3 @@ Talc	TALC
 Titanite	sphene
 Turmaline	turmaline
 Zircon	zircon
-Zoisite	zoisite
-Zoisite	clinozoisite

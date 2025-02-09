@@ -19,6 +19,8 @@ import os
 from pathlib import Path
 from mpl_toolkits.axes_grid1 import host_subplot
 from matplotlib.ticker import (MultipleLocator, AutoMinorLocator)
+import matplotlib.colors as mcolors
+import matplotlib.cm as cm
 from tkinter import *
 from tkinter import filedialog
 import imageio
@@ -6570,7 +6572,7 @@ class ThorPT_plots():
         else:
             raise ValueError("Invalid plot_type. Options are 'porosity', 'extracted', 'cumulative'.")"""
 
-        # Assuming self.comprock.temperature and self.comprock.pressure are 1D arrays
+        # reading temperature and pressure data
         rock_keys = list(data.rock.keys())
         temperatures = data.rock[rock_keys[0]].temperature
         pressures = data.rock[rock_keys[0]].pressure
@@ -6638,6 +6640,9 @@ class ThorPT_plots():
         # Add labels and title
         plt.xlabel('Temperature [°C]')
         plt.ylabel('Pressure [GPa]')
+        plt.ylim(0.5, 3.0)
+        plt.xlim(350, 700)
+
         #plt.title(title)
         # save the plot
         os.makedirs(
@@ -6669,6 +6674,7 @@ class ThorPT_plots():
         
         
         
+        """
         # Interpolate the data in 3D
         Z_grid = griddata((np.array(_log_T), np.array(_log_P)), np.array(_log_Z_), 
                           (T, P), method='cubic', fill_value=np.nan)
@@ -6690,7 +6696,109 @@ class ThorPT_plots():
             f'{self.mainfolder}/img_{self.filename}/fracture_mesh', exist_ok=True)
         plt.savefig(f'{self.mainfolder}/img_{self.filename}/fracture_mesh/heat_map_PT_interpolated.png',
                     transparent=False, facecolor='white')
+        """
+    def plot_heatmap_TPZ(self, plot_type='porosity'):
+        """Plot heatmap of extraction volumes in T-P-Z space (T on x-axis, P on y-axis, Z on z-axis).
 
+        Args:
+            plot_type (str): Type of data to plot. Options are 'porosity', 'extracted', 'cumulative'.
+        """
+        # Assuming all_porosity is a 2D numpy array
+        all_porosity = self.comprock.all_porosity
+        all_boolean = self.comprock.all_extraction_boolean
+        all_depths = self.comprock.all_depth  # Assuming depths are available
+        all_boolean_array = []
+        extraction_volumes = []
+        extraction_volumes_cum = []
+
+        # Collecting differential stress, extraction number, and tensile strength for all rocks
+        for i, item in enumerate(self.comprock.all_diffs):
+            # Create the cumulative volume of extracted fluid
+            take_bool = np.array(all_boolean[i])
+            if len(take_bool) != len(all_porosity[i]):
+                take_bool = np.insert(take_bool, 0, 0)
+            
+            all_boolean_array.append(take_bool)
+
+            extractionVol = np.ma.masked_array(all_porosity[i], take_bool)
+            extractionVol = np.ma.filled(extractionVol, 0)
+
+            extraction_volumes.append(extractionVol)
+
+            extractionVol = np.cumsum(extractionVol) * 100
+            extraction_volumes_cum.append(extractionVol)
+
+        # Format to arrays
+        all_boolean_array = np.array(all_boolean_array)
+        extraction_volumes = np.array(extraction_volumes)
+        extraction_volumes_cum = np.array(extraction_volumes_cum)
+
+        # Select data to plot based on plot_type
+        if plot_type == 'porosity':
+            data_to_plot = all_porosity * 100
+            title = 'Heatmap of Porosity Values'
+        elif plot_type == 'extracted':
+            data_to_plot = extraction_volumes
+            title = 'Heatmap of Extracted Fluid Volumes'
+        elif plot_type == 'cumulative':
+            data_to_plot = extraction_volumes_cum
+            title = 'Heatmap of Cumulative Extracted Fluid Volumes'
+        else:
+            raise ValueError("Invalid plot_type. Options are 'porosity', 'extracted', 'cumulative'.")
+
+        # Reading temperature, pressure, and depth data
+        rock_keys = list(self.rockdic.keys())
+        temperatures = self.rockdic[rock_keys[0]].temperature
+        pressures = self.rockdic[rock_keys[0]].pressure
+        depths = self.rockdic[rock_keys[0]].depth  # Assuming depths are available
+
+        # Create a 3D scatter plot
+        fig = plt.figure(figsize=(10, 8))
+        ax = fig.add_subplot(111, projection='3d')
+
+        # Normalize the extraction volumes for color mapping
+        norm = mcolors.Normalize(vmin=0, vmax=np.max(extraction_volumes))
+
+        # Create a colormap
+        cmap = cm.viridis
+
+        # Plot the data
+        for j, arr in enumerate(all_boolean_array):
+            temperatures = self.rockdic[rock_keys[j]].temperature
+            pressures = self.rockdic[rock_keys[j]].pressure
+            depths = self.rockdic[rock_keys[j]].depth
+            extractionVol = extraction_volumes[j]
+            for i, val in enumerate(arr):
+                if val == 0:
+                    color = cmap(norm(extractionVol[i]))
+                    ax.scatter(temperatures[i], pressures[i]/10000, depths[i]/1000, color=color, s=100, alpha=0.8, marker='o')
+
+        # Add labels and title
+        ax.set_xlabel('Temperature [°C]')
+        ax.set_ylabel('Pressure [GPa]')
+        ax.set_zlabel('Depth [km]')
+        ax.set_title(title)
+
+        ax.set_ylim(0.5, 3.0)
+        ax.set_xlim(350, 700)
+
+        # Add colorbar
+        sm = cm.ScalarMappable(cmap=cmap, norm=norm)
+        sm.set_array([])
+        cbar = plt.colorbar(sm, ax=ax, orientation='vertical')
+        cbar.set_label('Extraction Volume')
+
+        import plotly.tools as tls
+        import plotly.io as pio
+
+        # Convert Matplotlib figure to Plotly
+        plotly_fig = tls.mpl_to_plotly(fig)
+
+        # Save as an interactive HTML file
+        pio.write_html(plotly_fig, "3d_plot.html")
+
+        # Show the plot
+        # plt.show()
 
 if __name__ == '__main__':
 
@@ -6713,6 +6821,7 @@ if __name__ == '__main__':
     
     # compPlot.plot_heatmap(plot_type="cumulative")
     compPlot.plot_heatmap_PT(plot_type="cumulative")
+    compPlot.plot_heatmap_TPZ(plot_type="cumulative")
 
     for key in data.rock.keys():
         print(key)

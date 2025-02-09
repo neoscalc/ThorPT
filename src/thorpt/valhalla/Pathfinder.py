@@ -205,28 +205,32 @@ def crust2layer_model(pressure_array, time, speed, angle, dt=10000):
     crust_depth = 0
     depth = []
     c_p_list = []
+    time = []
 
     # calculated pressure with the layer model
     for i in range(len(layer_thickness_list)):
         c_p_zero += density_list[i] * layer_thickness_list[i] * 9.81 / 10**5
 
     c_p = c_p_zero
-    # c_p = c_p_zero + (density_list[-1]*(crust_depth) * 9.81 / 10**5)
     d_step = speed * dt * abs(np.sin(angle/180*np.pi))
+    if c_p_zero < pressure_array[0]:
+        start_depth = pressure_array[0] * 10**5 / (density_list[0] * 9.81)
+        depth.append(start_depth + sum(layer_thickness_list))
+        start_time =  depth[-1] / speed / abs(np.sin(angle/180*np.pi))
+        time.append(start_time)
+        c_p = pressure_array[0]
+        c_p_list.append(c_p)
+        
+    # c_p = c_p_zero + (density_list[-1]*(crust_depth) * 9.81 / 10**5)
+    
+    for c_p in pressure_array[1:]:
+        calc_depth = c_p * 10**5 / (density_list[0] * 9.81)
+        depth.append(calc_depth + sum(layer_thickness_list))
+        calc_time =  depth[-1] / speed / abs(np.sin(angle/180*np.pi))
+        time.append(calc_time)
+        c_p_list.append(c_p)
+        # print(calc_depth)
 
-    while c_p < pressure_array[-1]:
-        # calc pressure in bar
-        c_p = c_p_zero + (density_list[-1]*(crust_depth) * 9.81 / 10**5)
-        # print(c_p)
-        # c_p = self.rho[1] * depth * 1000 * 9.81 / 10**5
-
-        if c_p < pressure_array[0]:
-            crust_depth = crust_depth + d_step
-        else:
-            crust_depth = crust_depth + d_step
-            time.append(time[-1]+dt)
-            depth.append(crust_depth + sum(layer_thickness_list))
-            c_p_list.append(c_p)
 
     if len(depth) == 0:
         print("Error: No depth calculated.")

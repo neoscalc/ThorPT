@@ -2059,9 +2059,9 @@ class Ext_method_master:
         #n = self.moles_fluid  # moles
         #V1 = self.fluid_t1  # cm^3 (initial volume)
         Vm1 = self.moles_vol_fluid
-        P0 = 2 # in kbar
-        P = 20 # in kbar
-
+        
+        # Cork parameters - values from Holland and Powell 1991 -
+        # A Compensated-Redlich-Kwong (CORK) equation for volumes and fugacities of CO2 and H2O in the range 1 bar to 50 kbar and 100-1600°C
         a0 = 113.4
         a4 = -0.22291
         a5 = -3.8022 * 10**-4
@@ -2079,6 +2079,7 @@ class Ext_method_master:
         d = d0 + d1 * T
 
         Vm1 = Vm1 + c * np.sqrt(P-P0) + d*(P-P0)"""
+
         if self.solid_t1 == vol_t0 and self.fluid_t1 == 0:
             V2 = self.fluid_t1
             p2_p1_cork_real = 0
