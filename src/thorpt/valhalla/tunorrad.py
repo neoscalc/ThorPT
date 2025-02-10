@@ -2165,68 +2165,75 @@ class Ext_method_master:
 
         # ##########################################
         # Failure envelope test
-        # mcg_plot(cohesion, self.friction, self.diff_stress, self.shear_stress, sig1, hydro)
-
-        if self.diff_stress >= self.tensile_strength*5.66:
-
-            print("Compressive shear failure test")
-            # print(f"Diff.-stress is {self.diff_stress} and > than T*5.66")
-
-            # Test possible extensional fracturing
-            output, minimum = checkCollision_linear(a, b, c, x=pos, y=0, radius=r)
-            # print(f"Maximum differential stress calculated as {minimum*2} MPa, but is {self.diff_stress}.")
-
-            # Critical fluid pressure
-            # print(f"Difference of fluid pressure and critical fluid pressure is:\n{crit_fluid_pressure-hydro} (Pf_crit - Pf)")
-
-            if output is True:
-                print("---> Failure due to compressive shear.")
-                self.frac_respo = 3
-            else:
-                print("---> No failure")
-
-            # mcg_plot(cohesion, internal_friction, self.diff_stress, self.shear_stress, sig1, hydro)
-
-        elif self.diff_stress < self.tensile_strength*5.66 and self.diff_stress > 4*self.tensile_strength:
-            print("Extensional shear failure test")
-            #print(f"Diff.-stress is {self.diff_stress} and < than T*5.66 and > T*4")
-            output, minimum = checkCollision_curve(pos=pos, diff=self.diff_stress, tensile=self.tensile_strength)
-            #print(f"Maximum differential stress calculated as {minimum*2} MPa, but is {self.diff_stress}.")
-            #print(f"Difference of fluid pressure and critical fluid pressure is:\n{pf_crit_griffith-hydro} (Pf_crit - Pf)")
-
-            if output is True:
-                print("---> Failure due to extensional shear.")
-                self.frac_respo = 2
-            else:
-                print("---> No failure")
-
-            # mcg_plot(cohesion, internal_friction, self.diff_stress, self.shear_stress, sig1, hydro)
-
-        elif self.diff_stress <= 4*self.tensile_strength:
-            print("Pure extensional failure test")
-            # print(f"Diff.-stress is {self.diff_stress} and < T*4")
-
-            if sig3-hydro <= -cohesion/2:
-                print("---> Failure due to pure extensional fail.")
-                self.frac_respo = 1
-            else:
-                print("---> No failure")
-
-            # mcg_plot(cohesion, internal_friction, self.diff_stress, self.shear_stress, sig1, hydro)
-
+        treshold_mod = True
+        if treshold_mod is True:
+            tresh_value = 0.002
         else:
-            print("Differential stress seems to have a problem. We decided to test the value. The value is:\n")
-            print(self.diff_stress)
+            tresh_value = 0
+        # mcg_plot(cohesion, self.friction, self.diff_stress, self.shear_stress, sig1, hydro)
+        if (vol_t0-self.solid_t1)/vol_t0 >= tresh_value:
+            if self.diff_stress >= self.tensile_strength*5.66:
+
+                print("Compressive shear failure test")
+                # print(f"Diff.-stress is {self.diff_stress} and > than T*5.66")
+
+                # Test possible extensional fracturing
+                output, minimum = checkCollision_linear(a, b, c, x=pos, y=0, radius=r)
+                # print(f"Maximum differential stress calculated as {minimum*2} MPa, but is {self.diff_stress}.")
+
+                # Critical fluid pressure
+                # print(f"Difference of fluid pressure and critical fluid pressure is:\n{crit_fluid_pressure-hydro} (Pf_crit - Pf)")
+
+                if output is True:
+                    print("---> Failure due to compressive shear.")
+                    self.frac_respo = 3
+                else:
+                    print("---> No failure")
+
+                # mcg_plot(cohesion, internal_friction, self.diff_stress, self.shear_stress, sig1, hydro)
+
+            elif self.diff_stress < self.tensile_strength*5.66 and self.diff_stress > 4*self.tensile_strength:
+                print("Extensional shear failure test")
+                #print(f"Diff.-stress is {self.diff_stress} and < than T*5.66 and > T*4")
+                output, minimum = checkCollision_curve(pos=pos, diff=self.diff_stress, tensile=self.tensile_strength)
+                #print(f"Maximum differential stress calculated as {minimum*2} MPa, but is {self.diff_stress}.")
+                #print(f"Difference of fluid pressure and critical fluid pressure is:\n{pf_crit_griffith-hydro} (Pf_crit - Pf)")
+
+                if output is True:
+                    print("---> Failure due to extensional shear.")
+                    self.frac_respo = 2
+                else:
+                    print("---> No failure")
+
+                # mcg_plot(cohesion, internal_friction, self.diff_stress, self.shear_stress, sig1, hydro)
+
+            elif self.diff_stress <= 4*self.tensile_strength:
+                print("Pure extensional failure test")
+                # print(f"Diff.-stress is {self.diff_stress} and < T*4")
+
+                if sig3-hydro <= -cohesion/2:
+                    print("---> Failure due to pure extensional fail.")
+                    self.frac_respo = 1
+                else:
+                    print("---> No failure")
+
+                # mcg_plot(cohesion, internal_friction, self.diff_stress, self.shear_stress, sig1, hydro)
+
+            else:
+                print("Differential stress seems to have a problem. We decided to test the value. The value is:\n")
+                print(self.diff_stress)
+                self.frac_respo = 0
+        else:
+            print("Fluid-filled porosity to small to interconnect.")
             self.frac_respo = 0
 
         # NOTE Treshold sequence
-
-        #if self.frac_respo == 0:
-        #    print("No mechanical failure detected.")
-        #    print("Testing porosity and interconnectivity.")
-        #    print("P_f factor is {:.3f}".format(hydro/litho), "and porosity is {:.3f}".format(self.fluid_t1/(vol_t0-self.solid_t1)))
-        #    if hydro/litho > 0.9 and (vol_t0-self.solid_t1)/vol_t0 > 0.03:
-        #        self.frac_respo = 5
+        if self.frac_respo == 0 and treshold_mod is True:
+            print("No mechanical failure detected.")
+            print("Testing porosity and interconnectivity.")
+            print("P_f factor is {:.3f}".format(hydro/litho), "and porosity is {:.3f}".format(self.fluid_t1/(vol_t0-self.solid_t1)))
+            if hydro/litho > 0.9 and (vol_t0-self.solid_t1)/vol_t0 > 0.002:
+                self.frac_respo = 5
 
 
         self.failure_dictionary = {

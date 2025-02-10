@@ -2744,8 +2744,9 @@ class ThorPT_plots():
         plt.clf()
         plt.close()
 
-    def phases_stack_plot_v2(self, rock_tag, img_save=False, val_tag=False,
+    def phases_stack_plot_v2(self, rock_tag, img_save=True, val_tag='volume',
                       transparent=False, fluid_porosity=True, cumulative=False, img_type='png'):
+
         """
         Plot the phase changes for P-T-t.
 
@@ -7045,15 +7046,18 @@ if __name__ == '__main__':
     # compPlot.plot_heatmap_PT(plot_type="cumulative")
     # compPlot.plot_heatmap_TPZ(plot_type="cumulative")
 
-    for key in data.rock.keys():
-        print(key)
-        compPlot.phases_stack_plot_v2(
-            rock_tag=key, img_save=True,
-                val_tag='volume', transparent=False, 
-                fluid_porosity=True, cumulative=False, img_type='png'
-                          )
+    from joblib import Parallel, delayed
+    results = Parallel(n_jobs=-1)(delayed(compPlot.phases_stack_plot_v2)(key) for key in data.rock.keys())
 
-        compPlot.oxygen_isotopes_v2(rock_tag=key, img_save=True, img_type='png')
+    #for key in data.rock.keys():
+    #    print(key)
+    #    compPlot.phases_stack_plot_v2(
+    #        rock_tag=key, img_save=True,
+    #            val_tag='volume', transparent=False, 
+    #            fluid_porosity=True, cumulative=False, img_type='png'
+    #                      )
+#
+    #    compPlot.oxygen_isotopes_v2(rock_tag=key, img_save=True, img_type='png')
         # compPlot.oxygen_isotopes_realtive_v2(rock_tag=key, img_save=True, img_type='pdf')
         #compPlot.phases_stack_plot(rock_tag=key, img_save=True,
         #             val_tag='volume', transparent=False, fluid_porosity=True, cumulative=False, img_type='png')

@@ -303,8 +303,8 @@ class Pathfinder_Theoule:
         self.depth = c_p_list[2]
         self.depth_store = c_p_list[2]
         self.time_store = c_p_list[1]
-        yinterp = self.fit_model_to_path(c_p_list, spl)
-        yinterp, c_p_list = self.filter_steps(yinterp, c_p_list)
+        new_data = self.fit_model_to_path(c_p_list, spl)
+        yinterp, c_p_list = self.filter_steps(new_data[0], [new_data[1], new_data[3], new_data[2]])
         self.select_steps(yinterp, c_p_list)
 
     def prepare_spline(self):
@@ -343,8 +343,24 @@ class Pathfinder_Theoule:
         Returns:
             yinterp (numpy.ndarray): Interpolated temperature values.
         """
+        from scipy.interpolate import splprep, splev
+        data = [
+            spl[1][:len(c_p_list[0])], 
+            np.array(c_p_list[0]), 
+            np.array(c_p_list[2]), 
+            np.array(c_p_list[1])
+            ]
+        
+        # Create a spline representation of the parametric curve
+        tck, u = splprep(data, s=0)
 
-        return splev(c_p_list[0], spl) 
+        # Define new parameter values for evaluation
+        new_u = np.linspace(0, 1, 1000)
+
+        # Evaluate the spline at the new parameter values
+        new_data = splev(new_u, tck)
+
+        return new_data 
 
     def filter_steps(self, yinterp, c_p_list):
         """
@@ -367,6 +383,9 @@ class Pathfinder_Theoule:
             self.time = np.ones(len(c_p_list[0]))
         new_t = [self.time[0]]
 
+        # do spline of the P-T-d-t path
+
+
         for i, val in enumerate(c_p_list[0]):
             step_p = val - new_y[-1]
             step_t = yinterp[i] - new_x[-1]
@@ -374,13 +393,13 @@ class Pathfinder_Theoule:
                 if step_t >= self.t_increment:
                     new_y.append(val)
                     new_x.append(yinterp[i])
-                    new_d.append(self.depth[i])
-                    new_t.append(self.time[i])
+                    new_d.append(c_p_list[2][i])
+                    new_t.append(c_p_list[1][i])
             elif step_t >= self.t_increment:
                 new_y.append(val)
                 new_x.append(yinterp[i])
-                new_d.append(self.depth[i])
-                new_t.append(self.time[i])
+                new_d.append(c_p_list[2][i])
+                new_t.append(c_p_list[1][i])
         yinterp = np.array(new_x)
         c_p_list = np.array(new_y)
         self.time = new_t
