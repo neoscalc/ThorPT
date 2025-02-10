@@ -2866,6 +2866,7 @@ class ThorPT_plots():
         def finalize_plot(ax2, twin1, line, legend):
             ax2.hlines(1, -2, max(line) + 5, 'black', linewidth=1.5, linestyle='--')
             ax2.set_xlim(0, max(line) + 1)
+            ax3.set_xlim(ax2.get_xlim())  # Align both x-axes
             ax2.set_facecolor("#fcfcfc")
             ax2.set_alpha(0.5)
             ax2.set_ylim(0, 1.1)
@@ -2874,23 +2875,23 @@ class ThorPT_plots():
             ax2.legend(legend)
 
         plt.rc('axes', labelsize=16)
-        plt.rc('xtick', labelsize=12)
-        plt.rc('ytick', labelsize=12)
-        plt.figure(111, figsize=(8, 6), facecolor=None)
+        plt.rc('xtick', labelsize=10)
+        plt.rc('ytick', labelsize=10)
+        plt.figure(111, figsize=(9, 6), facecolor=None)
         ax2 = host_subplot(111)
 
-        if np.any(np.diff(temperatures)[np.diff(temperatures) < 0]):
-            plot_stack(ax2, line, y, legend_phases, color_set, transparent)
-            con = round(10 / len(line), 2)
-            con = round(len(line) * con)
-            step = max(round(len(line) / con), 1)
-            fluid_porosity_color = "#4750d4"
-            y2 = (st_fluid_before) / system_vol_pre * 100
-            twin1 = plot_fluid_porosity(ax2, line, y2, frac_bool, fluid_porosity_color)
-            ax3 = ax2.twin()
-            set_labels(ax2, ax3, twin1, tag, temperatures, pressures, line, step, fluid_porosity_color)
-            finalize_plot(ax2, twin1, line, legend_phases)
-        else:
+        #if np.any(np.diff(temperatures)[np.diff(temperatures) < 0]):
+        plot_stack(ax2, line, y, legend_phases, color_set, transparent)
+        con = round(10 / len(line), 2)
+        con = round(len(line) * con)
+        step = max(round(len(line) / 10), 1)
+        fluid_porosity_color = "#4750d4"
+        y2 = (st_fluid_before) / system_vol_pre * 100
+        twin1 = plot_fluid_porosity(ax2, line, y2, frac_bool, fluid_porosity_color)
+        ax3 = ax2.twin()
+        set_labels(ax2, ax3, twin1, tag, temperatures, pressures, line, step, fluid_porosity_color)
+        finalize_plot(ax2, twin1, line, legend_phases)
+        """else:
             plot_stack(ax2, temperatures, y, legend_phases, color_set, transparent)
             fluid_porosity_color = "#4750d4"
             y2 = (st_fluid_before) / system_vol_pre * 100
@@ -2905,7 +2906,7 @@ class ThorPT_plots():
             ax3 = ax2.twiny()
             ax3.plot(np.zeros(len(pressures)), pressures, alpha=0)
             set_labels(ax2, ax3, twin1, tag, temperatures, pressures, temperatures, 1, fluid_porosity_color)
-            finalize_plot(ax2, twin1, temperatures, legend_phases)
+            finalize_plot(ax2, twin1, temperatures, legend_phases)"""
 
         if img_save:
             os.makedirs(f'{self.mainfolder}/img_{self.filename}/{subfolder}', exist_ok=True)
@@ -6647,7 +6648,7 @@ class ThorPT_plots():
         # save the plot
         os.makedirs(
             f'{self.mainfolder}/img_{self.filename}/fracture_mesh', exist_ok=True)
-        plt.savefig(f'{self.mainfolder}/img_{self.filename}/fracture_mesh/heat_map_PT.png',
+        plt.savefig(f'{self.mainfolder}/img_{self.filename}/fracture_mesh/heat_map_PT.pdf',
                     transparent=False, facecolor='white')
 
         # do a colobar based for extraction volume in separate plot
@@ -6662,7 +6663,7 @@ class ThorPT_plots():
         cbar = fig.colorbar(sm, cax=ax, orientation='horizontal')
         cbar.set_label('Extraction Volume')
         # Show the colorbar plot
-        plt.savefig(f'{self.mainfolder}/img_{self.filename}/fracture_mesh/heat_map_PT_colorbar.png',
+        plt.savefig(f'{self.mainfolder}/img_{self.filename}/fracture_mesh/heat_map_PT_colorbar.pdf',
                     transparent=False, facecolor='white')
 
 
@@ -6671,16 +6672,32 @@ class ThorPT_plots():
         cbar = plt.colorbar(sm)
         cbar.set_label('Extraction Volume [%]')"""
 
+        """from scipy.spatial import Delaunay
+        points = np.vstack((np.array(_log_T), np.array(_log_P))).T
+        # Perform Delaunay triangulation
+        tri = Delaunay(points)
+
+        import scipy.interpolate
+        X = np.linspace(min(np.array(_log_T)), max(np.array(_log_T)))
+        Y = np.linspace(min(np.array(_log_P)), max(np.array(_log_P)))
+        X, Y = np.meshgrid(X, Y) 
+        interp = scipy.interpolate.CloughTocher2DInterpolator(list(zip(np.array(_log_T), np.array(_log_P))), np.array(_log_Z_))
+        interp = scipy.interpolate.CloughTocher2DInterpolator(tri, np.array(_log_Z_), fill_value=np.nan, tol=1e-06, maxiter=400)
+        Z = interp(X, Y)
+        plt.pcolormesh(X, Y, Z, shading='auto')
+        plt.plot(np.array(_log_T), np.array(_log_P), "ok", label="input point")
+        plt.legend()
+        plt.colorbar()
+        plt.axis("equal")"""
         
         
         
-        """
         # Interpolate the data in 3D
         Z_grid = griddata((np.array(_log_T), np.array(_log_P)), np.array(_log_Z_), 
-                          (T, P), method='cubic', fill_value=np.nan)
+                          (T, P), method='cubic', fill_value=np.nan, rescale=True)
         
         # flip y axis to match the plot
-        Z_grid = np.flipud(Z_grid)
+        # Z_grid = np.flipud(Z_grid)
         
         # Create a heatmap
         plt.figure(figsize=(10, 8))
@@ -6690,13 +6707,17 @@ class ThorPT_plots():
         plt.xlabel('Temperature [°C]')
         plt.ylabel('Pressure [GPa]')
         plt.title('Interpolated Z values in P-T space')
+        #plt.ylim(0.5, 3.0)
+        #plt.xlim(350, 700)
         
         # save the plot
         os.makedirs(
             f'{self.mainfolder}/img_{self.filename}/fracture_mesh', exist_ok=True)
         plt.savefig(f'{self.mainfolder}/img_{self.filename}/fracture_mesh/heat_map_PT_interpolated.png',
                     transparent=False, facecolor='white')
-        """
+
+
+
     def plot_heatmap_TPZ(self, plot_type='porosity'):
         """Plot heatmap of extraction volumes in T-P-Z space (T on x-axis, P on y-axis, Z on z-axis).
 
@@ -6788,14 +6809,6 @@ class ThorPT_plots():
         cbar = plt.colorbar(sm, ax=ax, orientation='vertical')
         cbar.set_label('Extraction Volume')
 
-        import plotly.tools as tls
-        import plotly.io as pio
-
-        # Convert Matplotlib figure to Plotly
-        plotly_fig = tls.mpl_to_plotly(fig)
-
-        # Save as an interactive HTML file
-        pio.write_html(plotly_fig, "3d_plot.html")
 
         # Show the plot
         # plt.show()
@@ -6821,7 +6834,7 @@ if __name__ == '__main__':
     
     # compPlot.plot_heatmap(plot_type="cumulative")
     compPlot.plot_heatmap_PT(plot_type="cumulative")
-    compPlot.plot_heatmap_TPZ(plot_type="cumulative")
+    # compPlot.plot_heatmap_TPZ(plot_type="cumulative")
 
     for key in data.rock.keys():
         print(key)
