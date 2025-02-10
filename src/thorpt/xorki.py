@@ -6535,6 +6535,7 @@ class ThorPT_plots():
         # Assuming all_porosity is a 2D numpy array
         all_porosity = self.comprock.all_porosity
         all_boolean = self.comprock.all_extraction_boolean
+        all_sys_volume = self.comprock.all_system_vol_pre
         all_boolean_array = []
         extraction_volumes = []
         extraction_volumes_cum = []
@@ -6599,10 +6600,10 @@ class ThorPT_plots():
         _log_P = []
         _log_Z_ = []
 
-        # get largest extraction volume in inhomogeneous list of arrays extraction_volumes (cannot do array because it is inhomogeneous)
+
         # Initialize a variable to hold the largest extraction volume
-        largest_extraction_volume = float('-inf')
-        smallest_extraction_volume = float('inf')
+        largest_extraction_volume = 0
+        smallest_extraction_volume = 100
         # Iterate through each array in the list
         for array in extraction_volumes:
             # Find the maximum value in the current array
@@ -6614,14 +6615,13 @@ class ThorPT_plots():
             if min_value < smallest_extraction_volume:
                 smallest_extraction_volume = min_value
 
-
         for j, arr in enumerate(all_boolean_array):
             temperatures = data.rock[rock_keys[j]].temperature
             pressures = data.rock[rock_keys[j]].pressure
             extractionVol = extraction_volumes[j]
             # plot the pt path
-            plt.plot(temperatures, pressures/10000, color='black', linestyle='--', linewidth=1, alpha=0.5)
-            plt.scatter(temperatures, pressures/10000, color='black', alpha=0.5)
+            # plt.plot(temperatures, pressures/10000, color='black', linestyle='--', linewidth=1, alpha=0.5)
+            # plt.scatter(temperatures, pressures/10000, color='black', alpha=0.5)
             for i, val in enumerate(arr):
                 if val == 0:
                     _log_T.append(temperatures[i])
@@ -6665,6 +6665,77 @@ class ThorPT_plots():
         # Show the colorbar plot
         plt.savefig(f'{self.mainfolder}/img_{self.filename}/fracture_mesh/heat_map_PT_colorbar.pdf',
                     transparent=False, facecolor='white')
+
+        # Plot any compiled list of arrays from the modelling results       
+        def plot_fluid_compiled_list_array(data_list, rock_keys, data, mainfolder, filename, data_name, norming=True):
+            # fluid filled porosity
+            plt.figure(figsize=(10, 8))
+            largest_ffp = 0
+            smallest_ffp = 100
+            for array in data_list:
+                # Find the maximum value in the current array
+                max_value = np.max(array)
+                min_value = np.min(array)
+                # Update the largest extraction volume if the current max_value is larger
+                if max_value > largest_ffp:
+                    largest_ffp = max_value
+                if min_value < smallest_ffp:
+                    smallest_ffp = min_value
+
+
+            for i, val in enumerate(data_list):
+                # Create a colormap
+                cmap = cm.get_cmap('viridis')
+                # Normalize the values to the range [0, 1]
+                norm_values = (val - smallest_ffp) / (largest_ffp - smallest_ffp)
+                # Map the normalized values to colors
+                colors = [cmap(norm_value) for norm_value in norm_values]
+                temperatures = data.rock[rock_keys[i]].temperature
+                pressures = data.rock[rock_keys[i]].pressure
+                # scatter plot of extraction volume as transparent square with color representing the value between 0 and max value in extractionVol
+                if norming == True:
+                    plt.scatter(temperatures, pressures / 10000, 
+                                color=plt.cm.viridis(val / largest_ffp), 
+                                s=100, alpha=0.8, marker='s')
+                else:
+                    plt.scatter(temperatures, pressures / 10000, 
+                            color=colors, 
+                            s=100, alpha=0.8, marker='s')
+            # Add labels and title
+            plt.xlabel('Temperature [°C]')
+            plt.ylabel('Pressure [GPa]')
+            plt.ylim(0.5, 3.0)
+            plt.xlim(350, 700)
+
+            #plt.title(title)
+            # save the plot
+            os.makedirs(
+                f'{mainfolder}/img_{filename}/fracture_mesh', exist_ok=True)
+            plt.savefig(f'{mainfolder}/img_{filename}/fracture_mesh/map_PT_{data_name}.pdf',
+                        transparent=False, facecolor='white')
+
+            # do a colobar based for extraction volume in separate plot
+            # Create a separate colorbar plot
+            fig, ax = plt.subplots(figsize=(6, 1))
+            fig.subplots_adjust(bottom=0.5)
+            # Create a colorbar based on the viridis colormap
+            if norming == True:
+                norm = plt.Normalize(vmin=0, vmax=largest_ffp)
+                sm = plt.cm.ScalarMappable(cmap='viridis', norm=norm)
+                sm.set_array([])
+            else:
+                sm = plt.cm.ScalarMappable(cmap='viridis')
+                sm.set_array([smallest_ffp, largest_ffp])
+
+            # Add the colorbar to the plot
+            cbar = fig.colorbar(sm, cax=ax, orientation='horizontal')
+            cbar.set_label(f'{data_name}')
+            # Show the colorbar plot
+            plt.savefig(f'{mainfolder}/img_{filename}/fracture_mesh/map_PT_colorbar_{data_name}.pdf',
+                        transparent=False, facecolor='white')
+
+        plot_fluid_compiled_list_array(all_porosity, rock_keys, data, self.mainfolder, self.filename, 'porosity')
+        plot_fluid_compiled_list_array(all_sys_volume, rock_keys, data, self.mainfolder, self.filename, 'system_volume', norming=False)
 
 
         """sm = plt.cm.ScalarMappable(cmap='viridis', norm=plt.Normalize(vmin=0, vmax=extraction_volumes[0].max()+1))
@@ -6750,22 +6821,9 @@ class ThorPT_plots():
             extraction_volumes_cum.append(extractionVol)
 
         # Format to arrays
-        all_boolean_array = np.array(all_boolean_array)
-        extraction_volumes = np.array(extraction_volumes)
-        extraction_volumes_cum = np.array(extraction_volumes_cum)
-
-        # Select data to plot based on plot_type
-        if plot_type == 'porosity':
-            data_to_plot = all_porosity * 100
-            title = 'Heatmap of Porosity Values'
-        elif plot_type == 'extracted':
-            data_to_plot = extraction_volumes
-            title = 'Heatmap of Extracted Fluid Volumes'
-        elif plot_type == 'cumulative':
-            data_to_plot = extraction_volumes_cum
-            title = 'Heatmap of Cumulative Extracted Fluid Volumes'
-        else:
-            raise ValueError("Invalid plot_type. Options are 'porosity', 'extracted', 'cumulative'.")
+        # all_boolean_array = np.array(all_boolean_array)
+        #extraction_volumes = np.array(extraction_volumes)
+        # extraction_volumes_cum = np.array(extraction_volumes_cum)
 
         # Reading temperature, pressure, and depth data
         rock_keys = list(self.rockdic.keys())
@@ -6777,8 +6835,21 @@ class ThorPT_plots():
         fig = plt.figure(figsize=(10, 8))
         ax = fig.add_subplot(111, projection='3d')
 
+        # Initialize a variable to hold the largest extraction volume
+        largest_extraction_volume = 0
+        smallest_extraction_volume = 100
+        # Iterate through each array in the list
+        for array in extraction_volumes:
+            # Find the maximum value in the current array
+            max_value = np.max(array)
+            min_value = np.min(array)
+            # Update the largest extraction volume if the current max_value is larger
+            if max_value > largest_extraction_volume:
+                largest_extraction_volume = max_value
+            if min_value < smallest_extraction_volume:
+                smallest_extraction_volume = min_value
         # Normalize the extraction volumes for color mapping
-        norm = mcolors.Normalize(vmin=0, vmax=np.max(extraction_volumes))
+        norm = mcolors.Normalize(vmin=0, vmax=largest_extraction_volume)
 
         # Create a colormap
         cmap = cm.viridis
@@ -6798,7 +6869,7 @@ class ThorPT_plots():
         ax.set_xlabel('Temperature [°C]')
         ax.set_ylabel('Pressure [GPa]')
         ax.set_zlabel('Depth [km]')
-        ax.set_title(title)
+        # ax.set_title(title)
 
         ax.set_ylim(0.5, 3.0)
         ax.set_xlim(350, 700)
@@ -6811,7 +6882,7 @@ class ThorPT_plots():
 
 
         # Show the plot
-        # plt.show()
+        plt.show()
 
 if __name__ == '__main__':
 

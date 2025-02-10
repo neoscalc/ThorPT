@@ -650,14 +650,17 @@ def run_main_routine():
             debugging_recorder.append("Data reduction finished.\n")
 
     # NOTE playsound to be fixed
-    """
     # Play a sound from file location and import a module
-    import winsound
-    winsound.PlaySound(os.path.abspath(f'{dirname}/DataFiles/sound/wow.mp3'), winsound.SND_FILENAME)
-
+    dirname = os.path.dirname(os.path.abspath(__file__))
+    new_folder_path = os.path.join(dirname, 'DataFiles')
+    new_folder_path = os.path.join(dirname, 'sound')
+    sound_01 = os.path.join(new_folder_path, 'wow.mp3')
+    sound_02 = os.path.join(new_folder_path, 'Tequila.mp3')
+    
+    """from playsound import playsound
     playsound(os.path.abspath(f'{dirname}/DataFiles/sound/wow.mp3'))
-    playsound(os.path.abspath(f'{dirname}/DataFiles/sound/Tequila.mp3'))
-    """
+    playsound(os.path.abspath(f'{dirname}/DataFiles/sound/Tequila.mp3'))"""
+
 
     print("Script is ending...\u03BA\u03B1\u03BB\u03B7\u03BD\u03C5\u03C7\u03C4\u03B1!")
     time.sleep(1)
