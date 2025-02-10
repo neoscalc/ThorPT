@@ -6684,12 +6684,24 @@ class ThorPT_plots():
 
 
             for i, val in enumerate(data_list):
+                # np.nan where zeros
                 # Create a colormap
+                # Get the existing colormap
+                # matplotlib.colormaps.get_cmap()`` or ``pyplot.get_cmap()`` instead.
                 cmap = cm.get_cmap('viridis')
+                # Convert the colormap to a list of colors
+                cmap_colors = cmap(np.linspace(0, 1, cmap.N))
+                # Modify the first color to be white
+                cmap_colors[0] = [1, 1, 1, 1]  # RGBA for white  # fake transparent color
+
+                # Create a new colormap with the modified colors
+                cmap = mcolors.ListedColormap(cmap_colors)
+
                 # Normalize the values to the range [0, 1]
                 norm_values = (val - smallest_ffp) / (largest_ffp - smallest_ffp)
                 # Map the normalized values to colors
                 colors = [cmap(norm_value) for norm_value in norm_values]
+
                 temperatures = data.rock[rock_keys[i]].temperature
                 pressures = data.rock[rock_keys[i]].pressure
                 # scatter plot of extraction volume as transparent square with color representing the value between 0 and max value in extractionVol
@@ -6734,9 +6746,135 @@ class ThorPT_plots():
             plt.savefig(f'{mainfolder}/img_{filename}/fracture_mesh/map_PT_colorbar_{data_name}.pdf',
                         transparent=False, facecolor='white')
 
-        plot_fluid_compiled_list_array(all_porosity, rock_keys, data, self.mainfolder, self.filename, 'porosity')
-        plot_fluid_compiled_list_array(all_sys_volume, rock_keys, data, self.mainfolder, self.filename, 'system_volume', norming=False)
+        # plot_fluid_compiled_list_array(all_porosity, rock_keys, data, self.mainfolder, self.filename, 'porosity')
+        # plot_fluid_compiled_list_array(all_sys_volume, rock_keys, data, self.mainfolder, self.filename, 'system_volume', norming=False)
 
+        # record the phase assemblage for each rock in the model and store it in a list
+        phase_assemblages = []
+        # store the formatted data for each rock in the model in a list
+        phase_data = []
+        # store the amount of amphibole
+        amphibole_content = []
+        # store the amount of glaucophane
+        glaucophane_content = []
+        # store zoisite
+        zoisite_content = []
+        # store the amount of omphacite
+        omphacite_content = []
+        # store the amount of hydrous phases
+        hydrous_content = []
+        # store the amount of lawsonite
+        lawsonite_content = []
+        # store the amount of garnet
+        garnet_content = []
+        # store the amount of water
+        water_content = []
+        # store the bulk d18O
+        bulk_d18O = []
+
+        # loop over each rock in the model receiving the data for the rock and mineral phases to reformat into matrices for the plot
+        for i, rock in enumerate(self.rockdic.keys()):
+            ts = self.rockdic[rock].temperature
+            # read the database from the rockdic and store it in a variable
+            database = self.rockdic[rock].database
+            phases2 = list(self.rockdic[rock].phase_data['df_vol%'].columns)
+            legend_phases, color_set = phases_and_colors_XMT(database, phases2)
+
+            # read the vol% data to a variable and replace the NaN values with 0 and transpose the dataframe
+            y = self.rockdic[rock].phase_data['df_vol%'].fillna(value=0)
+            y.columns = legend_phases
+            y = y.T
+
+            # clean the dataframe from multiple phase names - combine rows into one
+            if len(legend_phases) == len(np.unique(legend_phases)):
+                pass
+            else:
+                y, legend_phases, color_set = clean_frame(y, legend_phases, color_set)
+
+            # drop rows with all zeros
+            y = y.loc[(y != 0).any(axis=1)]
+            legend_phases = list(y.index)
+
+            # add the legend_phases to the phase_assemblages list
+            phase_assemblages.append(legend_phases)
+            # add the y dataframe to the phase_data list
+            phase_data.append(y)
+
+            # define the fluid content from the dataframe based on 'Water' and plot it
+            if 'Water' in legend_phases:
+                fluid_val = np.array(y.loc['Water'])
+            else:
+                fluid_val = np.zeros(len(ts))
+
+            # if -Glaucophane-
+            if 'Glaucophane' in legend_phases:
+                glaucophane_val = np.array(y.loc['Glaucophane'])
+            else:
+                glaucophane_val = np.zeros(len(ts))
+            # if -Zoisite-
+            if 'Zoisite' in legend_phases:
+                zoisite_val = np.array(y.loc['Zoisite'])
+            else:
+                zoisite_val = np.zeros(len(ts))
+
+            # if -Omphacite-
+            if 'Omphacite' in legend_phases:
+                omphacite_val = np.array(y.loc['Omphacite'])
+            else:
+                omphacite_val = np.zeros(len(ts))
+
+            # if -Amphibole-
+            if 'Amphibole' in legend_phases:
+                amphibole_val = np.array(y.loc['Amphibole'])
+
+                # lopp through hydrous phases, test if they are in the legend_phases, get the indices and sum their values from y
+                hydrous_phases = ['Muscovite', 'Amphibole', 'Glaucophane', 'Lawsonite', 'Talc', 'Phengite']
+                inid_list = []
+                for item in hydrous_phases:
+                    if item in legend_phases:
+                        inid_list.append(legend_phases.index(item))
+                hydrous_val = np.array(y.iloc[inid_list].sum(axis=0))
+            else:
+                amphibole_val = np.zeros(len(ts))
+
+            # if -Lawsonite- 
+            if 'Lawsonite' in legend_phases:
+                lawsonite_val = np.array(y.loc['Lawsonite'])
+            else:
+                lawsonite_val = np.zeros(len(ts))
+
+            # get the data for garnet
+            if 'Garnet' in legend_phases:
+                garnet_val = np.array(y.loc['Garnet'])
+                # cumulative sum of garnet content
+                garnet_val = np.cumsum(garnet_val)
+            else:
+                garnet_val = np.zeros(len(ts))
+
+            # get oxygen isotope signature of bulk
+            bulk_oxygen_rock = self.rockdic[rock].bulk_deltao_post
+
+            # write the data to the empty list
+            amphibole_content.append(amphibole_val)
+            glaucophane_content.append(glaucophane_val)
+            omphacite_content.append(omphacite_val)
+            try:
+                hydrous_content.append(hydrous_val)
+            except:
+                hydrous_content.append(np.zeros(len(ts)))
+            lawsonite_content.append(lawsonite_val)
+            zoisite_content.append(zoisite_val)
+            garnet_content.append(garnet_val)
+            water_content.append(fluid_val)
+            bulk_d18O.append(bulk_oxygen_rock)
+        
+        plot_fluid_compiled_list_array(lawsonite_content, rock_keys, data, self.mainfolder, self.filename, 'lws_volume_perc', norming=False)
+        plot_fluid_compiled_list_array(zoisite_content, rock_keys, data, self.mainfolder, self.filename, 'zoisite_volume_perc', norming=False)
+        plot_fluid_compiled_list_array(glaucophane_content, rock_keys, data, self.mainfolder, self.filename, 'gln_volume_perc', norming=False)
+        plot_fluid_compiled_list_array(garnet_content, rock_keys, data, self.mainfolder, self.filename, 'grt_volume_perc', norming=False)
+        plot_fluid_compiled_list_array(amphibole_content, rock_keys, data, self.mainfolder, self.filename, 'amph_volume_perc', norming=False)
+        plot_fluid_compiled_list_array(omphacite_content, rock_keys, data, self.mainfolder, self.filename, 'omph_volume_perc', norming=False)
+        plot_fluid_compiled_list_array(bulk_d18O, rock_keys, data, self.mainfolder, self.filename, 'd18O_bulk', norming=False)
 
         """sm = plt.cm.ScalarMappable(cmap='viridis', norm=plt.Normalize(vmin=0, vmax=extraction_volumes[0].max()+1))
         sm._A = []
