@@ -3263,7 +3263,7 @@ class ThorPT_plots():
         oxyframe.replace(0, np.nan, inplace=True)
 
         # Print differences for Garnet and Phengite
-        print("Garnet diff =", oxyframe.loc['Garnet'].max() - oxyframe.loc['Garnet'].min())
+        # print("Garnet diff =", oxyframe.loc['Garnet'].max() - oxyframe.loc['Garnet'].min())
         if 'Phengite' in oxyframe.index:
             print("Phengite diff =", oxyframe.loc['Phengite'].max() - oxyframe.loc['Phengite'].min())
 
@@ -7034,7 +7034,7 @@ if __name__ == '__main__':
 
     # compPlot.bulk_rock_sensitivity_cumVol()
     
-    # compPlot.bulk_rock_sensitivity_twin()
+    compPlot.bulk_rock_sensitivity_twin()
 
     """compPlot.tensile_strength_sensitivity_cumVol()
     compPlot.tensile_strength_sensitivity()"""
@@ -7042,7 +7042,7 @@ if __name__ == '__main__':
 
     
     # compPlot.plot_heatmap(plot_type="cumulative")
-    compPlot.plot_heatmap_PT(plot_type="cumulative")
+    # compPlot.plot_heatmap_PT(plot_type="cumulative")
     # compPlot.plot_heatmap_TPZ(plot_type="cumulative")
 
     for key in data.rock.keys():
