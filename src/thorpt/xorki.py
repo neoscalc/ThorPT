@@ -952,6 +952,7 @@ class Rock:
         garnet: The garnet present in the rock.
         garnets_bools: A boolean indicating the presence of garnets.
         element_record: The record of elements in the rock.
+        pf_values: Record of the fluid pressure values.
     """
     name: str
     temperature: any
@@ -1112,6 +1113,7 @@ class ThorPT_hdf5_reader():
         all_fluid_pressure = []
         all_starting_bulk = []
         all_fluid_pressure_mode = []
+        all_pf_values = []
         all_extracted_fluid_volume = []
         garnets = {}
         sysv = {}
@@ -1186,7 +1188,17 @@ class ThorPT_hdf5_reader():
                 if failure_module_data.empty is True:
                     fluid_pressure = np.array(0)
                 else:
-                    fluid_pressure = failure_module_data['fluid pressure']
+                    fluid_pressure = np.zeros(len(ps))
+                    # searching for the fluid pressure in the failure module data and match with the ps array
+                    # then overwrite the zero at the matching position to store the fluid pressure
+                    for pp, pressure in enumerate(failure_module_data['sigma 3']):
+                        # define the target pressure value
+                        target_val = pressure + failure_module_data['diff stress'][pp]/2
+                        # find value in ps array
+                        for t, val in enumerate(ps):
+                            if target_val == val/10:
+                                fluid_pressure[t] = failure_module_data['fluid pressure'][pp]*10 / val
+
 
                 # get some physics arrays
                 sys_physc = {}
@@ -6537,6 +6549,7 @@ class ThorPT_plots():
         all_porosity = self.comprock.all_porosity
         all_boolean = self.comprock.all_extraction_boolean
         all_sys_volume = self.comprock.all_system_vol_pre
+        all_fluid_pressure = self.comprock.all_fluid_pressure
         all_boolean_array = []
         extraction_volumes = []
         extraction_volumes_cum = []
@@ -6668,11 +6681,12 @@ class ThorPT_plots():
                     transparent=False, facecolor='white')
 
         # Plot any compiled list of arrays from the modelling results       
-        def plot_compiled_list_array(data_list, rock_keys, data, mainfolder, filename, data_name, norming=True):
+        def plot_compiled_list_array(data_list, rock_keys, data, mainfolder, filename, data_name, norming=True, low_val=False, max_val=False, div_color=False):
             # fluid filled porosity
             plt.figure(figsize=(10, 8))
             largest_ffp = 0
             smallest_ffp = 100
+
             for array in data_list:
                 # Find the maximum value in the current array
                 max_value = np.max(array)
@@ -6683,25 +6697,45 @@ class ThorPT_plots():
                 if min_value < smallest_ffp:
                     smallest_ffp = min_value
 
+            # manual adjustment of min and max values
+            if low_val is not False:
+                smallest_ffp = low_val
+            if max_val is not False:
+                largest_ffp = max_val
+
 
             for i, val in enumerate(data_list):
                 # np.nan where zeros
                 # Create a colormap
                 # Get the existing colormap
                 # matplotlib.colormaps.get_cmap()`` or ``pyplot.get_cmap()`` instead.
-                cmap = cm.get_cmap('viridis')
-                # Convert the colormap to a list of colors
-                cmap_colors = cmap(np.linspace(0, 1, cmap.N))
-                # Modify the first color to be white
-                cmap_colors[0] = [1, 1, 1, 1]  # RGBA for white  # fake transparent color
 
-                # Create a new colormap with the modified colors
-                cmap = mcolors.ListedColormap(cmap_colors)
+                if div_color is 'diverging':
+                    cmap = cm.get_cmap('coolwarm')
+                    # Convert the colormap to a list of colors
+                    cmap_colors = cmap(np.linspace(0, 1, cmap.N))
+                    # Modify the first color to be white (fake transparent color)
+                    cmap_colors[0] = [1, 1, 1, 1]  # RGBA for white
+                    # Create a new colormap with the modified colors
+                    cmap = mcolors.ListedColormap(cmap_colors)
+                    # Normalize the values with a custom midpoint
+                    norm = mcolors.TwoSlopeNorm(vmin=smallest_ffp, vcenter=1, vmax=largest_ffp)
+                    # Map the normalized values to colors
+                    colors = [cmap(norm(value)) for value in val]
 
-                # Normalize the values to the range [0, 1]
-                norm_values = (val - smallest_ffp) / (largest_ffp - smallest_ffp)
-                # Map the normalized values to colors
-                colors = [cmap(norm_value) for norm_value in norm_values]
+                else:
+                    cmap = cm.get_cmap('viridis')
+                    # Convert the colormap to a list of colors
+                    cmap_colors = cmap(np.linspace(0, 1, cmap.N))
+                    # Modify the first color to be white
+                    cmap_colors[0] = [1, 1, 1, 1]  # RGBA for white  # fake transparent color
+                    # Create a new colormap with the modified colors
+                    cmap = mcolors.ListedColormap(cmap_colors)
+                    # Normalize the values to the range [0, 1]
+                    norm_values = (val - smallest_ffp) / (largest_ffp - smallest_ffp)
+                    norm = mcolors.Normalize(vmin=smallest_ffp, vmax=largest_ffp)
+                    # Map the normalized values to colors
+                    colors = [cmap(norm_value) for norm_value in norm_values]
 
                 temperatures = data.rock[rock_keys[i]].temperature
                 pressures = data.rock[rock_keys[i]].pressure
@@ -6737,7 +6771,10 @@ class ThorPT_plots():
                 sm = plt.cm.ScalarMappable(cmap='viridis', norm=norm)
                 sm.set_array([])
             else:
-                sm = plt.cm.ScalarMappable(cmap='viridis')
+                if div_color is 'diverging':
+                    sm = plt.cm.ScalarMappable(cmap='coolwarm', norm=norm)
+                else:
+                    sm = plt.cm.ScalarMappable(cmap='viridis', norm=norm)
                 sm.set_array([smallest_ffp, largest_ffp])
 
             # Add the colorbar to the plot
@@ -6879,6 +6916,7 @@ class ThorPT_plots():
         plot_compiled_list_array(amphibole_content, rock_keys, data, self.mainfolder, self.filename, 'amph_volume_perc', norming=False)
         plot_compiled_list_array(omphacite_content, rock_keys, data, self.mainfolder, self.filename, 'omph_volume_perc', norming=False)
         plot_compiled_list_array(bulk_d18O, rock_keys, data, self.mainfolder, self.filename, 'd18O_bulk', norming=False)
+        plot_compiled_list_array(all_fluid_pressure, rock_keys, data, self.mainfolder, self.filename, 'fluid_pressure', norming=False, low_val=0, max_val=2, div_color='diverging')
 
         """sm = plt.cm.ScalarMappable(cmap='viridis', norm=plt.Normalize(vmin=0, vmax=extraction_volumes[0].max()+1))
         sm._A = []
@@ -7036,16 +7074,16 @@ if __name__ == '__main__':
 
     # compPlot.oxygen_isotope_interaction_scenario3(img_save=True, img_type='pdf')
 
-    compPlot.bulk_rock_sensitivity_cumVol()
+    # compPlot.bulk_rock_sensitivity_cumVol()
     
-    compPlot.bulk_rock_sensitivity_twin()
+    # compPlot.bulk_rock_sensitivity_twin()
 
     """compPlot.tensile_strength_sensitivity_cumVol()
     compPlot.tensile_strength_sensitivity()"""
     # compPlot.mohr_coulomb_diagram(rock_tag='rock079')
 
     # compPlot.plot_heatmap(plot_type="cumulative")
-    # compPlot.plot_heatmap_PT(plot_type="cumulative")
+    compPlot.plot_heatmap_PT(plot_type="cumulative")
     # compPlot.plot_heatmap_TPZ(plot_type="cumulative")
 
     from joblib import Parallel, delayed

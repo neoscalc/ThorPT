@@ -606,6 +606,7 @@ class ThorPT_Routines():
 
             # Calculating and passing thermo data by theriak and theriak wrapper
             # ----> self.df_var_dictionary, self.df_all_elements, self.df_hydrous_data_dic, new_fluid_volumes
+                # print("bulk rock minimization")
                 if item != 'rock000':
                     master_rock[item]['minimization'].thermodynamic_looping_station(
                         theriak_input_rock_before = master_rock[all_rock_keys_list[jjj]]['theriak_input_record']
@@ -781,7 +782,6 @@ class ThorPT_Routines():
                             if name == garnet_name:
                                 # Michelles atigorite fractionation
                                 # # if name=='GARNET' or name=='SERP' or name=='BR':
-
                                 # modify the oxygen signature of the bulk rock
                                 new_bulk_oxygen = master_rock[item]['minimization'].mineral_fractionation(
                                     master_rock[item]['save_oxygen'][-1], name)
@@ -838,12 +838,14 @@ class ThorPT_Routines():
                 # Adding the metastable garnet impact
                 # calculate the metastable garnet for all bits besides the last
                 # add the calculated volume to the solid volume of the current step (this is then saved to the st_solid and used next turn)
+            for jjj, item in enumerate(master_rock):
                 grt_flag = True
                 if grt_flag is True and len(master_rock[item]['garnet']) > 0 and len(master_rock[item]['garnet_check']) > 1:
                     if master_rock[item]['garnet_check'][-1] == 0:
                         # take al modelled garnets
                         # LINK - Metastable garnet call
-                        print(f"1MStab-Grt {temperature} --- {pressures[num]}")
+                        # print(f"1MStab-Grt {temperature} --- {pressures[num]}")
+                        # print("garnet minimization")
                         metastable_garnet = Garnet_recalc(self.theriak, master_rock[item]['garnet'], temperature, pressures[num])
                         metastable_garnet.recalculation_of_garnets(database=master_rock[item]['database'], garnet_name=garnet_name)
                         print(f"Fluid volume = {master_rock[item]['fluid_volume_new']} ccm")
@@ -855,6 +857,7 @@ class ThorPT_Routines():
                     if len(master_rock[item]['garnet']) > 1 and master_rock[item]['garnet_check'][-1] == 1:
                         # take all garnets but last one
                         # print(f"2MStab-Grt {temperature} --- {pressures[num]}")
+                        # print("garnet minimization")
                         metastable_garnet = Garnet_recalc(self.theriak, master_rock[item]['garnet'][:-1], temperature, pressures[num])
                         metastable_garnet.recalculation_of_garnets(database=master_rock[item]['database'], garnet_name=garnet_name)
                         # print(f"Fluid volume = {master_rock[item]['fluid_volume_new']} ccm")

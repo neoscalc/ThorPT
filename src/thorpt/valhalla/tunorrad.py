@@ -454,16 +454,34 @@ def run_theriak(theriak_path, database, temperature, pressure, whole_rock, theri
         theriak_output = theriak_output.splitlines()
 
     elif theriak_input_rock_before['bulk'][-1] == whole_rock and theriak_input_rock_before['temperature'][-1] == temperature and theriak_input_rock_before['pressure'][-1] == pressure:
-        print("no minimization - txt-read only")
-        # this argument runs the copy script - avoiding running the same minimization twice
-        # reading the already written theriakoutput
-        # does not call the process but only reads ThkOut.txt into the 'theriak_in_lines'-list
-        output = 1
-        with open('ThkOut.txt', 'rb') as file:
+        with open('ThkRun.log', 'rb') as file:
             # read the txt file and write it into the list
             output = file.read()
 
-        theriak_output = output.decode('utf-8').splitlines()
+        _thk_run_check = output.decode('utf-8').splitlines()
+        if 'GARNET' in _thk_run_check[0]:
+            # Executing minimization for new bulk, P, T condition
+            theriak_xbin_in = database + "\n" + "no\n"
+            theriak_exe = file_to_open / "theriak"
+            out = subprocess.run([theriak_exe],
+                                    input=theriak_xbin_in,
+                                    encoding="utf-8",
+                                    capture_output=True)
+
+            theriak_output = out.stdout
+            theriak_output = theriak_output.splitlines()
+
+        else:
+            print("no minimization - txt-read only")
+            # this argument runs the copy script - avoiding running the same minimization twice
+            # reading the already written theriakoutput
+            # does not call the process but only reads ThkOut.txt into the 'theriak_in_lines'-list
+            output = 1
+            with open('ThkOut.txt', 'rb') as file:
+                # read the txt file and write it into the list
+                output = file.read()
+
+            theriak_output = output.decode('utf-8').splitlines()
 
     else:
         # Executing minimization for new bulk, P, T condition
@@ -2151,7 +2169,7 @@ class Ext_method_master:
 
         # ##########################################
         # Failure envelope test
-        treshold_mod = False
+        treshold_mod = True
         if treshold_mod is True:
             tresh_value = 0.002
         else:
