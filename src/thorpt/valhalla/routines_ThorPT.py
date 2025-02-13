@@ -541,10 +541,10 @@ class ThorPT_Routines():
                 # print(f"{item} Bulk rock composition checked.")
             # print(f"All bulk rock compositions were checked. No error found")
             # print("\n")
-
+            all_rock_keys_list = list(master_rock.keys())
             # LINK 1) Initialisation of the rock system
             # Initialize thermodynamic conditions called from P-T-t path - for each rock in the dictionary
-            for item in master_rock:
+            for jjj, item in enumerate(master_rock):
                 # Start of modelling scheme for rock
                 print("\n")
                 # print("¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦")
@@ -586,10 +586,11 @@ class ThorPT_Routines():
                 """
 
                 master_rock[item]['minimization'] = Therm_dyn_ther_looper(self.theriak,
-                    master_rock[item]['database'], master_rock[item]['new_bulk'],
-                    temperature, pressures[num], master_rock[item]['df_var_dictionary'],
-                    master_rock[item]['df_h2o_content_dic'], master_rock[item]['df_element_total'],
-                    num, fluid_name_tag=master_rock[item]['database_fluid_name'])
+                        master_rock[item]['database'], master_rock[item]['new_bulk'],
+                        temperature, pressures[num], master_rock[item]['df_var_dictionary'],
+                        master_rock[item]['df_h2o_content_dic'], master_rock[item]['df_element_total'],
+                        num, fluid_name_tag=master_rock[item]['database_fluid_name'])
+                    
 
             # //////////////////////////////////////////////////////////////////////////
 
@@ -605,7 +606,12 @@ class ThorPT_Routines():
 
             # Calculating and passing thermo data by theriak and theriak wrapper
             # ----> self.df_var_dictionary, self.df_all_elements, self.df_hydrous_data_dic, new_fluid_volumes
-                master_rock[item]['minimization'].thermodynamic_looping_station()
+                if item != 'rock000':
+                    master_rock[item]['minimization'].thermodynamic_looping_station(
+                        theriak_input_rock_before = master_rock[all_rock_keys_list[jjj]]['theriak_input_record']
+                        )
+                else:
+                    master_rock[item]['minimization'].thermodynamic_looping_station()
 
                 # Main dictionary save
                 # saving G_sys per mol of system

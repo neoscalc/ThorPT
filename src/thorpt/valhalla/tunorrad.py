@@ -397,7 +397,7 @@ def decode_lines(line_number, line_file, number=11, one_element_row=True):
     return temp_dictionary
 
 
-def run_theriak(theriak_path, database, temperature, pressure, whole_rock):
+def run_theriak(theriak_path, database, temperature, pressure, whole_rock, theriak_input_rock_before=False):
     """
     Function to run theriak with specified P-T condition and returns output as a list.
     it includes the path where theriak can be executed, writes the Therin file for the P-T
@@ -417,48 +417,6 @@ def run_theriak(theriak_path, database, temperature, pressure, whole_rock):
         FileNotFoundError: If the theriak executable file is not found.
 
     """
-
-
-    ######################################################################
-    # Old way of calling theriak - now with input by user in init
-    """
-    if platform.system() == 'Windows':
-        data_folder = Path(theriak_path)
-        file_to_open = data_folder / "theriak.exe"
-    else:
-        data_folder = Path(theriak_path)
-        file_to_open = data_folder / "theriak"
-    """
-
-    """
-    main_folder = Path(__file__).parent.absolute()
-    if platform.system() == 'Windows':
-        data_folder = main_folder / "_theriak" / "WIN" / "Programs"
-        file_to_open = data_folder / "theriak.exe"
-    else:
-        data_folder = main_folder / "_theriak" / "MAC" / "Programs"
-        file_to_open = data_folder / "theriak"
-    """
-    """path_split = theriak_path.split("\\")
-    print(path_split)
-    pos = path_split.index("_theriak")
-    path_split = '\\'.join(path_split[:pos])
-
-    # define THERIN and XBIN location
-    therin = Path(path_split) / 'THERIN'
-    xbin = Path(path_split) / 'XBIN'"""
-
-    """# stores the momentary P, T condition passed to Theriak for calculation
-    with open(therin, 'w') as file_object:
-        file_object.write(therin_condition)
-    # opens THERIN and writes new P,T condition
-    # with open('THERIN', 'a') as file_object:
-        file_object.write("\n")
-        file_object.write(whole_rock_write)
-    with open(xbin, 'w') as file_object:
-        file_object.write(database)
-        file_object.write("\n")
-        file_object.write("no")"""
 
     ######################################################################
     # New way of calling theriak - now with input by user in init
@@ -482,17 +440,42 @@ def run_theriak(theriak_path, database, temperature, pressure, whole_rock):
     # Runs Theriak, saves output, strips it to list
     ######################################################################
     # # opens THERIN and writes more input parameters as elemental composition
-
     # Option 1 - Philips approach
-    theriak_xbin_in = database + "\n" + "no\n"
-    theriak_exe = file_to_open / "theriak"
-    out = subprocess.run([theriak_exe],
-                             input=theriak_xbin_in,
-                             encoding="utf-8",
-                             capture_output=True)
+    if theriak_input_rock_before == False:
+        # Executing minimization for new bulk, P, T condition
+        theriak_xbin_in = database + "\n" + "no\n"
+        theriak_exe = file_to_open / "theriak"
+        out = subprocess.run([theriak_exe],
+                                input=theriak_xbin_in,
+                                encoding="utf-8",
+                                capture_output=True)
 
-    theriak_output = out.stdout
-    theriak_output = theriak_output.splitlines()
+        theriak_output = out.stdout
+        theriak_output = theriak_output.splitlines()
+
+    elif theriak_input_rock_before['bulk'][-1] == whole_rock and theriak_input_rock_before['temperature'][-1] == temperature and theriak_input_rock_before['pressure'][-1] == pressure:
+        print("no minimization - txt-read only")
+        # this argument runs the copy script - avoiding running the same minimization twice
+        # reading the already written theriakoutput
+        # does not call the process but only reads ThkOut.txt into the 'theriak_in_lines'-list
+        output = 1
+        with open('ThkOut.txt', 'rb') as file:
+            # read the txt file and write it into the list
+            output = file.read()
+
+        theriak_output = output.decode('utf-8').splitlines()
+
+    else:
+        # Executing minimization for new bulk, P, T condition
+        theriak_xbin_in = database + "\n" + "no\n"
+        theriak_exe = file_to_open / "theriak"
+        out = subprocess.run([theriak_exe],
+                                input=theriak_xbin_in,
+                                encoding="utf-8",
+                                capture_output=True)
+
+        theriak_output = out.stdout
+        theriak_output = theriak_output.splitlines()
 
     ####################################
     # Option 2 - Old approach
@@ -510,7 +493,7 @@ def run_theriak(theriak_path, database, temperature, pressure, whole_rock):
     theriak_in_lines = output.decode('utf-8').splitlines()"""
 
 
-    # reads each line in the output.txt and apends it to the 'theriak_in_lines'-list
+    
     return theriak_output
 
 
@@ -567,7 +550,7 @@ def read_to_dataframe(index_entry, df_index_as_list, input_in_lines, skip=2, num
         pass
 
 
-def read_theriak(theriak_path, database, temperature, pressure, whole_rock):
+def read_theriak(theriak_path, database, temperature, pressure, whole_rock, theriak_input_rock_before):
     """
     Starts and reads the theriak minimization at specific P-T and bulk rock to Dataframes that
     contain the physical values for each stable phase,
@@ -584,18 +567,12 @@ def read_theriak(theriak_path, database, temperature, pressure, whole_rock):
         dict: A dictionary that contains all the created dataframes.
     """
 
-    # Print the calculation inforamtion
-    # print(
-    #     f"--------Calculation for P = {pressure} Bar and T = {temperature} °C-------"
-    #     "With whole rock:"
-    # )
-    # print(whole_rock)
     # Call the connection to the console and execute theriak
     Data_dic = {}
     del Data_dic
     Data_dic = {}
     theriak_in_lines = run_theriak(theriak_path,
-        database, temperature, pressure, whole_rock)
+        database, temperature, pressure, whole_rock, theriak_input_rock_before)
 
     # #######################################################
     # Following reads passages from the theriak output
@@ -1228,7 +1205,10 @@ class Therm_dyn_ther_looper:
         # passing the fluid name tag based on the database used
         self.fluid_name_tag = fluid_name_tag
 
-    def thermodynamic_looping_station(self, marco=False, oversaturation=True):
+    def thermodynamic_looping_station(
+            self, marco=False, oversaturation=False,
+                        theriak_input_rock_before=False
+                        ):
         """
         Calls theriak and passes T, P and bulk rock. Resulting data is read and formatted.
         First check for 'water.fluid' is included.
@@ -1249,7 +1229,8 @@ class Therm_dyn_ther_looper:
         # - returns theriak_data (which is a dictionary with Dataframes)
 
         theriak_data, g_sys, pot_frame = read_theriak(
-            self.theriak_path, self.database, self.temperature, self.pressure, self.bulk_rock)
+            self.theriak_path, self.database, self.temperature, self.pressure, self.bulk_rock,
+            theriak_input_rock_before=theriak_input_rock_before)
 
         # recalculation to delete for oversaturation of water
         if marco is False and oversaturation is False:
@@ -1269,7 +1250,8 @@ class Therm_dyn_ther_looper:
                     reset_bulk = check_redo_bulk(new_bulk)
                     self.bulk_rock = reset_bulk
                     theriak_data, g_sys, pot_frame = read_theriak(
-                        self.theriak_path, self.database, self.temperature, self.pressure, self.bulk_rock)
+                        self.theriak_path, self.database, self.temperature, self.pressure, self.bulk_rock, 
+                        theriak_input_rock_before=theriak_input_rock_before)
 
         self.g_sys = g_sys
         self.pot_frame = pot_frame
@@ -2059,7 +2041,7 @@ class Ext_method_master:
         #n = self.moles_fluid  # moles
         #V1 = self.fluid_t1  # cm^3 (initial volume)
         Vm1 = self.moles_vol_fluid
-        
+
         # Cork parameters - values from Holland and Powell 1991 -
         # A Compensated-Redlich-Kwong (CORK) equation for volumes and fugacities of CO2 and H2O in the range 1 bar to 50 kbar and 100-1600°C
         a0 = 113.4
@@ -2070,7 +2052,7 @@ class Ext_method_master:
 
         b = 1.465  # kJ kbar^-1 mol^-1, converted to L/mol
 
-        """c0 = -3.025650 * 10**-2
+        c0 = -3.025650 * 10**-2
         c1 = -5.343144*10**-6
         c = c0 + c1 * T
 
@@ -2078,7 +2060,7 @@ class Ext_method_master:
         d1 = 2.2215221*10**-6
         d = d0 + d1 * T
 
-        Vm1 = Vm1 + c * np.sqrt(P-P0) + d*(P-P0)"""
+        """Vm1 = Vm1 + c * np.sqrt(P-P0) + d*(P-P0)"""
 
         if self.solid_t1 == vol_t0 and self.fluid_t1 == 0:
             V2 = self.fluid_t1
@@ -2087,11 +2069,15 @@ class Ext_method_master:
             V2 = vol_t0-self.solid_t1
             p2_p1_cork_real = 0
         else:
-            V2 = 1/(self.fluid_t1/(vol_t0-self.solid_t1)) * (Vm1) # - c * np.sqrt(P-P0) - d*(P-P0)
-        
-            p2_p1_cork_real = ( (R * T) / (V2 - b) - (a) / (V2 * (V2 + b) * np.sqrt(T)) ) / \
+            comp_term = c * np.sqrt(litho-0.2) + d*(litho-0.2)
+            # litho - 0.2 is the compensation term and 0.2 is pressure in bar as the value when MRK is deviating at high pressures
+            V2 = 1/(self.fluid_t1/(vol_t0-self.solid_t1)) * (Vm1)
+
+            p2_p1_cork_real = ( (R * T) / (V2 +  - b) - (a) / (V2 * (V2 + b) * np.sqrt(T)) ) / \
                 ( (R * T) / (Vm1 - b) - (a) / (Vm1 * (Vm1 + b) * np.sqrt(T)) )
 
+            """p2_p1_cork_real = ( (R * T) / (V2 + comp_term - b) - (a) / (V2 + comp_term * (V2 + comp_term + b) * np.sqrt(T)) ) / \
+                ( (R * T) / (Vm1 + comp_term - b) - (a) / (Vm1 + comp_term * (Vm1 + comp_term + b) * np.sqrt(T)) )"""
 
         # Fluid pressure calculation
         # fluid pressure close to mean stress
@@ -2165,7 +2151,7 @@ class Ext_method_master:
 
         # ##########################################
         # Failure envelope test
-        treshold_mod = True
+        treshold_mod = False
         if treshold_mod is True:
             tresh_value = 0.002
         else:
@@ -2896,36 +2882,47 @@ class TraceElementDistribution():
         column_sums = np.sum(mass_balanced_trace_elements, axis=0)
         
         # Calculate the coefficient values by dividing the bulk values by the sum of the column
-        k_factor = self.start_bulk.values[0] / column_sums
+        if len(column_sums) == 0:
+            
+            column_sums = np.nan
+            k_factor = self.start_bulk.values[0] / column_sums
 
-        # Calculating the content of element e in mineral
-        # content = K_e * moles_min * D_min-mtrx_e
-        # -----------------------------------------------------------
+            content =  k_factor
+            selected_phase_name_original = 'None'
+            content_df = pd.DataFrame(content)
+            content_df.index = element_list
+            #content_df.columns = selected_phase_name_original
+        else:
+            k_factor = self.start_bulk.values[0] / column_sums
 
-        #content =  k_factor * selected_phase_moles.values  * assembled_matrix_coeff.values
-        content =  k_factor * selected_phase_moles[:, np.newaxis]  * assembled_matrix_coeff.values
+            # Calculating the content of element e in mineral
+            # content = K_e * moles_min * D_min-mtrx_e
+            # -----------------------------------------------------------
+
+            #content =  k_factor * selected_phase_moles.values  * assembled_matrix_coeff.values
+            content =  k_factor * selected_phase_moles[:, np.newaxis]  * assembled_matrix_coeff.values
+            
+            #build dataframe of content
+            #content_df = pd.DataFrame(content, index=selected_phase_moles.index, columns=element_list)
+            #content_df = pd.DataFrame(content, index=selected_phase_moles.index, columns=element_list)
+            content_df = pd.DataFrame(content)
+            content_df.columns = element_list
+            content_df.index = selected_phase_name_original
         
-        #build dataframe of content
-        #content_df = pd.DataFrame(content, index=selected_phase_moles.index, columns=element_list)
-        #content_df = pd.DataFrame(content, index=selected_phase_moles.index, columns=element_list)
-        content_df = pd.DataFrame(content)
-        content_df.columns = element_list
-        content_df.index = selected_phase_name_original
-        
-        """
-        norming = np.array([
-            0.3670, 0.9570, 0.1370, 0.7110, 0.2310, 0.0870, 0.3060, 
-            0.0580, 0.3810, 0.0851, 0.2490, 0.0356, 0.2480, 0.0381])
-        test = content_df/norming
+            """
+            norming = np.array([
+                0.3670, 0.9570, 0.1370, 0.7110, 0.2310, 0.0870, 0.3060, 
+                0.0580, 0.3810, 0.0851, 0.2490, 0.0356, 0.2480, 0.0381])
+            test = content_df/norming
 
-        # test plot in log scale on the y axis, y_label is REE/Chondrite and x_label is elements
-        for phase in test.index:
-            plt.plot(test.loc[phase], 'D--' , label=phase)
-        plt.yscale('log')
-        plt.xlabel('Elements')
-        plt.ylabel('REE/Chondrite')
-        plt.legend()
-        """
+            # test plot in log scale on the y axis, y_label is REE/Chondrite and x_label is elements
+            for phase in test.index:
+                plt.plot(test.loc[phase], 'D--' , label=phase)
+            plt.yscale('log')
+            plt.xlabel('Elements')
+            plt.ylabel('REE/Chondrite')
+            plt.legend()
+            """
         return content_df
 
 
@@ -2980,7 +2977,8 @@ class Garnet_recalc():
             Data_dic, g_sys, pot_frame = read_theriak(
                 self.theriak_path,
                 database=db, temperature=self.temperature,
-                pressure=self.pressure, whole_rock=bulk)
+                pressure=self.pressure, whole_rock=bulk,
+                theriak_input_rock_before=False)
             grt = Data_dic['df_Vol_Dens'].columns[0]
             phase_list = list(Data_dic['df_Vol_Dens'].columns)
 

@@ -6546,7 +6546,7 @@ class ThorPT_plots():
             # Create the cumulative volume of extracted fluid
             take_bool = np.array(all_boolean[i])
             if len(take_bool) != len(all_porosity[i]):
-                take_bool = np.insert(take_bool, 0, 0)
+                take_bool = np.insert(take_bool, 0, 1)
             
             all_boolean_array.append(take_bool)
 
@@ -6587,9 +6587,6 @@ class ThorPT_plots():
         # Create a meshgrid for P-T space
         T, P = np.meshgrid(fine_temperatures, fine_pressures)
 
-        # Initialize an array to hold the interpolated data
-        data_to_plot_fine = np.zeros_like(T)
-
         # Create a heatmap
         plt.figure(figsize=(10, 8))
         """sns.heatmap(data_to_plot_fine, cmap='viridis', cbar=True, 
@@ -6624,20 +6621,21 @@ class ThorPT_plots():
             # plt.plot(temperatures, pressures/10000, color='black', linestyle='--', linewidth=1, alpha=0.5)
             # plt.scatter(temperatures, pressures/10000, color='black', alpha=0.5)
             for i, val in enumerate(arr):
-                if val == 0:
+                # print(val == 0)
+                if val == False:
                     _log_T.append(temperatures[i])
                     _log_P.append(pressures[i])
                     _log_Z_.append(extractionVol[i])
-                
+
                     # scatter plot of extraction volume as transparent square with color representing the value between 0 and max value in extractionVol
                     plt.scatter(temperatures[i], pressures[i] / 10000, 
                                 color=plt.cm.viridis(extractionVol[i] / largest_extraction_volume), 
                                 s=100, alpha=0.8, marker='s')
-                    plt.scatter(temperatures[i], pressures[i]/10000, color='red', s=5)
+                    # plt.scatter(temperatures[i], pressures[i]/10000, color='red', s=5)
                 else:
                     _log_T.append(temperatures[i])
                     _log_P.append(pressures[i])
-                    _log_Z_.append(0)
+                    _log_Z_.append(np.nan)
 
         # Add labels and title
         plt.xlabel('Temperature [°C]')
@@ -6649,7 +6647,7 @@ class ThorPT_plots():
         # save the plot
         os.makedirs(
             f'{self.mainfolder}/img_{self.filename}/fracture_mesh', exist_ok=True)
-        plt.savefig(f'{self.mainfolder}/img_{self.filename}/fracture_mesh/heat_map_PT.pdf',
+        plt.savefig(f'{self.mainfolder}/img_{self.filename}/fracture_mesh/extraction_heat_map_PT.pdf',
                     transparent=False, facecolor='white')
 
         # do a colobar based for extraction volume in separate plot
@@ -6664,11 +6662,13 @@ class ThorPT_plots():
         cbar = fig.colorbar(sm, cax=ax, orientation='horizontal')
         cbar.set_label('Extraction Volume')
         # Show the colorbar plot
-        plt.savefig(f'{self.mainfolder}/img_{self.filename}/fracture_mesh/heat_map_PT_colorbar.pdf',
+        os.makedirs(
+                f'{self.mainfolder}/img_{self.filename}/fracture_mesh/colorbars', exist_ok=True)
+        plt.savefig(f'{self.mainfolder}/img_{self.filename}/fracture_mesh/colorbars/heat_map_PT_colorbar.pdf',
                     transparent=False, facecolor='white')
 
         # Plot any compiled list of arrays from the modelling results       
-        def plot_fluid_compiled_list_array(data_list, rock_keys, data, mainfolder, filename, data_name, norming=True):
+        def plot_compiled_list_array(data_list, rock_keys, data, mainfolder, filename, data_name, norming=True):
             # fluid filled porosity
             plt.figure(figsize=(10, 8))
             largest_ffp = 0
@@ -6744,11 +6744,10 @@ class ThorPT_plots():
             cbar = fig.colorbar(sm, cax=ax, orientation='horizontal')
             cbar.set_label(f'{data_name}')
             # Show the colorbar plot
-            plt.savefig(f'{mainfolder}/img_{filename}/fracture_mesh/map_PT_colorbar_{data_name}.pdf',
+            os.makedirs(
+                f'{mainfolder}/img_{filename}/fracture_mesh/colorbars', exist_ok=True)
+            plt.savefig(f'{mainfolder}/img_{filename}/fracture_mesh/colorbars/map_PT_colorbar_{data_name}.pdf',
                         transparent=False, facecolor='white')
-
-        # plot_fluid_compiled_list_array(all_porosity, rock_keys, data, self.mainfolder, self.filename, 'porosity')
-        # plot_fluid_compiled_list_array(all_sys_volume, rock_keys, data, self.mainfolder, self.filename, 'system_volume', norming=False)
 
         # record the phase assemblage for each rock in the model and store it in a list
         phase_assemblages = []
@@ -6869,13 +6868,17 @@ class ThorPT_plots():
             water_content.append(fluid_val)
             bulk_d18O.append(bulk_oxygen_rock)
         
-        plot_fluid_compiled_list_array(lawsonite_content, rock_keys, data, self.mainfolder, self.filename, 'lws_volume_perc', norming=False)
-        plot_fluid_compiled_list_array(zoisite_content, rock_keys, data, self.mainfolder, self.filename, 'zoisite_volume_perc', norming=False)
-        plot_fluid_compiled_list_array(glaucophane_content, rock_keys, data, self.mainfolder, self.filename, 'gln_volume_perc', norming=False)
-        plot_fluid_compiled_list_array(garnet_content, rock_keys, data, self.mainfolder, self.filename, 'grt_volume_perc', norming=False)
-        plot_fluid_compiled_list_array(amphibole_content, rock_keys, data, self.mainfolder, self.filename, 'amph_volume_perc', norming=False)
-        plot_fluid_compiled_list_array(omphacite_content, rock_keys, data, self.mainfolder, self.filename, 'omph_volume_perc', norming=False)
-        plot_fluid_compiled_list_array(bulk_d18O, rock_keys, data, self.mainfolder, self.filename, 'd18O_bulk', norming=False)
+
+        # plotting the compiled data
+        plot_compiled_list_array(all_porosity, rock_keys, data, self.mainfolder, self.filename, 'porosity')
+        plot_compiled_list_array(all_sys_volume, rock_keys, data, self.mainfolder, self.filename, 'system_volume', norming=False)
+        plot_compiled_list_array(lawsonite_content, rock_keys, data, self.mainfolder, self.filename, 'lws_volume_perc', norming=False)
+        plot_compiled_list_array(zoisite_content, rock_keys, data, self.mainfolder, self.filename, 'zoisite_volume_perc', norming=False)
+        plot_compiled_list_array(glaucophane_content, rock_keys, data, self.mainfolder, self.filename, 'gln_volume_perc', norming=False)
+        plot_compiled_list_array(garnet_content, rock_keys, data, self.mainfolder, self.filename, 'grt_volume_perc', norming=False)
+        plot_compiled_list_array(amphibole_content, rock_keys, data, self.mainfolder, self.filename, 'amph_volume_perc', norming=False)
+        plot_compiled_list_array(omphacite_content, rock_keys, data, self.mainfolder, self.filename, 'omph_volume_perc', norming=False)
+        plot_compiled_list_array(bulk_d18O, rock_keys, data, self.mainfolder, self.filename, 'd18O_bulk', norming=False)
 
         """sm = plt.cm.ScalarMappable(cmap='viridis', norm=plt.Normalize(vmin=0, vmax=extraction_volumes[0].max()+1))
         sm._A = []
@@ -7033,7 +7036,7 @@ if __name__ == '__main__':
 
     # compPlot.oxygen_isotope_interaction_scenario3(img_save=True, img_type='pdf')
 
-    # compPlot.bulk_rock_sensitivity_cumVol()
+    compPlot.bulk_rock_sensitivity_cumVol()
     
     compPlot.bulk_rock_sensitivity_twin()
 
@@ -7041,7 +7044,6 @@ if __name__ == '__main__':
     compPlot.tensile_strength_sensitivity()"""
     # compPlot.mohr_coulomb_diagram(rock_tag='rock079')
 
-    
     # compPlot.plot_heatmap(plot_type="cumulative")
     # compPlot.plot_heatmap_PT(plot_type="cumulative")
     # compPlot.plot_heatmap_TPZ(plot_type="cumulative")
@@ -7056,14 +7058,14 @@ if __name__ == '__main__':
     #            val_tag='volume', transparent=False, 
     #            fluid_porosity=True, cumulative=False, img_type='png'
     #                      )
-#
+    #
     #    compPlot.oxygen_isotopes_v2(rock_tag=key, img_save=True, img_type='png')
         # compPlot.oxygen_isotopes_realtive_v2(rock_tag=key, img_save=True, img_type='pdf')
         #compPlot.phases_stack_plot(rock_tag=key, img_save=True,
         #             val_tag='volume', transparent=False, fluid_porosity=True, cumulative=False, img_type='png')
-        
+
         # compPlot.oxygen_isotopes(rock_tag=key, img_save=True, img_type='png')
-        
+
     # compPlot.fluid_distribution_sgm23(img_save=True, gif_save=True, x_axis_log=False)
 
     """
