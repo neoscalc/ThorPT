@@ -6710,8 +6710,8 @@ class ThorPT_plots():
                 # Get the existing colormap
                 # matplotlib.colormaps.get_cmap()`` or ``pyplot.get_cmap()`` instead.
 
-                if div_color is 'diverging':
-                    cmap = cm.get_cmap('coolwarm')
+                if div_color == 'diverging':
+                    cmap = plt.get_cmap('coolwarm')
                     # Convert the colormap to a list of colors
                     cmap_colors = cmap(np.linspace(0, 1, cmap.N))
                     # Modify the first color to be white (fake transparent color)
@@ -6724,7 +6724,7 @@ class ThorPT_plots():
                     colors = [cmap(norm(value)) for value in val]
 
                 else:
-                    cmap = cm.get_cmap('viridis')
+                    cmap = plt.get_cmap('viridis')
                     # Convert the colormap to a list of colors
                     cmap_colors = cmap(np.linspace(0, 1, cmap.N))
                     # Modify the first color to be white
@@ -6760,6 +6760,10 @@ class ThorPT_plots():
                 f'{mainfolder}/img_{filename}/fracture_mesh', exist_ok=True)
             plt.savefig(f'{mainfolder}/img_{filename}/fracture_mesh/map_PT_{data_name}.pdf',
                         transparent=False, facecolor='white')
+            
+            # close figure
+            plt.clf()
+            plt.close()
 
             # do a colobar based for extraction volume in separate plot
             # Create a separate colorbar plot
@@ -6771,7 +6775,7 @@ class ThorPT_plots():
                 sm = plt.cm.ScalarMappable(cmap='viridis', norm=norm)
                 sm.set_array([])
             else:
-                if div_color is 'diverging':
+                if div_color == 'diverging':
                     sm = plt.cm.ScalarMappable(cmap='coolwarm', norm=norm)
                 else:
                     sm = plt.cm.ScalarMappable(cmap='viridis', norm=norm)
@@ -6785,6 +6789,10 @@ class ThorPT_plots():
                 f'{mainfolder}/img_{filename}/fracture_mesh/colorbars', exist_ok=True)
             plt.savefig(f'{mainfolder}/img_{filename}/fracture_mesh/colorbars/map_PT_colorbar_{data_name}.pdf',
                         transparent=False, facecolor='white')
+
+            # close figure
+            plt.clf()
+            plt.close()
 
         # record the phase assemblage for each rock in the model and store it in a list
         phase_assemblages = []
@@ -6943,7 +6951,7 @@ class ThorPT_plots():
         
         
         
-        # Interpolate the data in 3D
+        """# Interpolate the data in 3D
         Z_grid = griddata((np.array(_log_T), np.array(_log_P)), np.array(_log_Z_), 
                           (T, P), method='cubic', fill_value=np.nan, rescale=True)
         
@@ -6965,7 +6973,7 @@ class ThorPT_plots():
         os.makedirs(
             f'{self.mainfolder}/img_{self.filename}/fracture_mesh', exist_ok=True)
         plt.savefig(f'{self.mainfolder}/img_{self.filename}/fracture_mesh/heat_map_PT_interpolated.png',
-                    transparent=False, facecolor='white')
+                    transparent=False, facecolor='white')"""
 
 
 
@@ -7074,12 +7082,10 @@ if __name__ == '__main__':
 
     # compPlot.oxygen_isotope_interaction_scenario3(img_save=True, img_type='pdf')
 
-    # compPlot.bulk_rock_sensitivity_cumVol()
-    
+    compPlot.bulk_rock_sensitivity_cumVol()
     # compPlot.bulk_rock_sensitivity_twin()
-
-    """compPlot.tensile_strength_sensitivity_cumVol()
-    compPlot.tensile_strength_sensitivity()"""
+    # compPlot.tensile_strength_sensitivity_cumVol()
+    # compPlot.tensile_strength_sensitivity()
     # compPlot.mohr_coulomb_diagram(rock_tag='rock079')
 
     # compPlot.plot_heatmap(plot_type="cumulative")

@@ -517,7 +517,7 @@ class ThorPT_Routines():
             print("New calculation iteration")
             print("Script: unreactive_multi_rock")
             print("===================")
-            print(f"==== 1) time = {track_time[num]} years,\n==== 2) depth = {track_depth[num]}.")
+            # print(f"==== 1) time = {track_time[num]} years,\n==== 2) depth = {track_depth[num]}.")
 
             # //////////////////////////////////////////////////////////////////////////
             # preparing bulk rock for calculation - normalized to 1kg of rock or it is Marco

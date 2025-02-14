@@ -298,12 +298,12 @@ class Pathfinder_Theoule:
         Returns:
             None
         """
-        spl = self.prepare_spline()
+        # spl = self.prepare_spline()
         c_p_list = self.construct_layer_model()
         self.depth = c_p_list[2]
         self.depth_store = c_p_list[2]
         self.time_store = c_p_list[1]
-        new_data = self.fit_model_to_path(c_p_list, spl)
+        new_data = self.fit_model_to_path(c_p_list)
         yinterp, c_p_list = self.filter_steps(new_data[0], [new_data[1], new_data[3], new_data[2]])
         self.select_steps(yinterp, c_p_list)
 
@@ -332,7 +332,7 @@ class Pathfinder_Theoule:
         """
         return crust2layer_model(self.pressure, self.time, self.speed, self.angle, self.dt)
 
-    def fit_model_to_path(self, c_p_list, spl):
+    def fit_model_to_path(self, c_p_list):
         """
         Fit the model to the P-T path.
 
@@ -345,7 +345,7 @@ class Pathfinder_Theoule:
         """
         from scipy.interpolate import splprep, splev
         data = [
-            spl[1][:len(c_p_list[0])], 
+            self.temp[:len(c_p_list[0])], 
             np.array(c_p_list[0]), 
             np.array(c_p_list[2]), 
             np.array(c_p_list[1])
@@ -520,62 +520,6 @@ class Pathfinder_Theoule:
         self.rock_rho = [2800, 3300]  # kg/m3
         self.X_val = [0]
         self.Y_val = []
-
-    def calc_time_model(self,
-                        timestep=1000, t_end=33e6, start_depth=20,
-                        end_depth=80_000, t_start=144e6, rate=1.5, angle=15):
-        """
-        iterating over time and creating P-T-t path
-        """
-        self.timestep = timestep  # in years
-        self.t_end = t_end
-        self.t_start = [t_start]  # default is 144_000_000 years (144 Ma)
-
-        start_depth = start_depth
-        crust_thickness = 1000  # default layer on top
-        self.rate = rate/100  # m/year
-        self.T = [start_depth*self.geotherm+200]  # Temperature in °C
-        self.P = [self.rock_rho[1] * start_depth * 9.81]  # N/m2
-        self.P = [(self.rock_rho[0]*crust_thickness + self.rock_rho[1]
-                   * (start_depth-crust_thickness)) * 9.81]  # N/m2
-
-        self.Y_val = [start_depth]
-        self.end_depth = end_depth
-
-        # self.angle = 15  # degree
-        self.angle = angle
-
-        nt = (self.t_start[-1] - self.t_end) / self.timestep
-        print("Start path calculation. Please wait...")
-        while self.t_start[-1] > self.t_end:
-
-            # print(f"The time is: {self.t_start[-1]/1e6}")
-            Y1 = self.Y_val[-1]
-            x_step = self.rate * self.timestep
-            y_step = self.rate * self.timestep * \
-                abs(np.sin(self.angle/180*np.pi))
-            x = self.X_val[-1] + x_step
-            y = self.Y_val[-1] + y_step
-
-            temp_step = self.geotherm * (y-Y1)
-            press_step = self.rock_rho[1] * (y-Y1) * 9.81
-            T = self.T[-1] + temp_step
-            P = self.P[-1] + press_step
-
-            self.X_val.append(x)
-            self.Y_val.append(y)
-            self.T.append(T)
-            self.P.append(P)
-
-            self.t_start.append(self.t_start[-1] - self.timestep)
-
-            if self.Y_val[-1] > self.end_depth:
-                print("Final depth is reached abort mission")
-                break
-
-        print(f"Depth is {y} Meter")
-        print(f"Pressure is {P/1e9} GPa")
-        print(f"Temperature is {T} °C")
 
     def calc_time_model(self,
                         timestep=1000, t_end=33e6, start_depth=20,
