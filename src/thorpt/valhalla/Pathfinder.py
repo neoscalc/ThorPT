@@ -304,8 +304,8 @@ class Pathfinder_Theoule:
         self.depth_store = c_p_list[2]
         self.time_store = c_p_list[1]
         new_data = self.fit_model_to_path(c_p_list)
-        yinterp, c_p_list = self.filter_steps(new_data[0], [new_data[1], new_data[3], new_data[2]])
-        self.select_steps(yinterp, c_p_list)
+        new_data = self.select_steps(new_data)
+        self.filter_steps(self.temp, [self.pressure, self.depth, self.time])
 
     def prepare_spline(self):
         """
@@ -383,9 +383,7 @@ class Pathfinder_Theoule:
             self.time = np.ones(len(c_p_list[0]))
         new_t = [self.time[0]]
 
-        # do spline of the P-T-d-t path
-
-
+        
         for i, val in enumerate(c_p_list[0]):
             step_p = val - new_y[-1]
             step_t = yinterp[i] - new_x[-1]
@@ -396,17 +394,21 @@ class Pathfinder_Theoule:
                     new_d.append(c_p_list[2][i])
                     new_t.append(c_p_list[1][i])
             elif step_t >= self.t_increment:
-                new_y.append(val)
-                new_x.append(yinterp[i])
-                new_d.append(c_p_list[2][i])
-                new_t.append(c_p_list[1][i])
+                if step_p >= self.p_increment:
+                    new_y.append(val)
+                    new_x.append(yinterp[i])
+                    new_d.append(c_p_list[2][i])
+                    new_t.append(c_p_list[1][i])
         yinterp = np.array(new_x)
         c_p_list = np.array(new_y)
+
+        self.temp = yinterp
+        self.pressure = c_p_list
         self.time = new_t
         self.depth = new_d
-        return yinterp, c_p_list
 
-    def select_steps(self, yinterp, c_p_list):
+
+    def select_steps(self, data):
         """
         Select only steps with temperature >= lower temperature bound.
 
@@ -418,14 +420,15 @@ class Pathfinder_Theoule:
             None
         """
 
-        frame = pd.DataFrame([yinterp, c_p_list, self.time_store, self.depth_store])
+        frame = pd.DataFrame(data)
         cut_T = self.lower_t_bound
         yinterp = np.array(frame.iloc[0][frame.iloc[0] >= cut_T])
         c_p_list = np.array(frame.iloc[1][frame.iloc[0] >= cut_T])
-        self.time = np.array(frame.iloc[2][frame.iloc[0] >= cut_T])
-        self.depth = np.array(frame.iloc[3][frame.iloc[0] >= cut_T])
+        self.time = np.array(frame.iloc[3][frame.iloc[0] >= cut_T])
+        self.depth = np.array(frame.iloc[2][frame.iloc[0] >= cut_T])
         self.temp = yinterp
         self.pressure = c_p_list
+
 
     def loop(self):
         """
