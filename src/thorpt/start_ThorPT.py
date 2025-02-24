@@ -75,6 +75,18 @@ def set_origin():
     dirname = os.path.dirname(os.path.abspath(__file__))
     os.chdir(dirname)
 
+# Function to process bulk composition
+def process_bulk(entry, rock_init):
+    pos = entry.index(":")
+    bulkr = entry[pos+1:].split('\t')[-1]
+    bulkr = bulkr[1:-1].split(',')
+    bulkr = [float(item) for item in bulkr]
+    hydrogen_mole = next(float(inner_entry.split(":")[-1].split('\t')[-1]) for inner_entry in rock_init if 'Mole of H' in inner_entry)
+    carbon_mole = next(float(inner_entry.split(":")[-1].split('\t')[-1]) for inner_entry in rock_init if 'Mole of C' in inner_entry)
+    bulkr.extend([hydrogen_mole, carbon_mole])
+    return bulkr
+
+
 @dataclass
 class rockactivity:
     """
@@ -219,6 +231,26 @@ def run_main_routine():
         init_data['fluid_name_tag'] = []
         init_data['fluid_pressure'] = []
         init_data['fluid_volume'] = []
+
+        # Dictionary to map keys to their corresponding lists in init_data
+        key_map = {
+            'Database': 'database',
+            'Bulk': 'bulk',
+            'OxygenVal': 'oxygen',
+            'Tensile strength': 'Tensile strength',
+            'Geometry': 'geometry',
+            'Friction': 'friction',
+            'ShearStress': 'shear',
+            'Diffential stress': 'diffstress',
+            'Extraction scheme': 'Extraction scheme',
+            'Minimum Permeability': 'Min Permeability',
+            'Fluid phase name': 'fluid_name_tag',
+            'Fluid pressure': 'fluid_pressure',
+            'FluidVolumeTreshold[Vol%]': 'fluid_volume'
+            }
+
+
+
         # TODO add name from init file?
         for rock in rock_dic.keys():
             rock_init = rock_dic[rock]
@@ -287,6 +319,9 @@ def run_main_routine():
                     pos = entry.index(":")
                     fluid_pressure = entry[pos+1:].split('\t')[-1]
                     init_data['fluid_pressure'].append(fluid_pressure.lower())
+
+
+            for entry in rock_init:
                 if "FluidVolumeTreshold[Vol%]" in entry:
                     pos = entry.index(":")
                     fluid_volume = entry[pos+1:].split('\t')[-1]
@@ -299,23 +334,12 @@ def run_main_routine():
 
         debugging_recorder.append("Second init file block succesfully read. All rocks read and stored.\n")
 
-        # test for fluid name from database - now assigned by init file (23.01.2024)
-        """if database[0] == "tc55.txt" or database[0] == "tc55_Serp.txt":
-            init_data['fluid_name_tag'] = "water.fluid"
-        elif database[0] == "JUN92hp.txt":
-            init_data['fluid_name_tag'] = "STEAM"
-        else:
-            print("\nFailure in assigning a fluid name tag to the init file. Please check the database name in the init file.")
-            time.sleep(5)
-            quit()"""
-
         if __name__ == '__main__':
             print("File call __name__ is set to: {}" .format(__name__))
             from valhalla import Pathfinder
             from valhalla import routines_ThorPT
             from valhalla.tunorrad import run_theriak as test_theriak
 
-        debugging_recorder.append("Initialize test run for theriak link.\n")
 
         # test run for theriak
         test_output = test_theriak(init_data['theriak'], 'tc55.txt', 500.0, 20000.0, whole_rock="SI(7.9)AL(2.9)FE(0.8)MN(0.0)MG(1.7)CA(1.8)NA(0.7)TI(0.1)K(0.03)H(0.0)C(0.0)O(?)O(0.0)    * CalculatedBulk")
@@ -341,10 +365,7 @@ def run_main_routine():
         path = init_data['Path']
         rock_bulk = init_data['Bulk']
         oxygen = init_data['Oxygen']
-        # is already set: extraction = init_data['Extraction']
         lowest_permeability = init_data['Min Permeability']
-        # NOTE deactivated general shear stress to unique shear
-        # shear_stress = init_data['shearstress']
 
         # Deactivate grt fractionation
         if 'grt_frac_off' in init_data.keys():
@@ -355,19 +376,10 @@ def run_main_routine():
         # /////////////////////////////////////////////////////
         # LINK P-T-t path selection
         # Choose P-T path scheme - True is active
-        calc_path = False
-        vho = False
-        pathfinder = False
-
-        # All options
-        if path == "Calculus":
-            calc_path = True
-        if path == "Vho":
-            vho = True
-        if path == "Finder":
-            pathfinder = True
-        if path == 'OlivineMod':
-            olivine = True
+        calc_path = path == "Calculus"
+        vho = path == "Vho"
+        pathfinder = path == "Finder"
+        olivine = path == 'OlivineMod'
 
         path_arguments = init_data['path_arguments']
         path_increment = init_data['path_increment']
@@ -471,99 +483,67 @@ def run_main_routine():
         # LINK rock directory
         # Setting up the main data directory for on-the-fly storage
         # each rock gets its own tag in master-rock dictionary
+        # LINK rock directory
         master_rock = {}
-        count = 0
         for i, item in enumerate(rock_bulk):
             tag = 'rock' + f"{i:03}"
-            master_rock[tag] = {}
-
-            # double check counter
-            master_rock[tag]['count'] = 0
-
-            # basic inputs
-            master_rock[tag]['bulk'] = item
-            master_rock[tag]['depth'] = depth
-            master_rock[tag]['database'] = database[i]
-            master_rock[tag]['theriak_input_record'] = False
-
-            # System data
-            master_rock[tag]['df_var_dictionary'] = {}
-            master_rock[tag]['df_h2o_content_dic'] = {}
-            master_rock[tag]['df_element_total'] = pd.DataFrame()
-            master_rock[tag]['g_sys'] = []
-            master_rock[tag]['pot_data'] = []
-            master_rock[tag]['mica_K'] = []
-            master_rock[tag]['geometry'] = init_data['geometry'][i]
-
-
-            # FIXME CLEANING no master norm needed
-            master_rock[tag]['master_norm'] = []
-
-            # Fluid data and system check
-            master_rock[tag]['st_fluid_before'] = []
-            master_rock[tag]['st_fluid_after'] = []
-            master_rock[tag]['st_solid'] = []
-            master_rock[tag]['st_elements'] = pd.DataFrame()
-            master_rock[tag]['extracted_fluid_data'] = pd.DataFrame()
-            master_rock[tag]['fluid_hydrogen'] = []
-            master_rock[tag]['fluid_oxygen'] = []
-            master_rock[tag]['track_refolidv'] = []
-            master_rock[tag]['database_fluid_name'] = init_data['fluid_name_tag'][i]
-            master_rock[tag]['fluid_pressure_mode'] = init_data['fluid_pressure'][i]
-
-            # Isotope data
-            master_rock[tag]['save_oxygen'] = []
-            master_rock[tag]['bulk_oxygen'] = oxygen[i]
-            master_rock[tag]['save_bulk_oxygen_pre'] = []
-            master_rock[tag]['save_bulk_oxygen_post'] = []
-            master_rock[tag]['bulk_oxygen_before_influx'] = []
-            master_rock[tag]['bulk_oxygen_after_influx'] = []
-
-            # trace element data
-            master_rock[tag]['trace_element_data'] = {}
-            master_rock[tag]['trace_element_bulk'] = {}
-
-            # fluid extraction
-            master_rock[tag]['extr_time'] = []
-            master_rock[tag]['extr_svol'] = []
-            master_rock[tag]['tensile strength'] = init_data['Tensile strength'][i]
+            master_rock[tag] = {
+                'count': 0,
+                'bulk': item,
+                'depth': depth,
+                'database': database[i],
+                'theriak_input_record': False,
+                'df_var_dictionary': {},
+                'df_h2o_content_dic': {},
+                'df_element_total': pd.DataFrame(),
+                'g_sys': [],
+                'pot_data': [],
+                'mica_K': [],
+                'geometry': init_data['geometry'][i],
+                'master_norm': [],
+                'st_fluid_before': [],
+                'st_fluid_after': [],
+                'st_solid': [],
+                'st_elements': pd.DataFrame(),
+                'extracted_fluid_data': pd.DataFrame(),
+                'fluid_hydrogen': [],
+                'fluid_oxygen': [],
+                'track_refolidv': [],
+                'database_fluid_name': init_data['fluid_name_tag'][i],
+                'fluid_pressure_mode': init_data['fluid_pressure'][i],
+                'save_oxygen': [],
+                'bulk_oxygen': oxygen[i],
+                'save_bulk_oxygen_pre': [],
+                'save_bulk_oxygen_post': [],
+                'bulk_oxygen_before_influx': [],
+                'bulk_oxygen_after_influx': [],
+                'trace_element_data': {},
+                'trace_element_bulk': {},
+                'extr_time': [],
+                'extr_svol': [],
+                'tensile strength': init_data['Tensile strength'][i],
+                'fracture bool': [],
+                'save_factor': [],
+                'friction': init_data['friction'][i],
+                'Extraction scheme': init_data['Extraction scheme'][i],
+                'failure module': [],
+                'fluid_influx_data': pd.DataFrame(),
+                'garnet': [],
+                'garnet_check': [],
+                'meta_grt_volume': [],
+                'meta_grt_weight': [],
+                'live_fluid-flux': [],
+                'live_permeability': [],
+                'reactivity': rockactivity(function='base', react=False) if tag == 'rock000' else rockactivity(function='stack', react=False)
+            }
             if len(init_data['diffstress']) > 0:
                 master_rock[tag]['diff. stress'] = init_data['diffstress'][i]
-
-            master_rock[tag]['fracture bool'] = []
-            master_rock[tag]['save_factor'] = []
-            master_rock[tag]['friction'] = init_data['friction'][i]
-            # master_rock[tag]['cohesion'] = init_data['cohesion'][i]
             if len(init_data['shear']) > 0:
                 master_rock[tag]['shear'] = init_data['shear'][i]
-
-            master_rock[tag]['Extraction scheme'] = init_data['Extraction scheme'][i]
-            master_rock[tag]['failure module'] = []
-
             if 'fluid_volume' in init_data.keys():
-                master_rock[tag]['extraction treshold'] = init_data['fluid_volume'][i]/100
+                master_rock[tag]['extraction treshold'] = init_data['fluid_volume'][i] / 100
             else:
                 master_rock[tag]['extraction treshold'] = False
-
-            # fluid input from external
-            master_rock[tag]["fluid_influx_data"] = pd.DataFrame()
-
-            # metastable garnet
-            master_rock[tag]['garnet'] = []
-            master_rock[tag]['garnet_check'] = []
-            master_rock[tag]['meta_grt_volume'] = []
-            master_rock[tag]['meta_grt_weight'] = [] # recalculated weight of garnet shells for each rock modelled
-
-            # Fluid fluxes and permeabiltiy
-            master_rock[tag]['live_fluid-flux'] = []
-            master_rock[tag]['live_permeability'] = []
-
-            # Reactivity for fluid transport
-            # FIXME - static rock name
-            if tag == 'rock000':
-                master_rock[tag]['reactivity'] = rockactivity(function='base', react=False)
-            else:
-                master_rock[tag]['reactivity'] = rockactivity(function='stack', react=False)
 
         # copy pf the master rock dictionary to save all original data before modification while the routine
         rock_origin = copy.deepcopy(master_rock)
@@ -644,16 +624,14 @@ def run_main_routine():
             print("Script is ending...\u03BA\u03B1\u03BB\u03B7\u03BD\u03C5\u03C7\u03C4\u03B1!")
 
 
-        if answer == 1 or answer == 2 or answer == 3:
-
+        if answer in [1, 2, 3]:
             sound_flag = True
-            if sound_flag is True:
+            if sound_flag:
                 # ANCHOR Sound at end of routine run
                 pass
                 # playsound(r'C:/Users/Markmann/Downloads/Tequila.mp3')
 
             # Call the data reduction function
-            # ThorPT.data_reduction()
             debugging_recorder.append("Routine finished.\n")
             debugging_recorder.append("Data reduction is starting.\n")
             ThorPT.data_reduction(init_file)
@@ -666,10 +644,6 @@ def run_main_routine():
     new_folder_path = os.path.join(dirname, 'sound')
     sound_01 = os.path.join(new_folder_path, 'wow.mp3')
     sound_02 = os.path.join(new_folder_path, 'Tequila.mp3')
-    
-    """from playsound import playsound
-    playsound(os.path.abspath(f'{dirname}/DataFiles/sound/wow.mp3'))
-    playsound(os.path.abspath(f'{dirname}/DataFiles/sound/Tequila.mp3'))"""
 
 
     print("Script is ending...\u03BA\u03B1\u03BB\u03B7\u03BD\u03C5\u03C7\u03C4\u03B1!")

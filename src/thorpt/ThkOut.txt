@@ -4,8 +4,8 @@
 
  Input from file THERIN
  ----------------------
- T =  500.00 C     P = 20000.00 Bar
- 1   SI(7.9)AL(2.9)FE(0.8)MN(0.0)MG(1.7)CA(1.8)NA(0.7)TI(0.1)K(0.03)H(0.0)C(0.0)O(?)O(0.0)    * CalculatedBulk
+ T =  743.24 C     P = 27267.63 Bar
+ 1   O(11.999487)AL(1.999875)CA(0.458292)FE(0.694468)H(0.000000)K(0.000000)MG(1.847229)NA(0.000000)SI(2.999872)TI(0.000000)    * grt extract bulk
 
  ---------------------------
  define type of calculations
@@ -14,384 +14,89 @@
  TEST = 1.0000E-09        LO1MAX = 350             EQUALX = 1.0000E-02      DELXMIN = 3.0000E-09
  DELXSCAN = 1.0000E+00    DELXSTAR = 1.0000E-03    STEPSTAR = 780           STEPMAX = 300            GCMAX =  300
 
- P = 20000.00 bar    P(Gas) = 20000.00 bar    T =  500.00 C   =   773.15 K
+ P = 27267.63 bar    P(Gas) = 27267.63 bar    T =  743.24 C   =  1016.39 K
 
  ------------
  composition:        N           N             mol%
  ------------
  
-   1  O          25.015000   2.50150E+01    61.094151
-   2  AL          2.900000   2.90000E+00     7.082672
-   3  CA          1.800000   1.80000E+00     4.396141
-   4  FE          0.800000   8.00000E-01     1.953841
-   5  K           0.030000   3.00000E-02     0.073269
-   6  MG          1.700000   1.70000E+00     4.151911
-   7  NA          0.700000   7.00000E-01     1.709610
-   8  SI          7.900000   7.90000E+00    19.294175
-   9  TI          0.100000   1.00000E-01     0.244230
-  10  E           0.000000   0.00000E+00     0.000000
+   1  O          11.999487   1.19995E+01    59.999766
+   2  AL          1.999875   1.99988E+00     9.999763
+   3  CA          0.458292   4.58292E-01     2.291549
+   4  FE          0.694468   6.94468E-01     3.472475
+   5  MG          1.847229   1.84723E+00     9.236504
+   6  SI          2.999872   2.99987E+00    14.999943
+   7  E           0.000000   0.00000E+00     0.000000
+ 
+ use:  GARNET 
 
  ------------------
  considered phases:
  ------------------
-                                   G       O     AL    CA    FE    K     MG    NA    SI    TI    E    
+                                   G       O     AL    CA    FE    MG    SI    E    
  
-   1  "O"              :           0.00    1.00   -     -     -     -     -     -     -     -     -                                  
-   2  "AL"             :           0.00     -    1.00   -     -     -     -     -     -     -     -                                  
-   3  "CA"             :           0.00     -     -    1.00   -     -     -     -     -     -     -                                  
-   4  "FE"             :           0.00     -     -     -    1.00   -     -     -     -     -     -                                  
-   5  "K"              :           0.00     -     -     -     -    1.00   -     -     -     -     -                                  
-   6  "MG"             :           0.00     -     -     -     -     -    1.00   -     -     -     -                                  
-   7  "NA"             :           0.00     -     -     -     -     -     -    1.00   -     -     -                                  
-   8  "SI"             :           0.00     -     -     -     -     -     -     -    1.00   -     -                                  
-   9  "TI"             :           0.00     -     -     -     -     -     -     -     -    1.00   -                                  
-  10  "E"              :           0.00     -     -     -     -     -     -     -     -     -    1.00                                
-  11  forsterite       :    -2193923.99    4.00   -     -     -     -    2.00   -    1.00   -     -                                  
-  12  fayalite         :    -1541563.36    4.00   -     -    2.00   -     -     -    1.00   -     -                                  
-  13  larn-bredigite   :    -2340294.71    4.00   -    2.00   -     -     -     -    1.00   -     -                                  
-  14  monticellite     :    -2270563.78    4.00   -    1.00   -     -    1.00   -    1.00   -     -                                  
-  15  pyrope           :    -6364802.00   12.00  2.00   -     -     -    3.00   -    3.00   -     -                                  
-  16  almandine        :    -5401364.95   12.00  2.00   -    3.00   -     -     -    3.00   -     -                                  
-  17  grossular        :    -6692457.42   12.00  2.00  3.00   -     -     -     -    3.00   -     -                                  
-  18  andradite        :    -5856631.75   12.00   -    3.00  2.00   -     -     -    3.00   -     -                                  
-  19  osumilitE_1      :   -14994912.39   30.00  5.00   -     -    1.00  2.00   -   10.00   -     -                                  
-  20  osumilitE_2      :   -14844160.08   30.00  3.00   -     -    1.00  3.00   -   11.00   -     -                                  
-  21  Fe-osumilite     :   -14316704.86   30.00  5.00   -    2.00  1.00   -     -   10.00   -     -                                  
-  22  andalusite       :    -2596660.31    5.00  2.00   -     -     -     -     -    1.00   -     -                                  
-  23  kyanite          :    -2608536.06    5.00  2.00   -     -     -     -     -    1.00   -     -                                  
-  24  sillimanite      :    -2599355.61    5.00  2.00   -     -     -     -     -    1.00   -     -                                  
-  25  merwinite        :    -4619254.25    8.00   -    3.00   -     -    1.00   -    2.00   -     -                                  
-  26  gehlenite        :    -4025463.77    7.00  2.00  2.00   -     -     -     -    1.00   -     -                                  
-  27  akermanite       :    -3908132.59    7.00   -    2.00   -     -    1.00   -    2.00   -     -                                  
-  28  rankinite        :    -3977620.04    7.00   -    3.00   -     -     -     -    2.00   -     -                                  
-  29  cordierite       :    -9158650.85   18.00  4.00   -     -     -    2.00   -    5.00   -     -                                  
-  30  Fe-cordierite    :    -8478473.82   18.00  4.00   -    2.00   -     -     -    5.00   -     -                                  
-  31  sphene           :    -2627823.57    5.00   -    1.00   -     -     -     -    1.00  1.00   -                                  
-  32  enstatite        :    -3118174.37    6.00   -     -     -     -    2.00   -    2.00   -     -                                  
-  33  ferrosilite      :    -2456857.74    6.00   -     -    2.00   -     -     -    2.00   -     -                                  
-  34  Mg-Tscher.pyx    :    -3222573.61    6.00  2.00   -     -     -    1.00   -    1.00   -     -                                  
-  35  diopside         :    -3231691.77    6.00   -    1.00   -     -    1.00   -    2.00   -     -                                  
-  36  hedenbergite     :    -2895465.56    6.00   -    1.00  1.00   -     -     -    2.00   -     -                                  
-  37  jadeite          :    -3059616.71    6.00  1.00   -     -     -     -    1.00  2.00   -     -                                  
-  38  acmite           :    -2641221.39    6.00   -     -    1.00   -     -    1.00  2.00   -     -                                  
-  39  Ca-Tscher.pyx    :    -3338090.24    6.00  2.00  1.00   -     -     -     -    1.00   -     -                                  
-  40  wollastonite     :    -1644336.14    3.00   -    1.00   -     -     -     -    1.00   -     -                                  
-  41  ps-wollastonite  :    -1641267.89    3.00   -    1.00   -     -     -     -    1.00   -     -                                  
-  42  sapphirine_351   :   -11238908.99   20.00 10.00   -     -     -    3.00   -    1.00   -     -                                  
-  43  sapphirine_221   :   -11124409.39   20.00  8.00   -     -     -    4.00   -    2.00   -     -                                  
-  44  Fe-sapph_221     :    -9799374.31   20.00  8.00   -    4.00   -     -     -    2.00   -     -                                  
-  45  high-albite      :    -3960257.99    8.00  1.00   -     -     -     -    1.00  3.00   -     -                                  
-  46  microcline       :    -3989796.15    8.00  1.00   -     -    1.00   -     -    3.00   -     -                                  
-  47  sanidine         :    -3990311.70    8.00  1.00   -     -    1.00   -     -    3.00   -     -                                  
-  48  anorthite        :    -4253278.61    8.00  2.00  1.00   -     -     -     -    2.00   -     -                                  
-  49  quartz           :     -911685.32    2.00   -     -     -     -     -     -    1.00   -     -                                  
-  50  tridymite        :     -903248.05    2.00   -     -     -     -     -     -    1.00   -     -                                  
-  51  cristobalite     :     -904762.24    2.00   -     -     -     -     -     -    1.00   -     -                                  
-  52  coesite          :     -910163.96    2.00   -     -     -     -     -     -    1.00   -     -                                  
-  53  stishovite       :     -880653.16    2.00   -     -     -     -     -     -    1.00   -     -                                  
-  54  nepheline        :    -2118089.53    4.00  1.00   -     -     -     -    1.00  1.00   -     -                                  
-  55  kalsilite        :    -2141459.14    4.00  1.00   -     -    1.00   -     -    1.00   -     -                                  
-  56  leucite          :    -3055702.84    6.00  1.00   -     -    1.00   -     -    2.00   -     -                                  
-  57  lime             :     -642838.87    1.00   -    1.00   -     -     -     -     -     -     -                                  
-  58  rutile           :     -961365.85    2.00   -     -     -     -     -     -     -    1.00   -                                  
-  59  periclase        :     -610822.66    1.00   -     -     -     -    1.00   -     -     -     -                                  
-  60  corundum         :    -1688652.98    3.00  2.00   -     -     -     -     -     -     -     -                                  
-  61  hematite         :     -864142.23    3.00   -     -    2.00   -     -     -     -     -     -                                  
-  62  geikielite       :    -1591042.04    3.00   -     -     -     -    1.00   -     -    1.00   -                                  
-  63  spinel           :    -2321157.54    4.00  2.00   -     -     -    1.00   -     -     -     -                                  
-  64  hercynite        :    -1999959.52    4.00  2.00   -    1.00   -     -     -     -     -     -                                  
-  65  magnetite        :    -1185314.19    4.00   -     -    3.00   -     -     -     -     -     -                                  
-  66  magnesioferrite  :    -1492786.13    4.00   -     -    2.00   -    1.00   -     -     -     -                                  
-  67  ulvospinel       :    -1580011.13    4.00   -     -    2.00   -     -     -     -    1.00   -                                  
-  68  oxygen           :     -166620.86    2.00   -     -     -     -     -     -     -     -     -                                  
-  69  forsterite.liq   :    -2165883.36    4.00   -     -     -     -    2.00   -    1.00   -     -                                  
-  70  fayalite.liq     :    -1505477.15    4.00   -     -    2.00   -     -     -    1.00   -     -                                  
-  71  sillimanite.liq  :    -2550866.38    5.00  2.00   -     -     -     -     -    1.00   -     -                                  
-  72  anorthite.liq    :    -4209981.41    8.00  2.00  1.00   -     -     -     -    2.00   -     -                                  
-  73  enstatite.liq    :    -3045619.52    6.00   -     -     -     -    2.00   -    2.00   -     -                                  
-  74  K-feldspar.liq   :    -3964458.55    8.00  1.00   -     -    1.00   -     -    3.00   -     -                                  
-  75  Silica.liq       :     -903595.22    2.00   -     -     -     -     -     -    1.00   -     -                                  
-  76  diopside.liq     :    -3170040.89    6.00   -    1.00   -     -    1.00   -    2.00   -     -                                  
-  77  albite.liq       :    -3929059.20    8.00  1.00   -     -     -     -    1.00  3.00   -     -                                  
-  78  anorthiteC1      :    -4249851.49    8.00  2.00  1.00   -     -     -     -    2.00   -     -                                  
-  79  omphacite        :    -3149154.24    6.00  0.50  0.50   -     -    0.50  0.50  2.00   -     -                                  
-  80  FM.pyx           :    -2794466.05    6.00   -     -    1.00   -    1.00   -    2.00   -     -                                  
-  81  mots             :    -2788318.24    6.00  1.00   -    1.00   -    1.00   -    1.00   -     -                                  
-  82  Fe-osum_2        :   -13826848.79   30.00  3.00   -    3.00  1.00   -     -   11.00   -     -                                  
+   1  "O"              :           0.00    1.00   -     -     -     -     -     -                                                    
+   2  "AL"             :           0.00     -    1.00   -     -     -     -     -                                                    
+   3  "CA"             :           0.00     -     -    1.00   -     -     -     -                                                    
+   4  "FE"             :           0.00     -     -     -    1.00   -     -     -                                                    
+   5  "MG"             :           0.00     -     -     -     -    1.00   -     -                                                    
+   6  "SI"             :           0.00     -     -     -     -     -    1.00   -                                                    
+   7  "E"              :           0.00     -     -     -     -     -     -    1.00                                                  
+   8  pyrope           :    -6456823.91   12.00  2.00   -     -    3.00  3.00   -                                                    
+   9  almandine        :    -5514902.80   12.00  2.00   -    3.00   -    3.00   -                                                    
+  10  grossular        :    -6774074.99   12.00  2.00  3.00   -     -    3.00   -                                                    
 
  ----------------
  solution phases:
  ----------------
-   1  OLIVINEi         :            solution model:  ideal one site mixing                                                           
-                                    info: ideal                                                                           
-      fayalite           [M]:Fe,Fe                                                                                                   
-      forsterite         [M]:Mg,Mg                                                                                                   
-                                                                                                                                     
-        1  fayalite         ( 12)   A(fa) = X(fa) ) ** 2.000                                                                         
-                                                                                                                                     
-        2  forsterite       ( 11)   A(fo) = X(fo) ) ** 2.000                                                                         
-
-
-   2  FSP              :            solution model:  ideal one site mixing + Margules type excess function                           
-                                    info: ideal+margules                                                                  
-      sanidine           [M]:K                                                                                                       
-      high-albite        [M]:Na                                                                                                      
-      anorthiteC1        [M]:Ca                                                                                                      
-                                                                                                                                     
-        1  sanidine         ( 47)   A(san) = X(san)                                                                                  
-                                                                                                                                     
-        2  high-albite      ( 45)   A(abh) = X(abh)                                                                                  
-                                                                                                                                     
-        3  anorthiteC1      ( 78)   A(anc1) = X(anc1)                                                                                
-
-      Margules parameters:   W(23) =      3100.00        W(12) =     23509.98        W(13) =     40000.00                            
-                             K= 0.00                     K= 0.00                     K= 0.00
-
- asymmetry parameters:
-     sanidine             1.000
-     high-albite          0.643
-     anorthiteC1          1.000
-
-
-   3  GARNET           :            solution model:  "ideal"  1 site mixing + Margules type excess function                          
+   1  GARNET           :            solution model:  "ideal"  1 site mixing + Margules type excess function                          
                                     info: site mixing+margules                                                            
       grossular          [M]:Ca,Ca,Ca                                                                                                
       pyrope             [M]:Mg,Mg,Mg                                                                                                
       almandine          [M]:Fe,Fe,Fe                                                                                                
                                                                                                                                      
-        1  grossular        ( 17)   A(gr) =     1.00 *  X[Ca(M)] * X[Ca(M)] * X[Ca(M)]                                               
+        1  grossular        ( 10)   A(gr) =     1.00 *  X[Ca(M)] * X[Ca(M)] * X[Ca(M)]                                               
                                                                                                                                      
-        2  pyrope           ( 15)   A(py) =     1.00 *  X[Mg(M)] * X[Mg(M)] * X[Mg(M)]                                               
+        2  pyrope           (  8)   A(py) =     1.00 *  X[Mg(M)] * X[Mg(M)] * X[Mg(M)]                                               
                                                                                                                                      
-        3  almandine        ( 16)   A(alm) =     1.00 *  X[Fe(M)] * X[Fe(M)] * X[Fe(M)]                                              
+        3  almandine        (  9)   A(alm) =     1.00 *  X[Fe(M)] * X[Fe(M)] * X[Fe(M)]                                              
 
       Margules parameters:   W(21) =     33000.00        W(23) =      2500.00                                                        
                              K= 0.00                     K= 0.00
 
 
-   4  OMPH             :            solution model:  "ideal"  2 site mixing + Margules type excess function                          
-                                    info: site mixing+margules                                                            
-      diopside           [M1a]:Ca,Mg    [M1b]:Ca,Mg                                                                                  
-      jadeite            [M1a]:Al,Al    [M1b]:Al,Al                                                                                  
-      hedenbergite       [M1a]:Ca,Fe    [M1b]:Ca,Fe                                                                                  
-      omphacite          [M1a]:Al,Al    [M1b]:Ca,Mg                                                                                  
-                                                                                                                                     
-        1  diopside         ( 35)   A(di) = (    16.00 *  X[Ca(M1a)] * X[Mg(M1a)] * X[Ca(M1b)] * X[Mg(M1b)] ) ** 0.500               
-                                                                                                                                     
-        2  jadeite          ( 37)   A(jd) = (     1.00 *  X[Al(M1a)] * X[Al(M1a)] * X[Al(M1b)] * X[Al(M1b)] ) ** 0.500               
-                                                                                                                                     
-        3  hedenbergite     ( 36)   A(hed) = (    16.00 *  X[Ca(M1a)] * X[Fe(M1a)] * X[Ca(M1b)] * X[Fe(M1b)] ) ** 0.500              
-                                                                                                                                     
-        4  omphacite        ( 79)   A(om) = (     4.00 *  X[Al(M1a)] * X[Al(M1a)] * X[Ca(M1b)] * X[Mg(M1b)] ) ** 0.500               
-
-      site mixing model includes "endmembers" with inhomogeneous sites: this may result in non-unique equilibria
- 
-
-      Margules parameters:   W(12) =     26000.00        W(42) =     16000.00        W(41) =     16000.00                            
-                             K= 0.00                     K= 0.00                     K= 0.00
-
-                             W(43) =     17000.00        W(32) =     24000.00        W(13) =      4000.00                            
-                             K= 0.00                     K= 0.00                     K= 0.00
-
- OMPH             : ideal part of solution model has non-zero activity for zero concentration
- 
-                               di        jd        hed       om      
- diopside         = 0 -> A:  0.000000  0.049383  0.024691  0.098765
- jadeite          = 0 -> A:  0.148148  0.000000  0.074074  0.074074
- hedenbergite     = 0 -> A:  0.049383  0.049383  0.000000  0.197531
- omphacite        = 0 -> A:  0.049383  0.012346  0.049383  0.024691
-
- the following endmembers may have negative concentrations:  omphacite       
-
- OMPH             : solution is complex, do not use "ideal" site mixing.
-
-
-   5  OPX              :            solution model:  "ideal"  2 site mixing + Margules type excess function                          
-                                    info: site mixing+margules                                                            
-      enstatite          [M1]:Mg   [M2]:Mg                                                                                           
-      ferrosilite        [M1]:Fe   [M2]:Fe                                                                                           
-      Mg-Tscher.pyx      [M1]:Al   [M2]:Mg                                                                                           
-      FM.pyx             [M1]:Mg   [M2]:Fe                                                                                           
-      mots               [M1]:F3   [M2]:Mg                                                                                           
-                                                                                                                                     
-        1  enstatite        ( 32)   A(en) =     1.00 *  X[Mg(M1)] * X[Mg(M2)]                                                        
-                                                                                                                                     
-        2  ferrosilite      ( 33)   A(fs) =     1.00 *  X[Fe(M1)] * X[Fe(M2)]                                                        
-                                                                                                                                     
-        3  Mg-Tscher.pyx    ( 34)   A(mgts) =     1.00 *  X[Al(M1)] * X[Mg(M2)]                                                      
-                                                                                                                                     
-        4  FM.pyx           ( 80)   A(fm) =     1.00 *  X[Mg(M1)] * X[Fe(M2)]                                                        
-                                                                                                                                     
-        5  mots             ( 81)   A(mots) =     1.00 *  X[F3(M1)] * X[Mg(M2)]                                                      
-
-      Margules parameters:   W(12) =      6800.00        W(14) =      4500.00        W(15) =    -14000.00                            
-                             K= 0.00                     K= 0.00                     K= 0.00
-
-                             W(23) =     -1000.00        W(24) =      4500.00        W(25) =      6000.00                            
-                             K= 0.00                     K= 0.00                     K= 0.00
-
-                             W(34) =      1200.00        W(45) =      6000.00                                                        
-                             K= 0.00                     K= 0.00
-
- OPX              : ideal part of solution model has non-zero activity for zero concentration
- 
-                               en        fs        mgts      fm        mots    
- enstatite        = 0 -> A:  0.125000  0.125000  0.125000  0.125000  0.125000
- ferrosilite      = 0 -> A:  0.375000  0.000000  0.187500  0.125000  0.187500
- Mg-Tscher.pyx    = 0 -> A:  0.250000  0.125000  0.000000  0.250000  0.125000
- FM.pyx           = 0 -> A:  0.187500  0.062500  0.187500  0.062500  0.187500
- mots             = 0 -> A:  0.250000  0.125000  0.125000  0.250000  0.000000
-
- the following endmembers may have negative concentrations:  enstatite        FM.pyx          
-
- OPX              : solution is complex, do not use "ideal" site mixing.
-
- structural endmembers:
-                            enstatite        ferrosilite      Mg-Tscher.pyx    FM.pyx           mots            
-   1  OPX                1.00000000E+00   1.00000000E+00   0.00000000E+00  -1.00000000E+00   0.00000000E+00
-   2  OPX               -1.00000000E+00   0.00000000E+00   1.00000000E+00   1.00000000E+00   0.00000000E+00
-   3  OPX               -1.00000000E+00   0.00000000E+00   0.00000000E+00   1.00000000E+00   1.00000000E+00
-
-
-   6  CORD             :            solution model:  "ideal"  1 site mixing                                                          
-                                    info: site mixing                                                                     
-      cordierite         [M]:Mg,Mg                                                                                                   
-      Fe-cordierite      [M]:Fe,Fe                                                                                                   
-                                                                                                                                     
-        1  cordierite       ( 29)   A(crd) =     1.00 *  X[Mg(M)] * X[Mg(M)]                                                         
-                                                                                                                                     
-        2  Fe-cordierite    ( 30)   A(fcrd) =     1.00 *  X[Fe(M)] * X[Fe(M)]                                                        
-
-
-   7  SPIN             :            solution model:  "ideal"  2 site mixing + Margules type excess function                          
-                                    info: site mixing+margules                                                            
-      hercynite          [A]:Al    [B]:Fe                                                                                            
-      spinel             [A]:Al    [B]:Mg                                                                                            
-      ulvospinel         [A]:Ti    [B]:Fe                                                                                            
-                                                                                                                                     
-        1  hercynite        ( 64)   A(herc) =     1.00 *  X[Al(A)] * X[Fe(B)]                                                        
-                                                                                                                                     
-        2  spinel           ( 63)   A(sp) =     1.00 *  X[Al(A)] * X[Mg(B)]                                                          
-                                                                                                                                     
-        3  ulvospinel       ( 67)   A(usp) =     1.00 *  X[Ti(A)] * X[Fe(B)]                                                         
-
-      Margules parameters:   W(13) =     27000.00        W(23) =     30000.00                                                        
-                             K= 0.00                     K= 0.00
-
- SPIN             : ideal part of solution model has non-zero activity for zero concentration
- 
-                               herc      sp        usp     
- hercynite        = 0 -> A:  0.250000  0.250000  0.250000
- spinel           = 0 -> A:  0.500000  0.000000  0.500000
- ulvospinel       = 0 -> A:  0.500000  0.500000  0.000000
-
- the following endmembers may have negative concentrations:  hercynite       
-
- structural endmembers:
-                            hercynite        spinel           ulvospinel      
-   1  SPIN              -1.00000000E+00   1.00000000E+00   1.00000000E+00
-
-
-   8  OSUM0            :            solution model:  "ideal"  3 site mixing                                                          
-                                    info: site mixing                                                                     
-      osumilitE_1        [M1]:Mg,Mg     [T1]:Al,Al,Al  [T2]:Al,Al                                                                    
-      Fe-osum_2          [M1]:Fe,Fe     [T1]:Fe,Al,Al  [T2]:Al,Si                                                                    
-      Fe-osumilite       [M1]:Fe,Fe     [T1]:Al,Al,Al  [T2]:Al,Al                                                                    
-      osumilitE_2        [M1]:Mg,Mg     [T1]:Mg,Al,Al  [T2]:Al,Si                                                                    
-                                                                                                                                     
-        1  osumilitE_1      ( 19)   A(osm1) =     1.00 *  X[Mg(M1)] * X[Mg(M1)] * X[Al(T1)] * X[Al(T1)] * X[Al(T1)] * X[Al(T2)] * X  
-                                                                                                                                     
-                                              [Al(T2)]                                                                               
-                                                                                                                                     
-        2  Fe-osum_2        ( 82)   A(fosm2) =    27.00 *  X[Fe(M1)] * X[Fe(M1)] * X[Fe(T1)] * X[Al(T1)] * X[Al(T1)] * X[Al(T2)] * X 
-                                                                                                                                     
-                                               [Si(T2)]                                                                              
-                                                                                                                                     
-        3  Fe-osumilite     ( 21)   A(fosm) =     1.00 *  X[Fe(M1)] * X[Fe(M1)] * X[Al(T1)] * X[Al(T1)] * X[Al(T1)] * X[Al(T2)] * X  
-                                                                                                                                     
-                                              [Al(T2)]                                                                               
-                                                                                                                                     
-        4  osumilitE_2      ( 20)   A(osm2) =    27.00 *  X[Mg(M1)] * X[Mg(M1)] * X[Mg(T1)] * X[Al(T1)] * X[Al(T1)] * X[Al(T2)] * X  
-                                                                                                                                     
-                                              [Si(T2)]                                                                               
-
-      site mixing model includes "endmembers" with inhomogeneous sites: this may result in non-unique equilibria
- 
-
- OSUM0            : ideal part of solution model has non-zero activity for zero concentration
- 
-                               osm1      fosm2     fosm      osm2    
- osumilitE_1      = 0 -> A:  0.023235  0.179241  0.092940  0.044810
- Fe-osum_2        = 0 -> A:  0.216769  0.000000  0.054192  0.146319
- Fe-osumilite     = 0 -> A:  0.092940  0.044810  0.023235  0.179241
- osumilitE_2      = 0 -> A:  0.054192  0.146319  0.216769  0.000000
-
- the following endmembers may have negative concentrations:  osumilitE_1      Fe-osumilite    
-
- OSUM0            : solution is complex, do not use "ideal" site mixing.
-
- OSUM0            : all concentrations will be forced to be positive
- 
-
-
 
  working directory = c:\Users\Markmann\PhD\Projects\neoscalc\ThorPT\src\thorpt\
  database          = tc55.txt
- bulk              = O(25.015)AL(2.9)CA(1.8)FE(0.8)K(0.03)MG(1.7)NA(0.7)SI(7.9)TI(0.1)
+ bulk              = O(11.999487)AL(1.999875)CA(0.458292)FE(0.694468)MG(1.847229)SI(2.999872)
 
  -----------------------
  equilibrium assemblage:
  -----------------------
 
-  P = 20000.00 bar       P(Gas) = 20000.00 bar     T =  500.00 C    =  773.15 K
+  P = 27267.63 bar       P(Gas) = 27267.63 bar     T =  743.24 C    = 1016.39 K
 
-  stable phases:    7    loop =  14     loop2 =   1     max.phases =       245     gcalc =    192688       blkshift = 1.99840E-15
-  suggestions:   1061    ridiculous phases:       0     non-ideal min.:    409     newton:       110       ideal min.:         13
-  G(-)  = 1.67083E-03    G(System) =   -12783781.89     stepsize = 2.58719E-02     R =     8.3143000       MaxG(-)  =-1.62566E-03
+  stable phases:    4    loop =  17     loop2 =   1     max.phases =        51     gcalc =     17823       blkshift = 1.83187E-15
+  suggestions:    167    ridiculous phases:       0     non-ideal min.:    124     newton:         0       ideal min.:          0
+  G(-)  = 6.52297E-04    G(System) =    -6306792.65     stepsize = 2.04361E-01     R =     8.3143000       MaxG(-)  =-5.83698E-04
+
+ Composition may be outside space defined by phases
 
 
          phase                   N         mol%                                   x              x         activity       act.(x)
          -----                   -         ----                                   -              -         --------       -------
-   0  2  FSP_san               0.030099    0.624082         sanidine           0.996710     9.96710E-01   9.96730E-01   9.96730E-01  
-                                                            high-albite        0.003271     3.27086E-03   5.65728E-02   5.65726E-02  
-                                                            anorthiteC1        0.000019     1.89438E-05   9.34626E-03   9.34502E-03  
+   0  1  GARNET_py             0.999937   99.952719         grossular          0.152715     1.52715E-01   2.61992E-02   2.61922E-02  
+                                                            pyrope             0.615781     6.15781E-01   3.01442E-01   3.01452E-01  
+                                                            almandine          0.231504     2.31504E-01   9.88449E-03   9.88531E-03  
                                                                                                                                      
-                             [Na(M)]     = 0.003271     [K(M)]      = 0.996710     [Ca(M)]     = 0.000019                            
-                             Si(pfu)     = 2.999981
-                             Al(pfu)     = 1.000019
+                             [Ca(M)]     = 0.152715     [Mg(M)]     = 0.615781     [Fe(M)]     = 0.231504                            
+                             Mg/(Fe+Mg)  = 0.726770
  
-   0  3  GARNET_alm            0.533954   11.071163         grossular          0.281504     2.81504E-01   5.66694E-02   5.66438E-02  
-                                                            pyrope             0.265315     2.65315E-01   6.14347E-02   6.14640E-02  
-                                                            almandine          0.453181     4.53181E-01   6.71123E-02   6.71124E-02  
-                                                                                                                                     
-                             [Ca(M)]     = 0.281504     [Mg(M)]     = 0.265315     [Fe(M)]     = 0.453181                            
-                             Mg/(Fe+Mg)  = 0.369265
+   1  0  "O"                   0.000237    0.023690                                                                                  
  
-   0  4  OMPH_di               0.641904   13.309441         diopside           0.802840     8.02840E-01   7.76903E-01   7.76913E-01  
-                                                            jadeite            0.100528     1.00528E-01   3.15321E-01   3.15320E-01  
-                                                            hedenbergite       0.052228     5.22284E-02   7.66143E-02   7.65993E-02  
-                                                            omphacite          0.044404     4.44036E-02   8.53144E-01   8.53149E-01  
-                                                                                                                                     
-                             [Ca(M1a)]   = 0.427534     [Mg(M1a)]   = 0.401420     [Fe(M1a)]   = 0.026114     [Al(M1a)]   = 0.144932 
-                             [Ca(M1b)]   = 0.449736     [Mg(M1b)]   = 0.423622     [Fe(M1b)]   = 0.026114     [Al(M1b)]   = 0.100528 
-                             Mg/(Fe+Mg)  = 0.940465
-                             Al(pfu)     = 0.122730
+   3  0  "CA"                  0.000176    0.017643                                                                                  
  
-   0  4  OMPH_om               1.407066   29.174546         diopside           0.130254     1.30254E-01   7.76903E-01   7.76913E-01  
-                                                            jadeite            0.041926     4.19260E-02   3.15321E-01   3.15320E-01  
-                                                            hedenbergite       0.028813     2.88129E-02   7.66143E-02   7.65993E-02  
-                                                            omphacite          0.799007     7.99007E-01   8.53144E-01   8.53149E-01  
-                                                                                                                                     
-                             [Ca(M1a)]   = 0.079534     [Mg(M1a)]   = 0.065127     [Fe(M1a)]   = 0.014406     [Al(M1a)]   = 0.840933 
-                             [Ca(M1b)]   = 0.479037     [Mg(M1b)]   = 0.464631     [Fe(M1b)]   = 0.014406     [Al(M1b)]   = 0.041926 
-                             Mg/(Fe+Mg)  = 0.948417
-                             Al(pfu)     = 0.441429
- 
-  23  0  kyanite               0.551046   11.425550                                                                                  
- 
-  49  0  quartz                1.558855   32.321788                                                                                  
- 
-  58  0  rutile                0.100000    2.073431                                                                                  
+   6  0  "SI"                  0.000059    0.005948                                                                                  
  
 
  ---------------------------------------
@@ -400,55 +105,47 @@
 
   solid phases           N       volume/mol  volume[ccm]    vol%  |    wt/mol       wt [g]      wt %  | density [g/ccm]
   ------------                                                    |                                   |                
-  FSP_san              0.0301     106.1721       3.1957    1.2376 |   278.2788       8.3759    0.9512 |     2.621017
-  GARNET_alm           0.5340     117.2890      62.6269   24.2538 |   459.3305     245.2613   27.8536 |     3.916228
-  OMPH_di              0.6419      65.4206      41.9937   16.2631 |   216.4290     138.9267   15.7775 |     3.308272
-  OMPH_om              1.4071      63.5015      89.3508   34.6032 |   211.0975     297.0281   33.7326 |     3.324292
-  kyanite              0.5510      44.0267      24.2607    9.3955 |   162.0456      89.2945   10.1409 |     3.680625
-  quartz               1.5589      22.3891      34.9014   13.5164 |    60.0843      93.6627   10.6370 |     2.683638
-  rutile               0.1000      18.8603       1.8860    0.7304 |    79.8788       7.9879    0.9072 |     4.235277
+  GARNET_py            0.9999     115.5530     115.5457  100.0000 |   432.2600     432.2329  100.0000 |     3.740795
                                              ----------  -------- |              ----------  -------- |   ----------
-  total of solids                              258.2153  100.0000 |                880.5372  100.0000 |     3.410090
+  total of solids                              115.5457  100.0000 |                432.2329  100.0000 |     3.740795
+ 
+
+  gases and fluids       N       volume/mol  volume[ccm]               wt/mol       wt [g]              density [g/ccm]
+  ----------------                                                                                                     
+  "O"                  0.0002       0.0000        0.000                15.9994       0.0038                 0.000000
+  "CA"                 0.0002       0.0000        0.000                40.0780       0.0071                 0.000000
+  "SI"                 0.0001       0.0000        0.000                28.0855       0.0017                 0.000000
 
 
  ---------------------------------------
  compositions of stable phases [ mol% ]:
  ---------------------------------------
  
-                      O          AL         CA         FE         K          MG         NA         SI         TI         E           
- FSP_san            61.538462   7.692453   0.000146   0.000000   7.667002   0.000000   0.025160  23.076777   0.000000   0.000000     
- GARNET_alm         60.000000  10.000000   4.222560   6.797711   0.000000   3.979729   0.000000  15.000000   0.000000   0.000000     
- OMPH_di            60.000000   1.227302   8.772698   0.522284   0.000000   8.250414   1.227302  20.000000   0.000000   0.000000     
- OMPH_om            60.000000   4.414295   5.585705   0.288129   0.000000   5.297576   4.414295  20.000000   0.000000   0.000000     
- kyanite            62.500000  25.000000   0.000000   0.000000   0.000000   0.000000   0.000000  12.500000   0.000000   0.000000     
- quartz             66.666667   0.000000   0.000000   0.000000   0.000000   0.000000   0.000000  33.333333   0.000000   0.000000     
- rutile             66.666667   0.000000   0.000000   0.000000   0.000000   0.000000   0.000000   0.000000  33.333333   0.000000     
- TOTAL:             61.094151   7.082672   4.396141   1.953841   0.073269   4.151911   1.709610  19.294175   0.244230   0.000000     
+                      O          AL         CA         FE         MG         SI         E                                            
+ GARNET_py          60.000000  10.000000   2.290721   3.472557   9.236722  15.000000   0.000000                                      
+ "O"               100.000000   0.000000   0.000000   0.000000   0.000000   0.000000   0.000000                                      
+ "CA"                0.000000   0.000000 100.000000   0.000000   0.000000   0.000000   0.000000                                      
+ "SI"                0.000000   0.000000   0.000000   0.000000   0.000000 100.000000   0.000000                                      
+ TOTAL:             59.999766   9.999763   2.291549   3.472475   9.236504  14.999943   0.000000                                      
 
 
  --------------------------
  elements in stable phases:
  --------------------------
 
-                      O          AL         CA         FE         K          MG         NA         SI         TI         E    
- FSP_san             0.240792   0.030100   0.000001   0.000000   0.030000   0.000000   0.000098   0.090296   0.000000   0.000000
- GARNET_alm          6.407446   1.067908   0.450930   0.725933   0.000000   0.424998   0.000000   1.601861   0.000000   0.000000
- OMPH_di             3.851426   0.078781   0.563123   0.033526   0.000000   0.529598   0.078781   1.283809   0.000000   0.000000
- OMPH_om             8.442398   0.621121   0.785946   0.040542   0.000000   0.745404   0.621121   2.814133   0.000000   0.000000
- kyanite             2.755228   1.102091   0.000000   0.000000   0.000000   0.000000   0.000000   0.551046   0.000000   0.000000
- quartz              3.117711   0.000000   0.000000   0.000000   0.000000   0.000000   0.000000   1.558855   0.000000   0.000000
- rutile              0.200000   0.000000   0.000000   0.000000   0.000000   0.000000   0.000000   0.000000   0.100000   0.000000
- total:             25.015000   2.900000   1.800000   0.800000   0.030000   1.700000   0.700000   7.900000   0.100000   0.000000
+                      O          AL         CA         FE         MG         SI         E    
+ GARNET_py          11.999250   1.999875   0.458116   0.694468   1.847229   2.999812   0.000000
+ "O"                 0.000237   0.000000   0.000000   0.000000   0.000000   0.000000   0.000000
+ "CA"                0.000000   0.000000   0.000176   0.000000   0.000000   0.000000   0.000000
+ "SI"                0.000000   0.000000   0.000000   0.000000   0.000000   0.000059   0.000000
+ total:             11.999487   1.999875   0.458292   0.694468   1.847229   2.999872   0.000000
 
  elements per formula unit:
  
- FSP_san             8.000000   1.000019   0.000019   0.000000   0.996710   0.000000   0.003271   2.999981   0.000000   0.000000
- GARNET_alm         12.000000   2.000000   0.844512   1.359542   0.000000   0.795946   0.000000   3.000000   0.000000   0.000000
- OMPH_di             6.000000   0.122730   0.877270   0.052228   0.000000   0.825041   0.122730   2.000000   0.000000   0.000000
- OMPH_om             6.000000   0.441429   0.558571   0.028813   0.000000   0.529758   0.441429   2.000000   0.000000   0.000000
- kyanite             5.000000   2.000000   0.000000   0.000000   0.000000   0.000000   0.000000   1.000000   0.000000   0.000000
- quartz              2.000000   0.000000   0.000000   0.000000   0.000000   0.000000   0.000000   1.000000   0.000000   0.000000
- rutile              2.000000   0.000000   0.000000   0.000000   0.000000   0.000000   0.000000   0.000000   1.000000   0.000000
+ GARNET_py          12.000000   2.000000   0.458144   0.694511   1.847344   3.000000   0.000000
+ "O"                 1.000000   0.000000   0.000000   0.000000   0.000000   0.000000   0.000000
+ "CA"                0.000000   0.000000   1.000000   0.000000   0.000000   0.000000   0.000000
+ "SI"                0.000000   0.000000   0.000000   0.000000   0.000000   1.000000   0.000000
 
 
  -------------------------
@@ -457,102 +154,21 @@
 
           phase                  N             G         activity
 
- S   994  FSP_san            3.00990E-02  -1.11022E-15   1.00000E+00   9.9671E-01  3.2709E-03  1.8944E-05                            
- S   795  GARNET_alm         5.33954E-01  -3.41061E-13   1.00000E+00   2.8150E-01  2.6532E-01  4.5318E-01                            
- S  1006  OMPH_di            6.41904E-01   1.70530E-13   1.00000E+00   8.0284E-01  1.0053E-01  5.2228E-02  4.4404E-02                
- S  1009  OMPH_om            1.40707E+00  -1.22569E-13   1.00000E+00   1.3025E-01  4.1926E-02  2.8813E-02  7.9901E-01                
- P    23  kyanite            5.51046E-01   0.00000E+00   1.00000E+00                                                                 
- P    49  quartz             1.55886E+00   0.00000E+00   1.00000E+00                                                                 
- P    58  rutile             1.00000E-01   0.00000E+00   1.00000E+00                                                                 
- P   -10  "E"                0.00000E+00   0.00000E+00   1.00000E+00                                                                 
- P    -8  "SI"               1.73104E-15   0.00000E+00   1.00000E+00                                                                 
- S  1001  GARNET_alm         0.00000E+00   5.11591E-13   1.00000E+00   2.8148E-01  2.6534E-01  4.5318E-01                            
+ S   148  GARNET_py          9.99937E-01   1.87583E-12   1.00000E+00   1.5271E-01  6.1578E-01  2.3150E-01                            
+ P    -1  "O"                2.37000E-04   0.00000E+00   1.00000E+00                                                                 
+ P    -3  "CA"               1.76500E-04   0.00000E+00   1.00000E+00                                                                 
+ P    -6  "SI"               5.95000E-05   0.00000E+00   1.00000E+00                                                                 
+ P    -7  "E"                0.00000E+00   0.00000E+00   1.00000E+00                                                                 
+ S   158  GARNET_py          0.00000E+00   1.13687E-13   1.00000E+00   1.5269E-01  6.1580E-01  2.3151E-01                            
+ S   165  GARNET_py          0.00000E+00   3.58114E-12   1.00000E+00   1.5276E-01  6.1578E-01  2.3146E-01                            
 --------------------------------------------------------------------
- P    -1  "O"                0.00000E+00   4.55843E+05   1.59551E-31                                                                 
- P    -2  "AL"               0.00000E+00   1.64661E+05   7.50488E-12                                                                 
- P    -3  "CA"               0.00000E+00   3.03825E+05   2.97397E-21                                                                 
- P    -4  "FE"               0.00000E+00  -1.26902E+05   3.74604E+08                                                                 
- P    -5  "K"                0.00000E+00   1.78930E+05   8.15339E-13                                                                 
- P    -6  "MG"               0.00000E+00   1.94434E+05   7.30993E-14                                                                 
- P    -7  "NA"               0.00000E+00   1.67319E+05   4.96388E-12                                                                 
- P    -9  "TI"               0.00000E+00   4.96805E+04   4.40092E-04                                                                 
- P    11  forsterite         0.00000E+00   1.83137E+04   5.79043E-02                                                                 
- P    12  fayalite           0.00000E+00   2.80042E+04   1.28238E-02                                                                 
- P    13  larn-bredigite     0.00000E+00   9.07260E+04   7.42132E-07                                                                 
- P    14  monticellite       0.00000E+00   5.10654E+04   3.54797E-04                                                                 
- P    15  pyrope             0.00000E+00   1.79333E+04   6.14347E-02                                                                 
- P    16  almandine          0.00000E+00   1.73651E+04   6.71123E-02                                                                 
- P    17  grossular          0.00000E+00   1.84523E+04   5.66694E-02                                                                 
- P    18  andradite          0.00000E+00   2.71152E+05   4.79451E-19                                                                 
- P    19  osumilitE_1        0.00000E+00   7.14715E+04   1.48364E-05                                                                 
- P    20  osumilitE_2        0.00000E+00   8.73346E+04   1.25778E-06                                                                 
- P    21  Fe-osumilite       0.00000E+00   1.07009E+05   5.89381E-08                                                                 
- P    22  andalusite         0.00000E+00   1.18757E+04   1.57639E-01                                                                 
- P    24  sillimanite        0.00000E+00   9.18045E+03   2.39751E-01                                                                 
- P    25  merwinite          0.00000E+00   1.33396E+05   9.72043E-10                                                                 
- P    26  gehlenite          0.00000E+00   1.02408E+05   1.20575E-07                                                                 
- P    27  akermanite         0.00000E+00   8.48496E+04   1.85137E-06                                                                 
- P    28  rankinite          0.00000E+00   1.24754E+05   3.72860E-09                                                                 
- P    29  cordierite         0.00000E+00   9.40296E+04   4.43898E-07                                                                 
- P    30  Fe-cordierite      0.00000E+00   1.31536E+05   1.29804E-09                                                                 
- P    31  sphene             0.00000E+00   4.89528E+03   4.66951E-01                                                                 
- P    32  enstatite          0.00000E+00   5.74865E+03   4.08899E-01                                                                 
- P    33  ferrosilite        0.00000E+00   2.43951E+04   2.24826E-02                                                                 
- P    34  Mg-Tscher.pyx      0.00000E+00   3.62386E+04   3.56195E-03                                                                 
- P    35  diopside           0.00000E+00   1.62273E+03   7.76903E-01                                                                 
- P    36  hedenbergite       0.00000E+00   1.65139E+04   7.66143E-02                                                                 
- P    37  jadeite            0.00000E+00   7.41921E+03   3.15321E-01                                                                 
- P    38  acmite             0.00000E+00   1.34252E+05   8.50850E-10                                                                 
- P    39  Ca-Tscher.pyx      0.00000E+00   3.01135E+04   9.23652E-03                                                                 
- P    40  wollastonite       0.00000E+00   2.70169E+04   1.49527E-02                                                                 
- P    41  ps-wollastonite    0.00000E+00   3.00851E+04   9.27740E-03                                                                 
- P    42  sapphirine_351     0.00000E+00   1.07859E+05   5.16400E-08                                                                 
- P    43  sapphirine_221     0.00000E+00   8.74690E+04   1.23176E-06                                                                 
- P    44  Fe-sapph_221       0.00000E+00   1.27164E+05   2.56282E-09                                                                 
- P    45  high-albite        0.00000E+00   1.84633E+04   5.65728E-02                                                                 
- P    46  microcline         0.00000E+00   5.36598E+02   9.19914E-01                                                                 
- P    47  sanidine           0.00000E+00   2.10530E+01   9.96730E-01                                                                 
- P   -48  anorthite          0.00000E+00   2.66104E+04   1.59286E-02                                                                 
- P    50  tridymite          0.00000E+00   8.43728E+03   2.69135E-01                                                                 
- P    51  cristobalite       0.00000E+00   6.92309E+03   3.40620E-01                                                                 
- P    52  coesite            0.00000E+00   1.52136E+03   7.89252E-01                                                                 
- P    53  stishovite         0.00000E+00   3.10322E+04   8.00649E-03                                                                 
- P    54  nepheline          0.00000E+00   3.72611E+04   3.03817E-03                                                                 
- P    55  kalsilite          0.00000E+00   2.55030E+04   1.89234E-02                                                                 
- P    56  leucite            0.00000E+00   2.29446E+04   2.81738E-02                                                                 
- P    57  lime               0.00000E+00   1.16829E+05   1.27924E-08                                                                 
- P    59  periclase          0.00000E+00   3.94535E+04   2.16017E-03                                                                 
- P    60  corundum           0.00000E+00   8.19776E+03   2.79353E-01                                                                 
- P    61  hematite           0.00000E+00   2.49583E+05   1.37402E-17                                                                 
- P    62  geikielite         0.00000E+00   2.06000E+04   4.05739E-02                                                                 
- P    63  spinel             0.00000E+00   2.59694E+04   1.75990E-02                                                                 
- P    64  hercynite          0.00000E+00   2.58323E+04   1.79782E-02                                                                 
- P    65  magnetite          0.00000E+00   2.57352E+05   4.10303E-18                                                                 
- P    66  magnesioferrite    0.00000E+00   2.71215E+05   4.74788E-19                                                                 
- P    67  ulvospinel         0.00000E+00   3.92369E+04   2.23420E-03                                                                 
- P    68  oxygen             0.00000E+00   7.45064E+05   4.60087E-51                                                                 
- P    69  forsterite.liq     0.00000E+00   4.63543E+04   7.38351E-04                                                                 
- P    70  fayalite.liq       0.00000E+00   6.40904E+04   4.67737E-05                                                                 
- P    71  sillimanite.liq    0.00000E+00   5.76697E+04   1.26996E-04                                                                 
- P    72  anorthite.liq      0.00000E+00   6.99076E+04   1.89227E-05                                                                 
- P    73  enstatite.liq      0.00000E+00   7.83035E+04   5.12568E-06                                                                 
- P    74  K-feldspar.liq     0.00000E+00   2.58742E+04   1.78615E-02                                                                 
- P    75  Silica.liq         0.00000E+00   8.09011E+03   2.84070E-01                                                                 
- P    76  diopside.liq       0.00000E+00   6.32736E+04   5.31108E-05                                                                 
- P    77  albite.liq         0.00000E+00   4.96620E+04   4.41359E-04                                                                 
- P    78  anorthiteC1        0.00000E+00   3.00376E+04   9.34626E-03                                                                 
- P    79  omphacite          0.00000E+00   1.02097E+03   8.53144E-01                                                                 
- P    80  FM.pyx             0.00000E+00   8.12189E+03   2.82669E-01                                                                 
- P    81  mots               0.00000E+00   1.78931E+05   8.15213E-13                                                                 
- P    82  Fe-osum_2          0.00000E+00   1.40641E+05   3.14925E-10                                                                 
- S   986  OLIVINEi_fo        0.00000E+00   1.33554E+04   1.25228E-01   3.1996E-01  6.8004E-01                                        
- S   991  FSP_san            0.00000E+00   9.21591E-10   1.00000E+00   9.9671E-01  3.2709E-03  1.8943E-05                            
- S   999  GARNET_alm         0.00000E+00   1.79092E-08   1.00000E+00   2.8148E-01  2.6534E-01  4.5318E-01                            
- S  1002  OMPH_di            0.00000E+00   2.26095E-10   1.00000E+00   8.0284E-01  1.0053E-01  5.2228E-02  4.4404E-02                
- S  1012  OPX_en             0.00000E+00   3.05451E+03   6.21777E-01   6.3039E-01  4.9860E-02  1.0200E-02  3.0955E-01  1.0920E-12    
- S  1055  CORD_crd           0.00000E+00   9.33525E+04   4.93204E-07   9.4871E-01  5.1291E-02                                        
- S  1059  SPIN_herc          0.00000E+00   2.14352E+04   3.56302E-02   5.0396E-01  4.9455E-01  1.4956E-03                            
- S  1060  OSUM0_osm1         0.00000E+00   6.89180E+04   2.20723E-05   8.1500E-01  7.9221E-03  5.1357E-02  1.2572E-01                
+ P    -2  "AL"               0.00000E+00   3.40243E+06   0.00000E+00                                                                 
+ P    -4  "FE"               0.00000E+00  -4.16978E+05   2.68804E+21                                                                 
+ P    -5  "MG"               0.00000E+00  -1.12632E+05   6.14304E+05                                                                 
+ P     8  pyrope             0.00000E+00   1.01338E+04   3.01442E-01                                                                 
+ P     9  almandine          0.00000E+00   3.90146E+04   9.88449E-03                                                                 
+ P    10  grossular          0.00000E+00   3.07773E+04   2.61992E-02                                                                 
+ S   161  GARNET_py          0.00000E+00   3.49318E-08   1.00000E+00   1.5276E-01  6.1578E-01  2.3146E-01                            
 
 
  ----------------------------------
@@ -562,19 +178,11 @@
 
  component   chem.pot.
  ---------   ---------
- "sio2"     -9.11685E+05
- "mgo"      -6.50276E+05
- "feo"      -3.28941E+05
- "cao"      -7.59668E+05
- "al2o3"    -1.69685E+06
- "k2o"      -8.13703E+05
- "tio2"     -9.61366E+05
- "na2o"     -7.90480E+05
+ "mgo"       1.12632E+05
+ "feo"       4.16978E+05
+ "al2o3"    -6.80485E+06
  
-FSP  sanidine   9.96710196E-01  high-albite   3.27085994E-03  anorthiteC1   1.89437546E-05
-GARNET  grossular   2.81504022E-01  pyrope   2.65315264E-01  almandine   4.53180714E-01
-OMPH  diopside   8.02839599E-01  jadeite   1.00528352E-01  hedenbergite   5.22284097E-02  omphacite   4.44036395E-02
-OMPH  diopside   1.30254197E-01  jadeite   4.19260455E-02  hedenbergite   2.88128883E-02  omphacite   7.99006869E-01
+GARNET  grossular   1.52714711E-01  pyrope   6.15781486E-01  almandine   2.31503802E-01
 
  exit THERIAK
- CPU time:    0h 00m 00.06s
+ CPU time:    0h 00m 00.02s

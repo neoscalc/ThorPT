@@ -212,7 +212,7 @@ def crust2layer_model(pressure_array, time, speed, angle, dt=10000):
         c_p_zero += density_list[i] * layer_thickness_list[i] * 9.81 / 10**5
 
     c_p = c_p_zero
-    d_step = speed * dt * abs(np.sin(angle/180*np.pi))
+    d_step = speed * dt * abs(np.tan(angle/180*np.pi))
     if c_p_zero < pressure_array[0]:
         start_depth = pressure_array[0] * 10**5 / (density_list[0] * 9.81)
         depth.append(start_depth + sum(layer_thickness_list))
@@ -391,14 +391,14 @@ class Pathfinder_Theoule:
                 if step_t >= self.t_increment:
                     new_y.append(val)
                     new_x.append(yinterp[i])
-                    new_d.append(c_p_list[2][i])
-                    new_t.append(c_p_list[1][i])
+                    new_d.append(c_p_list[1][i])
+                    new_t.append(c_p_list[2][i])
             elif step_t >= self.t_increment:
                 if step_p >= self.p_increment:
                     new_y.append(val)
                     new_x.append(yinterp[i])
-                    new_d.append(c_p_list[2][i])
-                    new_t.append(c_p_list[1][i])
+                    new_d.append(c_p_list[1][i])
+                    new_t.append(c_p_list[2][i])
         yinterp = np.array(new_x)
         c_p_list = np.array(new_y)
 
@@ -485,31 +485,6 @@ class Pathfinder_Theoule:
         self.time = new_t
         self.depth = new_d
         self._select_steps_with_min_temp(yinterp, c_p_list)
-
-    def _filter_steps(self, yinterp, c_p_list):
-        new_x = [yinterp[0]]
-        new_y = [c_p_list[0]]
-        new_d = [self.depth[0]]
-        new_t = [self.time[0]]
-        for i, val in enumerate(c_p_list):
-            step_p = val - new_y[-1]
-            step_t = yinterp[i] - new_x[-1]
-            if step_p >= self.p_increment or -step_p >= self.p_increment:
-                if step_t >= self.t_increment or -step_t >= self.t_increment:
-                    new_y.append(val)
-                    new_x.append(yinterp[i])
-                    if val < c_p_list[i-1]:
-                        new_d.append(-1)
-                        new_t.append(-1)
-                    else:
-                        new_d.append(self.depth[i])
-                        new_t.append(self.time[i])
-            elif step_t >= self.t_increment or -step_t >= self.t_increment:
-                new_y.append(val)
-                new_x.append(yinterp[i])
-                new_d.append(self.depth[i])
-                new_t.append(self.time[i])
-        return new_x, new_y, new_d, new_t
 
     def _select_steps_with_min_temp(self, yinterp, c_p_list):
         frame = pd.DataFrame([yinterp, c_p_list, self.time, self.depth])
