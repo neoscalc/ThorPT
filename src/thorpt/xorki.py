@@ -2861,9 +2861,21 @@ class ThorPT_plots():
             return twin1
 
         def set_labels(ax2, ax3, twin1, tag, temperatures, pressures, line, step, fluid_porosity_color):
-            ax2.set_xticks(line[::step])
-            ax2.set_xticklabels(np.around(temperatures[::step], 0).astype(int))
+            # ax2.set_xticks(line[::step])
+            # ax2.set_xticklabels(np.around(temperatures[::step], 0).astype(int))
+            
+            min_temp = np.floor(min(temperatures) / 10) * 10  # Round down to nearest 10
+            max_temp = np.ceil(max(temperatures) / 10) * 10   # Round up to nearest 10
+            even_temps = np.arange(min_temp, max_temp + 1, 50)  # Generate even-numbered ticks
+
+            # Find the closest indices in 'line' corresponding to the even temperatures
+            even_indices = [np.abs(temperatures - t).argmin() for t in even_temps]
+
+            ax2.set_xticks(line[even_indices])
+            ax2.set_xticklabels(even_temps.astype(int))
             ax2.xaxis.set_minor_locator(AutoMinorLocator())
+
+
             ax3.set_xticks(line[::step])
             ax3.set_xticklabels(np.around(np.array(pressures[::step]) / 10000, 1))
             ax2.set_ylabel("Relative volume" if tag[3:] == 'volume[ccm]' else tag[3:])
@@ -7083,17 +7095,18 @@ if __name__ == '__main__':
     # compPlot.oxygen_isotope_interaction_scenario3(img_save=True, img_type='pdf')
 
     compPlot.bulk_rock_sensitivity_cumVol()
-    # compPlot.bulk_rock_sensitivity_twin()
+    compPlot.bulk_rock_sensitivity_twin()
     # compPlot.tensile_strength_sensitivity_cumVol()
     # compPlot.tensile_strength_sensitivity()
     # compPlot.mohr_coulomb_diagram(rock_tag='rock079')
 
     # compPlot.plot_heatmap(plot_type="cumulative")
-    compPlot.plot_heatmap_PT(plot_type="cumulative")
+    # compPlot.plot_heatmap_PT(plot_type="cumulative")
     # compPlot.plot_heatmap_TPZ(plot_type="cumulative")
 
     from joblib import Parallel, delayed
-    results = Parallel(n_jobs=-1)(delayed(compPlot.phases_stack_plot_v2)(key) for key in data.rock.keys())
+    results = Parallel(n_jobs=-1)(delayed(compPlot.phases_stack_plot_v2)(key, cumulative=True, img_type='png') for key in data.rock.keys())
+    # results = Parallel(n_jobs=-1)(delayed(compPlot.phases_stack_plot)(key, cumulative=True, img_type='pdf') for key in data.rock.keys())
 
     #for key in data.rock.keys():
     #    print(key)

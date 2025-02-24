@@ -218,6 +218,7 @@ def run_main_routine():
         init_data['Min Permeability'] = []
         init_data['fluid_name_tag'] = []
         init_data['fluid_pressure'] = []
+        init_data['fluid_volume'] = []
         # TODO add name from init file?
         for rock in rock_dic.keys():
             rock_init = rock_dic[rock]
@@ -286,6 +287,10 @@ def run_main_routine():
                     pos = entry.index(":")
                     fluid_pressure = entry[pos+1:].split('\t')[-1]
                     init_data['fluid_pressure'].append(fluid_pressure.lower())
+                if "FluidVolumeTreshold[Vol%]" in entry:
+                    pos = entry.index(":")
+                    fluid_volume = entry[pos+1:].split('\t')[-1]
+                    init_data['fluid_volume'].append(float(fluid_volume))
 
         init_data['Database'] = database
         init_data['Path'] = init_data['path']
@@ -534,6 +539,11 @@ def run_main_routine():
 
             master_rock[tag]['Extraction scheme'] = init_data['Extraction scheme'][i]
             master_rock[tag]['failure module'] = []
+
+            if 'fluid_volume' in init_data.keys():
+                master_rock[tag]['extraction treshold'] = init_data['fluid_volume'][i]/100
+            else:
+                master_rock[tag]['extraction treshold'] = False
 
             # fluid input from external
             master_rock[tag]["fluid_influx_data"] = pd.DataFrame()

@@ -195,8 +195,10 @@ def whole_rock_to_weight_normalizer(rock_bulk=[32.36, 0.4, 8.78, 2.91, 0.0, 0.0,
         # Normed rock bulk mol
         norm_mass = np.sum(mol_frame*element_mass)
         # - normalize rock mass to 1kg, conversion of the moles
-        mol_frame_norm = mol_frame*0.01/norm_mass
-        excess_oxy = excess_oxy*0.01/norm_mass
+        mol_frame_norm = mol_frame*1/norm_mass
+        excess_oxy = excess_oxy*1/norm_mass
+        # mol_frame_norm = mol_frame*0.01/norm_mass
+        # excess_oxy = excess_oxy*0.01/norm_mass
 
         # Update bulk
         bulk = mol_frame_norm
@@ -511,12 +513,12 @@ class ThorPT_Routines():
         """k = 0
         kk = len(temperatures)*len(master_rock)
         progress(int(k/kk)*100)"""
+        print("Script: unreactive_multi_rock")
         for num, temperature in enumerate(tqdm(temperatures, desc="Processing modelling steps")):
 
-            print('\n')
-            print("New calculation iteration")
-            print("Script: unreactive_multi_rock")
-            print("===================")
+            # print('\n')
+            # print("New calculation iteration")
+            # print("===================")
             # print(f"==== 1) time = {track_time[num]} years,\n==== 2) depth = {track_depth[num]}.")
 
             # //////////////////////////////////////////////////////////////////////////
@@ -544,13 +546,13 @@ class ThorPT_Routines():
             all_rock_keys_list = list(master_rock.keys())
             # LINK 1) Initialisation of the rock system
             # Initialize thermodynamic conditions called from P-T-t path - for each rock in the dictionary
-            for jjj, item in enumerate(master_rock):
+            for jjj, item in enumerate(tqdm(master_rock, desc="Model calculation Gibbs energy min., Oxygen fractionation, Trace Elements:")):
                 # Start of modelling scheme for rock
                 print("\n")
                 # print("¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦ ¦")
                 # print("v v v v v v v v v v v v v v v v v v v v v v v v")
                 # print("\N{Runic Letter Mannaz Man M}\N{Runic Letter Isaz Is Iss I}\N{Runic Letter Naudiz Nyd Naud N}\N{Runic Letter Isaz Is Iss I}\N{Runic Letter Mannaz Man M}\N{Runic Letter Isaz Is Iss I}\N{Runic Letter Algiz Eolhx}\N{Runic Letter Ansuz A}\N{Runic Letter Tiwaz Tir Tyr T}\N{Runic Letter Isaz Is Iss I}\N{Runic Letter Othalan Ethel O}\N{Runic Letter Naudiz Nyd Naud N}")
-                print(f"-> Forward modeling step initiated - {item}")
+                # print(f"-> Forward modeling step initiated - {item}")
                 # display modelling progress
                 """ic = k/kk*100
                 k += 1
@@ -568,14 +570,14 @@ class ThorPT_Routines():
                     master_rock[item]['theriak_input_record']['temperature'] = [temperature]
                     master_rock[item]['theriak_input_record']['pressure'] = [pressures[num]]
                     master_rock[item]['theriak_input_record']['bulk'] = [master_rock[item]['new_bulk']]
-                    print("Tracking theriak -> Create dictionary -> first entry")
+                    # print("Tracking theriak -> Create dictionary -> first entry")
 
                 # test for empty dictionary
                 elif isinstance(master_rock[item]['theriak_input_record'], dict) == True:
                     master_rock[item]['theriak_input_record']['temperature'].append(temperature)
                     master_rock[item]['theriak_input_record']['pressure'].append(pressures[num])
                     master_rock[item]['theriak_input_record']['bulk'].append(master_rock[item]['new_bulk'])
-                    print("Tracking theriak -> dictionary exists -> add entry")
+                    # print("Tracking theriak -> dictionary exists -> add entry")
 
 
                 # Send information to the theriak wrapper
@@ -609,7 +611,7 @@ class ThorPT_Routines():
                 # print("bulk rock minimization")
                 if item != 'rock000':
                     master_rock[item]['minimization'].thermodynamic_looping_station(
-                        theriak_input_rock_before = master_rock[all_rock_keys_list[jjj]]['theriak_input_record']
+                        theriak_input_rock_before = master_rock[all_rock_keys_list[jjj-1]]['theriak_input_record']
                         )
                 else:
                     master_rock[item]['minimization'].thermodynamic_looping_station()
@@ -651,7 +653,7 @@ class ThorPT_Routines():
                 master_rock[item]['minimization'].merge_dataframe_dic()
                 # print("\n")
 
-                print("////// Energy minimization executed //////")
+                # print("////// Energy minimization executed //////")
                 # print("\n")
 
                 # //////////////////////////////////////////////////////////////////////////
@@ -659,7 +661,7 @@ class ThorPT_Routines():
                 # //////////////////////////////////////////////////////////////////////////
                 # LINK - 3) Data storage & merge
                 # calling dictionaries and dataframe for up-to-date usage
-                print(f"Running data re-storage, MicaPotassium, SystemFluidTest, oxy-module and mineral fractionation")
+                # print(f"Running data re-storage, MicaPotassium, SystemFluidTest, oxy-module and mineral fractionation")
                 # for item in master_rock:
                 master_rock[item]['df_var_dictionary'], master_rock[item]['df_h2o_content_dic'], master_rock[item]['df_element_total'] = (
                     master_rock[item]['minimization'].df_var_dictionary,
@@ -838,7 +840,7 @@ class ThorPT_Routines():
                 # Adding the metastable garnet impact
                 # calculate the metastable garnet for all bits besides the last
                 # add the calculated volume to the solid volume of the current step (this is then saved to the st_solid and used next turn)
-            for jjj, item in enumerate(master_rock):
+            for jjj, item in enumerate(tqdm(master_rock, desc="Processing metastable garnet calculation:")):
                 grt_flag = True
                 if grt_flag is True and len(master_rock[item]['garnet']) > 0 and len(master_rock[item]['garnet_check']) > 1:
                     if master_rock[item]['garnet_check'][-1] == 0:
@@ -906,6 +908,7 @@ class ThorPT_Routines():
                     else:
                         fluid_before = master_rock[item]['st_fluid_after'][-1]
 
+
                     # Start Extraction Master Module
                     master_rock[item]['fluid_calculation'] = Ext_method_master(
                                         pressures[num], temperature,
@@ -918,7 +921,8 @@ class ThorPT_Routines():
                                         differential_stress= master_rock[item]['diff. stress'],
                                         friction= master_rock[item]['friction'],
                                         fluid_pressure_mode= master_rock[item]['fluid_pressure_mode'],
-                                        fluid_name_tag=fluid_name_tag ,subduction_angle=self.angle
+                                        fluid_name_tag=fluid_name_tag ,subduction_angle=self.angle,
+                                        extraction_treshold = master_rock[item]['extraction treshold']
                                         )
                     # //////////////////////////////////////////////////////////////////////////
                     # ////// Calculation for new whole rock /////////

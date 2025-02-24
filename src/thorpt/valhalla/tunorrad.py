@@ -441,6 +441,7 @@ def run_theriak(theriak_path, database, temperature, pressure, whole_rock, theri
     ######################################################################
     # # opens THERIN and writes more input parameters as elemental composition
     # Option 1 - Philips approach
+    theriak_input_rock_before = False
     if theriak_input_rock_before == False:
         # Executing minimization for new bulk, P, T condition
         theriak_xbin_in = database + "\n" + "no\n"
@@ -697,7 +698,7 @@ def read_theriak(theriak_path, database, temperature, pressure, whole_rock, ther
     # test if data dictionary is empty
     if not data:
         df_Vol_Dens = pd.DataFrame(data)
-        print("---ERROR:---No solid stable phases detected.")
+        # print("---ERROR:---No solid stable phases detected.")
     else:
         df_Vol_Dens = pd.concat(data, axis=1)
     # writes the created 'data' dictionary which contains all
@@ -785,7 +786,7 @@ def read_theriak(theriak_path, database, temperature, pressure, whole_rock, ther
             [df_H2O_content_solids], axis=1)
         # print("Only solid h2o cont true")
     else:
-        print("---EXCEPTION--- no h2o content true")
+        # print("---EXCEPTION--- no h2o content true")
         pass
 
     # 3) Elements in stable phases #####
@@ -1579,7 +1580,7 @@ class Ext_method_master:
             solid_volume_before, solid_volume_new,
             save_factor, master_norm, phase_data,
             tensile_s, differential_stress, friction, subduction_angle,
-            fluid_pressure_mode, fluid_name_tag, rock_item_tag=0):
+            fluid_pressure_mode, fluid_name_tag, extraction_treshold=False, rock_item_tag=0):
         """
         Initialize all the values and data necessary for calculations
 
@@ -1615,6 +1616,7 @@ class Ext_method_master:
         self.failure_dictionary = {}
         self.fluid_name_tag = fluid_name_tag
         self.fluid_pressure_mode = fluid_pressure_mode
+        self.extraction_treshold = extraction_treshold
 
     def couloumb_method(self, t_ref_solid, tensile=20):
         """
@@ -2089,13 +2091,11 @@ class Ext_method_master:
         else:
             comp_term = c * np.sqrt(litho-0.2) + d*(litho-0.2)
             # litho - 0.2 is the compensation term and 0.2 is pressure in bar as the value when MRK is deviating at high pressures
-            V2 = 1/(self.fluid_t1/(vol_t0-self.solid_t1)) * (Vm1)
+            V2 = 1/(self.fluid_t1/(vol_t0-self.solid_t1)) * (Vm1) # - comp_term
 
             p2_p1_cork_real = ( (R * T) / (V2 +  - b) - (a) / (V2 * (V2 + b) * np.sqrt(T)) ) / \
                 ( (R * T) / (Vm1 - b) - (a) / (Vm1 * (Vm1 + b) * np.sqrt(T)) )
 
-            """p2_p1_cork_real = ( (R * T) / (V2 + comp_term - b) - (a) / (V2 + comp_term * (V2 + comp_term + b) * np.sqrt(T)) ) / \
-                ( (R * T) / (Vm1 + comp_term - b) - (a) / (Vm1 + comp_term * (Vm1 + comp_term + b) * np.sqrt(T)) )"""
 
         # Fluid pressure calculation
         # fluid pressure close to mean stress
@@ -2169,7 +2169,7 @@ class Ext_method_master:
 
         # ##########################################
         # Failure envelope test
-        treshold_mod = False
+        treshold_mod = True
         if treshold_mod is True:
             tresh_value = 0.002
         else:
@@ -2236,7 +2236,8 @@ class Ext_method_master:
             print("No mechanical failure detected.")
             print("Testing porosity and interconnectivity.")
             print("P_f factor is {:.3f}".format(hydro/litho), "and porosity is {:.3f}".format(self.fluid_t1/(vol_t0-self.solid_t1)))
-            if hydro/litho > 0.9 and (vol_t0-self.solid_t1)/vol_t0 > 0.002:
+            # if hydro/litho > 0.9 and (vol_t0-self.solid_t1)/vol_t0 > 0.002:
+            if (vol_t0-self.solid_t1)/vol_t0 >= self.extraction_treshold:
                 self.frac_respo = 5
 
 
@@ -2746,7 +2747,7 @@ class Isotope_calc():
             # print('phase:{} Oxy-Val:{}'.format(phase, result))
         self.oxygen_dic['Phases'] = stable_phases
         self.oxygen_dic['delta_O'] = oxygen_values
-        print("Oxygen fractionation calculation done.")
+        #print("Oxygen fractionation calculation done.")
 
 
 def phases_translated(database, phases):
@@ -2945,6 +2946,86 @@ class TraceElementDistribution():
 
 
 class Garnet_recalc():
+    """
+    Class for performing recalculation of garnets.
+
+    Attributes:
+        theriak (str): The path to the Theriak software.
+        dataclass (list): List of garnet data objects.
+        temperature (float): The temperature in Kelvin.
+        pressure (float): The pressure in bars.
+        recalc_volume (float): The recalculated volume of garnets.
+        recalc_weight (float): The recalculated weight of garnets.
+    """
+
+    def __init__(self, theriak, dataclass, temperature, pressure):
+        """
+        Initialize a Tunorrad object.
+
+        Args:
+            theriak (str): The path to the Theriak executable.
+            dataclass: The data class for the mineral.
+            temperature (float): The temperature in Kelvin.
+            pressure (float): The pressure in bars.
+        """
+        self.mineral = dataclass
+        self.recalc_volume = 0
+        self.recalc_weight = 0
+        self.temperature = temperature
+        self.pressure = pressure
+        self.theriak_path = theriak
+
+    def recalculation_of_garnets(self, database, garnet_name):
+        """
+        Recalculates the volume and weight of garnets based on the provided data.
+
+        Returns:
+            None
+        """
+        for garnet in self.mineral:
+            vals = garnet.elements[0]
+            index = garnet.elements[1]
+            relements = pd.DataFrame(vals, index=index)
+
+            # create the bulk from element entry - normalized to 1 mol for theriak
+            # forward - volume needs to be back-converted to the moles of the shell (garnet.moles)
+            bulk = garnet_bulk_from_dataframe(relements, garnet.moles, garnet.volPmole, garnet.volume)
+
+            # FIXME static database tc55 for garnet recalculation
+            db = f"{database}    {garnet_name}"
+            Data_dic, g_sys, pot_frame = read_theriak(
+                self.theriak_path,
+                database=db, temperature=self.temperature,
+                pressure=self.pressure, whole_rock=bulk,
+                theriak_input_rock_before=False)
+            grt = Data_dic['df_Vol_Dens'].columns[0]
+            phase_list = list(Data_dic['df_Vol_Dens'].columns)
+
+            # check for couble garnet
+            double_grt_check = []
+            selected_garnet_name = False
+            for item in phase_list:
+                if garnet_name in item:
+                    selected_garnet_name = item
+                    double_grt_check.append(item)
+
+            if selected_garnet_name is False:
+                print("WARNING: Garnet increment no longer stable. Press ESC to continue.")
+                print(f"Bulk is: {bulk}")
+                # keyboard.wait('esc')
+                v = 0
+                g = 0
+            else:
+                # backward - Volume of the garnet shell to be added (back-normlaized from 1 mole to x-mol (garnet.moles))
+                rec_mole = garnet.volume/garnet.volPmole
+                v = Data_dic['df_Vol_Dens'][grt]['volume/mol']*rec_mole
+                g = Data_dic['df_Vol_Dens'][grt]['wt/mol']*rec_mole
+
+            self.recalc_volume += v
+            self.recalc_weight += g
+
+
+class Metastable_phase_recalculator():
     """
     Class for performing recalculation of garnets.
 
