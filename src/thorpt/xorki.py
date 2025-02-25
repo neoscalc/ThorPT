@@ -3313,37 +3313,47 @@ class ThorPT_plots():
         max_val = max_max + (max_max - min_min) * 0.05
         ax211.set_ylim(min_val, max_val)
         ax211.set_ylabel("$\delta^{18}$O [‰ vs. VSMOW]")
-        ax211.set_xlabel("Temperature [°C]")
+
+
+        def set_labels(ax211, ax212, temperatures, pressures, line, step):
+            # ax2.set_xticks(line[::step])
+            # ax2.set_xticklabels(np.around(temperatures[::step], 0).astype(int))
+            
+            min_temp = np.floor(min(temperatures) / 10) * 10  # Round down to nearest 10
+            max_temp = np.ceil(max(temperatures) / 10) * 10   # Round up to nearest 10
+            even_temps = np.arange(min_temp, max_temp + 1, 50)  # Generate even-numbered ticks
+
+            # Find the closest indices in 'line' corresponding to the even temperatures
+            even_indices = [np.abs(temperatures - t).argmin() for t in even_temps]
+
+            ax211.set_xticks(line[even_indices])
+            ax211.set_xticklabels(even_temps.astype(int))
+            ax211.xaxis.set_minor_locator(AutoMinorLocator())
+
+
+            ax212.set_xticks(line[::step])
+            ax212.set_xticklabels(np.around(np.array(pressures[::step]) / 10000, 1))
+
+            ax211.set_xlabel('Temperature [°C]')
+            ax212.set_xlabel('Pressure [GPa]')
+
+
 
         # Add second x-axis for pressure
         ax212 = ax211.twiny()
-        ax212.set_xlabel('Pressure [GPa]')
-        ax212.set_xlim(ax211.get_xlim())
-        ax212.set_xticks(line)
+
         pressures = self.rockdic[rock_tag].pressure
-        pressure_labels = np.around(np.array(pressures) / 10000, 1)
+        temperatures = self.rockdic[rock_tag].temperature
 
-        # Ensure the number of ticks matches the number of labels
-        if len(line) == len(pressure_labels):
-            ax212.set_xticklabels(pressure_labels)
-        else:
-            # Adjust the number of ticks and labels to match
-            tick_indices = np.linspace(0, len(pressure_labels) - 1, len(line), dtype=int)
-            ax212.set_xticks(line)
-            ax212.set_xticklabels(pressure_labels[tick_indices])
+        con = round(10 / len(line), 2)
+        con = round(len(line) * con)
+        step = max(round(len(line) / 10), 1)
 
-        # Set temperature labels on the bottom x-axis
-        ax211.set_xticks(line)
-        temperature_labels = np.around(self.rockdic[rock_tag].temperature, 0).astype(int)
-        if len(line) == len(temperature_labels):
-            ax211.set_xticklabels(temperature_labels)
-        else:
-            tick_indices = np.linspace(0, len(temperature_labels) - 1, len(line), dtype=int)
-            ax211.set_xticks(line)
-            ax211.set_xticklabels(temperature_labels[tick_indices])
+        set_labels(ax211, ax212, temperatures, pressures, line, step)
+        
+        ax212.set_xlim(ax211.get_xlim())
 
         plt.subplots_adjust(right=0.8)
-
         # Save or show the plot
         if img_save:
             os.makedirs(f'{self.mainfolder}/img_{self.filename}/{subfolder}', exist_ok=True)
@@ -7105,10 +7115,10 @@ if __name__ == '__main__':
     # compPlot.plot_heatmap_TPZ(plot_type="cumulative")
 
     from joblib import Parallel, delayed
-    results = Parallel(n_jobs=-1)(delayed(compPlot.phases_stack_plot_v2)(key, cumulative=True, img_type='png') for key in data.rock.keys())
+    # results = Parallel(n_jobs=-1)(delayed(compPlot.phases_stack_plot_v2)(key, cumulative=True, img_type='png') for key in data.rock.keys())
     # results = Parallel(n_jobs=-1)(delayed(compPlot.phases_stack_plot)(key, cumulative=True, img_type='pdf') for key in data.rock.keys())
 
-    #for key in data.rock.keys():
+    for key in data.rock.keys():
     #    print(key)
     #    compPlot.phases_stack_plot_v2(
     #        rock_tag=key, img_save=True,
@@ -7116,7 +7126,7 @@ if __name__ == '__main__':
     #            fluid_porosity=True, cumulative=False, img_type='png'
     #                      )
     #
-    #    compPlot.oxygen_isotopes_v2(rock_tag=key, img_save=True, img_type='png')
+        compPlot.oxygen_isotopes_v2(rock_tag=key, img_save=True, img_type='pdf')
         # compPlot.oxygen_isotopes_realtive_v2(rock_tag=key, img_save=True, img_type='pdf')
         #compPlot.phases_stack_plot(rock_tag=key, img_save=True,
         #             val_tag='volume', transparent=False, fluid_porosity=True, cumulative=False, img_type='png')
