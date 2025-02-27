@@ -1,3 +1,5 @@
+![Thor GIF](https://github.com/user-attachments/assets/26e647f2-ee12-4144-9325-6b9c4430e9f1)
+
 
 # ThorPT - This is ThorPT
 ThorPT is a modelling package for fluid coupled geolgical processes in the crust. Fluid production and migration in the crust is fundamental for the earth's geochemical cycling and ThorPT is specified for modelling this fluid production and fluid transfer. It includes the latest developments in petrogeochemical modelling and helps the user to test different scenarios:
