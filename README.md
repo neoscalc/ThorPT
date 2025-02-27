@@ -1,5 +1,5 @@
 
-<img src="[https://your-link-to-the-gif.gif](https://tenor.com/view/thor-love-and-thunder-mjolnir-thor-thor-hammer-the-mighty-thor-gif-25431540)" width="500" />
+<img src="https://tenor.com/view/thor-love-and-thunder-mjolnir-thor-thor-hammer-the-mighty-thor-gif-25431540" width="500" />
 # ThorPT - This is ThorPT
 ThorPT is a modelling package for fluid coupled geolgical processes in the crust. Fluid production and migration in the crust is fundamental for the earth's geochemical cycling and ThorPT is specified for modelling this fluid production and fluid transfer. It includes the latest developments in petrogeochemical modelling and helps the user to test different scenarios:
 - Single rock modelling:
