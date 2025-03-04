@@ -1580,7 +1580,7 @@ class Ext_method_master:
             solid_volume_before, solid_volume_new,
             save_factor, master_norm, phase_data,
             tensile_s, differential_stress, friction, subduction_angle,
-            fluid_pressure_mode, fluid_name_tag, extraction_treshold=False, rock_item_tag=0):
+            fluid_pressure_mode, fluid_name_tag, extraction_connectivity=0.0, extraction_treshold=False, rock_item_tag=0):
         """
         Initialize all the values and data necessary for calculations
 
@@ -1617,6 +1617,7 @@ class Ext_method_master:
         self.fluid_name_tag = fluid_name_tag
         self.fluid_pressure_mode = fluid_pressure_mode
         self.extraction_treshold = extraction_treshold
+        self.extraction_connectivity = extraction_connectivity
 
     def couloumb_method(self, t_ref_solid, tensile=20):
         """
@@ -2053,7 +2054,7 @@ class Ext_method_master:
         vol_t0 = self.solid_t0 + self.fluid_t0
         vol_new = self.solid_t1 + self.fluid_t1
 
-
+        # ####################################
         # CORK-real - Calculate P2/P1
 
         R = 0.083144621  # cm³kbarK⁻¹mol⁻¹ (gas constant)
@@ -2169,11 +2170,7 @@ class Ext_method_master:
 
         # ##########################################
         # Failure envelope test
-        treshold_mod = True
-        if treshold_mod is True:
-            tresh_value = 0.002
-        else:
-            tresh_value = 0
+        tresh_value = self.extraction_connectivity
         # mcg_plot(cohesion, self.friction, self.diff_stress, self.shear_stress, sig1, hydro)
         if (vol_t0-self.solid_t1)/vol_t0 >= tresh_value:
             if self.diff_stress >= self.tensile_strength*5.66:
@@ -2232,14 +2229,15 @@ class Ext_method_master:
             self.frac_respo = 0
 
         # NOTE Treshold sequence
-        if self.frac_respo == 0 and treshold_mod is True:
+        if self.frac_respo == 0:
             print("No mechanical failure detected.")
             print("Testing porosity and interconnectivity.")
             print("P_f factor is {:.3f}".format(hydro/litho), "and porosity is {:.3f}".format(self.fluid_t1/(vol_t0-self.solid_t1)))
             # if hydro/litho > 0.9 and (vol_t0-self.solid_t1)/vol_t0 > 0.002:
             if (vol_t0-self.solid_t1)/vol_t0 >= self.extraction_treshold and self.fluid_t1 > 0:
                 self.frac_respo = 5
-
+            else:
+                hydro = np.nan
 
         self.failure_dictionary = {
             "sigma 1":copy.deepcopy(sig1),
@@ -2359,37 +2357,38 @@ class Fluid_master():
         self.st_fluid_post = st_fluid_post
         self.fluid_name_tag = fluid_name_tag
 
-    def hydrogen_ext_all(self):
-            """
-            Recalculates hydrogen content due to fluid extraction.
+    def hydrogen_ext_all(self, extraction_percentage):
+        """
+        Recalculates hydrogen content due to fluid extraction.
 
-            This method updates the hydrogen content in the system after fluid extraction.
-            It subtracts the hydrogen content of the extracted fluid from the total system,
-            and sets the remaining hydrogen content as the new bulk hydrogen content.
-            The fluid hydrogen content is set to zero after this step.
+        This method updates the hydrogen content in the system after fluid extraction.
+        It subtracts the hydrogen content of the extracted fluid from the total system,
+        and sets the remaining hydrogen content as the new bulk hydrogen content.
+        The fluid hydrogen content is set to zero after this step.
 
-            Parameters:
-            - None
+        Parameters:
+        - None
 
-            Returns:
-            - None
-            """
-            new_extraction = self.phase_data_fluid
-            self.ext_data = pd.concat([self.ext_data, new_extraction], axis=1)
-            self.ext_data = self.ext_data.rename(
-                columns={self.fluid_name_tag: self.temp})
+        Returns:
+        - None
+        """
+        new_extraction = self.phase_data_fluid
+        self.ext_data = pd.concat([self.ext_data, new_extraction], axis=1)
+        self.ext_data = self.ext_data.rename(
+            columns={self.fluid_name_tag: self.temp})
 
-            # diminish double total: in dataframe
-            if self.element_frame.columns[-1] == self.element_frame.columns[-2]:
-                self.element_frame = self.element_frame.iloc[:, :-1]
+        # diminish double total: in dataframe
+        if self.element_frame.columns[-1] == self.element_frame.columns[-2]:
+            self.element_frame = self.element_frame.iloc[:, :-1]
 
-            # settings some important values from element data frame
-            extracted_fluid_vol = self.phase_data_fluid['volume[ccm]']
-            fluid_H = self.element_frame.loc['H', self.fluid_name_tag]
-            sys_H = self.element_frame.loc['H', 'total:']
-            fluid_O = self.element_frame.loc['O', self.fluid_name_tag]
-            sys_O = self.element_frame.loc['O','total:']
+        # settings some important values from element data frame
+        extracted_fluid_vol = self.phase_data_fluid['volume[ccm]']
+        fluid_H = self.element_frame.loc['H', self.fluid_name_tag]
+        sys_H = self.element_frame.loc['H', 'total:']
+        fluid_O = self.element_frame.loc['O', self.fluid_name_tag]
+        sys_O = self.element_frame.loc['O','total:']
 
+        if extraction_percentage == 1.0:
             # remaining H and O in bulk
             total_hydrogen = sys_H - fluid_H
             total_oxygen = sys_O - fluid_O
@@ -2403,19 +2402,69 @@ class Fluid_master():
             self.element_frame.loc['H', self.fluid_name_tag] = 0.0
             self.st_fluid_post[-1] = self.st_fluid_post[-1] - extracted_fluid_vol
             # print("=====================================")
-            print("======= Fluid fractionation 100% ========")
-            print("\t    \N{BLACK DROPLET}")
-            print("\t   \N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
-            print("\t \N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
-            print("\t\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
-            print("\t\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
-            print("\t \N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
-            print("\t   \N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
+            print("======= Fluid fractionation 100% ========") 
+        else:
+            if new_extraction['vol%']/100 < extraction_percentage:
+                fraction = 0.0
+            else:
+                fraction = (new_extraction['vol%']/100 - extraction_percentage) / (new_extraction['vol%']/100)
+
+            # remaining H and O in bulk
+            total_hydrogen = sys_H - fluid_H * fraction
+            total_oxygen = sys_O - fluid_O * fraction
+
+            # IMPORTANT step - substracting H and O of fluid from total system - total system will be new bulk
+            self.element_frame.loc['H', 'total:'] = total_hydrogen
+            self.element_frame.loc['O', 'total:'] = total_oxygen
+
+            # set fluid O and H to zero after this step
+            self.element_frame.loc['O', self.fluid_name_tag] = fluid_O - fluid_O * fraction
+            self.element_frame.loc['H', self.fluid_name_tag] = fluid_H - fluid_H * fraction
+            self.st_fluid_post[-1] = self.st_fluid_post[-1] - extracted_fluid_vol * fraction
             # print("=====================================")
+            print(f"======= Fluid fractionation {fraction*100}% ========")
 
-    def hydrogen_partial_ext(self):
-        pass
+        print("\t    \N{BLACK DROPLET}")
+        print("\t   \N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
+        print("\t \N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
+        print("\t\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
+        print("\t\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
+        print("\t \N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
+        print("\t   \N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
+        # print("=====================================")
 
+    def hydrogen_partial_ext(self, fraction_value):
+        new_extraction = self.phase_data_fluid
+        self.ext_data = pd.concat([self.ext_data, new_extraction], axis=1)
+        self.ext_data = self.ext_data.rename(
+            columns={self.fluid_name_tag: self.temp})
+
+        # diminish double total: in dataframe
+        if self.element_frame.columns[-1] == self.element_frame.columns[-2]:
+            self.element_frame = self.element_frame.iloc[:, :-1]
+
+        # settings some important values from element data frame
+        extracted_fluid_vol = self.phase_data_fluid['volume[ccm]']
+        fluid_H = self.element_frame.loc['H', self.fluid_name_tag]
+        sys_H = self.element_frame.loc['H', 'total:']
+        fluid_O = self.element_frame.loc['O', self.fluid_name_tag]
+        sys_O = self.element_frame.loc['O','total:']
+
+        # remaining H and O in bulk
+        fractionation_value = (new_extraction['vol%']/100 - fraction_value) / (new_extraction['vol%']/100)
+        total_hydrogen = sys_H - fluid_H * fractionation_value
+        total_oxygen = sys_O - fluid_O * fractionation_value
+
+        # IMPORTANT step - substracting H and O of fluid from total system - total system will be new bulk
+        self.element_frame.loc['H', 'total:'] = total_hydrogen
+        self.element_frame.loc['O', 'total:'] = total_oxygen
+
+        # set fluid O and H to zero after this step
+        self.element_frame.loc['O', self.fluid_name_tag] = fluid_O - fluid_O * fractionation_value
+        self.element_frame.loc['H', self.fluid_name_tag] = fluid_H - fluid_H * fractionation_value
+        self.st_fluid_post[-1] = self.st_fluid_post[-1] - extracted_fluid_vol * fractionation_value
+
+        print(f"======= Fluid fractionation {fractionation_value*100}% ========")
 
 class System_status:
     """

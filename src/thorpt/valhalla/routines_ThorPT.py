@@ -922,7 +922,8 @@ class ThorPT_Routines():
                                         friction= master_rock[item]['friction'],
                                         fluid_pressure_mode= master_rock[item]['fluid_pressure_mode'],
                                         fluid_name_tag=fluid_name_tag ,subduction_angle=self.angle,
-                                        extraction_treshold = master_rock[item]['extraction treshold']
+                                        extraction_treshold = master_rock[item]['extraction treshold'],
+                                        extraction_connectivity = master_rock[item]['fluid connectivity']
                                         )
                     # //////////////////////////////////////////////////////////////////////////
                     # ////// Calculation for new whole rock /////////
@@ -1113,7 +1114,12 @@ class ThorPT_Routines():
                                         )
                                     # print("Call extraction function")
                                     print(f"*** Extracting fluid from {item}")
-                                    master_rock[item]['fluid_extraction'].hydrogen_ext_all()
+
+                                    if failure_mech == 'Mohr-Coulomb-Griffith' and master_rock[item]['fluid_calculation'].frac_respo == 5:
+                                        master_rock[item]['fluid_extraction'].hydrogen_partial_ext(master_rock[item]['extraction treshold'])
+                                    else:
+                                        master_rock[item]['fluid_extraction'].hydrogen_ext_all(master_rock[item]['extraction percentage'])
+
                                     # print("Write data of extracted fluid")
                                     master_rock[item]['extracted_fluid_data'] = master_rock[item]['fluid_extraction'].ext_data
                                     # save time and system volume to list at extraction
@@ -1276,10 +1282,8 @@ class ThorPT_Routines():
         # /////////////////////////////////////////////////
         # ////////////////////////////////////////////////
         count = 0
-        k = 0
-        kk = len(temperatures)*len(master_rock)
-        progress(int(k/kk)*100)
-        for num, temperature in enumerate(temperatures):
+        for num, temperature in enumerate(tqdm(temperatures, desc="Processing modelling steps")):
+
 
             print('\n')
             print("New calculation")
@@ -1326,7 +1330,7 @@ class ThorPT_Routines():
                                         bulka = bulka.iloc[:, 0]
 
                             # add the H and O that is transfered
-                            # FIXME - Addition of moles dependend on geometry
+                            # NOTE - Addition of moles dependend on geometry
                             # - need a factor because thermodynamic modellign uses 1 kg but geometry defines a volume
                             # - different geometries will have different impact on each other
                             external_rock_volume = (master_rock[rock_react_item]['st_solid'][-1] + master_rock[rock_react_item]['st_fluid_before'][-1])/1_000_000
@@ -1435,11 +1439,7 @@ class ThorPT_Routines():
                 # print(f"{item} Bulk rock composition checked.")
                 print(f"Bulk rock composition checked. No error found")
                 print("\n")
-                # display modelling progress
-                ic = k/kk*100
-                progress(ic)
-                k += 1
-                print("\n")
+
 
                 # tracking theriak input before minimization
                 if isinstance(master_rock[item]['theriak_input_record'], dict) == False:
@@ -1587,8 +1587,8 @@ class ThorPT_Routines():
                 # isotope fractionation module
                 # print("-> Oxygen isotope module initiated")
 
-                print("d18O before oxygen isotope module")
-                print(f"Value is {master_rock[item]['bulk_oxygen']}")
+                # print("d18O before oxygen isotope module")
+                # print(f"Value is {master_rock[item]['bulk_oxygen']}")
                 master_rock[item]['model_oxygen'] = Isotope_calc(
                     master_rock[item]['df_var_dictionary']['df_N'], master_rock[item]['minimization'].sol_sol_base,
                     master_rock[item]['df_element_total'], oxygen_signature=master_rock[item]['bulk_oxygen'])
@@ -1761,7 +1761,6 @@ class ThorPT_Routines():
                 master_rock[item]['st_solid'].append(
                     master_rock[item]['solid_volume_new'])
 
-                print("All rocks passed the petrochemical model set-up")
                 # //////////////////////////////////////////////////////////////////////////
                 # LINK - MECHANICAL FAILURE MODEL
                 # 1) Failure and extraction mode selection
@@ -1786,7 +1785,7 @@ class ThorPT_Routines():
                     # Start Extraction Master Module
                     master_rock[item]['fluid_calculation'] = Ext_method_master(
                         pressures[num], temperature,
-                        master_rock[item]['df_var_dictionary']['df_volume/mol'].loc[fluid_name_tag][-1],
+                        master_rock[item]['df_var_dictionary']['df_volume/mol'].loc[fluid_name_tag].iloc[-1],
                         fluid_before, master_rock[item]['fluid_volume_new'],
                         master_rock[item]['solid_volume_before'], master_rock[item]['solid_volume_new'],
                         master_rock[item]['save_factor'], master_rock[item]['master_norm'][-1],
@@ -1796,7 +1795,9 @@ class ThorPT_Routines():
                         friction= master_rock[item]['friction'],
                         fluid_pressure_mode= master_rock[item]['fluid_pressure_mode'],
                         fluid_name_tag=fluid_name_tag, subduction_angle=self.angle,
-                        rock_item_tag=item
+                        rock_item_tag=item,
+                        extraction_treshold = master_rock[item]['extraction treshold'],
+                                        extraction_connectivity = master_rock[item]['fluid connectivity']
                         )
                     # //////////////////////////////////////////////////////////////////////////
                     # LINK 1) selection of the failure and fluid extraction
@@ -1871,7 +1872,7 @@ class ThorPT_Routines():
                         v_permea = int_permea
                         master_rock[item]['live_fluid-flux'].append(volume_flux)
                         master_rock[item]['live_permeability'].append(int_permea)
-                        print(f"-> Virtual permeability test results: {v_permea}")
+                        # print(f"-> Virtual permeability test results: {v_permea}")
 
                         # Latest failure criterion 07.02.2023
                         # LINK i) Mohr-Coulomb failure w. diff. stress input and min. permeabiltiy
@@ -1959,7 +1960,11 @@ class ThorPT_Routines():
                                 master_rock[item]['fluid_hydrogen'].append(master_rock[item]['df_element_total'][fluid_name_tag]['H'].copy())
                                 master_rock[item]['fluid_oxygen'].append(master_rock[item]['df_element_total'][fluid_name_tag]['O'].copy())
                                 # Execute the extraction
-                                master_rock[item]['fluid_extraction'].hydrogen_ext_all()
+                                if failure_mech == 'Mohr-Coulomb-Griffith' and master_rock[item]['fluid_calculation'].frac_respo == 5:
+                                        master_rock[item]['fluid_extraction'].hydrogen_partial_ext(master_rock[item]['extraction treshold'])
+                                else:
+                                    master_rock[item]['fluid_extraction'].hydrogen_ext_all(master_rock[item]['extraction percentage'])
+
                                 # Read the data of the fluid extracted
                                 master_rock[item]['extracted_fluid_data'] = master_rock[item]['fluid_extraction'].ext_data
                                 # Read the element frame when extraction
@@ -2026,11 +2031,6 @@ class ThorPT_Routines():
                 print("\n")
 
             count += 1
-            # k += 1
-            ic = k/kk*100
-            print("=====Progress=====")
-            progress(ic)
-            print("\n")
 
         # LINK ROUTINE END
         # //////////////////////////////////////////////////////////////////////////

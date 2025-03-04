@@ -7105,7 +7105,7 @@ if __name__ == '__main__':
     # compPlot.oxygen_isotope_interaction_scenario3(img_save=True, img_type='pdf')
 
     compPlot.bulk_rock_sensitivity_cumVol()
-    compPlot.bulk_rock_sensitivity_twin()
+    # compPlot.bulk_rock_sensitivity_twin()
     # compPlot.tensile_strength_sensitivity_cumVol()
     # compPlot.tensile_strength_sensitivity()
     # compPlot.mohr_coulomb_diagram(rock_tag='rock079')
@@ -7120,18 +7120,14 @@ if __name__ == '__main__':
 
     for key in data.rock.keys():
     #    print(key)
-    #    compPlot.phases_stack_plot_v2(
-    #        rock_tag=key, img_save=True,
-    #            val_tag='volume', transparent=False, 
-    #            fluid_porosity=True, cumulative=False, img_type='png'
-    #                      )
+        compPlot.phases_stack_plot_v2(
+            rock_tag=key, img_save=True,
+                val_tag='volume', transparent=False, 
+                fluid_porosity=True, cumulative=False, img_type='png'
+                          )
     #
-        compPlot.oxygen_isotopes_v2(rock_tag=key, img_save=True, img_type='pdf')
-        # compPlot.oxygen_isotopes_realtive_v2(rock_tag=key, img_save=True, img_type='pdf')
-        #compPlot.phases_stack_plot(rock_tag=key, img_save=True,
-        #             val_tag='volume', transparent=False, fluid_porosity=True, cumulative=False, img_type='png')
+        compPlot.oxygen_isotopes_v2(rock_tag=key, img_save=True, img_type='png')
 
-        # compPlot.oxygen_isotopes(rock_tag=key, img_save=True, img_type='png')
 
     # compPlot.fluid_distribution_sgm23(img_save=True, gif_save=True, x_axis_log=False)
 

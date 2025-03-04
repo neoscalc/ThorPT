@@ -231,6 +231,8 @@ def run_main_routine():
         init_data['fluid_name_tag'] = []
         init_data['fluid_pressure'] = []
         init_data['fluid_volume'] = []
+        init_data['extraction_percentage'] = []
+        init_data['connectivity_fraction'] = []
 
         # Dictionary to map keys to their corresponding lists in init_data
         key_map = {
@@ -246,7 +248,9 @@ def run_main_routine():
             'Minimum Permeability': 'Min Permeability',
             'Fluid phase name': 'fluid_name_tag',
             'Fluid pressure': 'fluid_pressure',
-            'FluidVolumeTreshold[Vol%]': 'fluid_volume'
+            'Fluid Volume Treshold[Vol%]': 'fluid_volume',
+            'Extraction percentage[%]:': 'extraction_percentage',
+            'Fluid Connectivity[Vol%]': 'connectivity_fraction'
             }
 
 
@@ -319,13 +323,18 @@ def run_main_routine():
                     pos = entry.index(":")
                     fluid_pressure = entry[pos+1:].split('\t')[-1]
                     init_data['fluid_pressure'].append(fluid_pressure.lower())
-
-
-            for entry in rock_init:
-                if "FluidVolumeTreshold[Vol%]" in entry:
+                if 'Extraction percentage[%]:' in entry:
+                    pos = entry.index(":")
+                    percentage = entry[pos+1:].split('\t')[-1]
+                    init_data['extraction_percentage'].append(float(percentage) / 100)
+                if "Fluid Volume Treshold[Vol%]" in entry:
                     pos = entry.index(":")
                     fluid_volume = entry[pos+1:].split('\t')[-1]
                     init_data['fluid_volume'].append(float(fluid_volume))
+                if "Fluid Connectivity[Vol%]" in entry:
+                    pos = entry.index(":")
+                    fluid_volume = entry[pos+1:].split('\t')[-1]
+                    init_data['connectivity_fraction'].append(float(fluid_volume))
 
         init_data['Database'] = database
         init_data['Path'] = init_data['path']
@@ -544,6 +553,14 @@ def run_main_routine():
                 master_rock[tag]['extraction treshold'] = init_data['fluid_volume'][i] / 100
             else:
                 master_rock[tag]['extraction treshold'] = False
+            if 'extraction_percentage' in init_data.keys():
+                master_rock[tag]['extraction percentage'] = init_data['extraction_percentage'][i]
+            else:
+                master_rock[tag]['extraction percentage'] = 1.0
+            if 'connectivity_fraction' in init_data.keys():
+                master_rock[tag]['fluid connectivity'] = init_data['connectivity_fraction'][i] / 100
+            else:
+                master_rock[tag]['fluid connectivity'] = 0.0
 
         # copy pf the master rock dictionary to save all original data before modification while the routine
         rock_origin = copy.deepcopy(master_rock)
