@@ -248,7 +248,7 @@ def run_main_routine():
             'Minimum Permeability': 'Min Permeability',
             'Fluid phase name': 'fluid_name_tag',
             'Fluid pressure': 'fluid_pressure',
-            'Fluid Volume Treshold[Vol%]': 'fluid_volume',
+            'Fluid Volume Threshold[Vol%]': 'fluid_volume',
             'Extraction percentage[%]:': 'extraction_percentage',
             'Fluid Connectivity[Vol%]': 'connectivity_fraction'
             }
@@ -327,7 +327,7 @@ def run_main_routine():
                     pos = entry.index(":")
                     percentage = entry[pos+1:].split('\t')[-1]
                     init_data['extraction_percentage'].append(float(percentage) / 100)
-                if "Fluid Volume Treshold[Vol%]" in entry:
+                if "Fluid Volume Threshold[Vol%]" in entry:
                     pos = entry.index(":")
                     fluid_volume = entry[pos+1:].split('\t')[-1]
                     init_data['fluid_volume'].append(float(fluid_volume))
@@ -550,9 +550,9 @@ def run_main_routine():
             if len(init_data['shear']) > 0:
                 master_rock[tag]['shear'] = init_data['shear'][i]
             if 'fluid_volume' in init_data.keys():
-                master_rock[tag]['extraction treshold'] = init_data['fluid_volume'][i] / 100
+                master_rock[tag]['extraction threshold'] = init_data['fluid_volume'][i] / 100
             else:
-                master_rock[tag]['extraction treshold'] = False
+                master_rock[tag]['extraction threshold'] = False
             if 'extraction_percentage' in init_data.keys():
                 master_rock[tag]['extraction percentage'] = init_data['extraction_percentage'][i]
             else:
@@ -607,7 +607,7 @@ def run_main_routine():
             track_time = track_time[:2]
             track_depth[17:19]
             """
-
+            
             ThorPT = routines_ThorPT.ThorPT_Routines(temperatures, pressures, master_rock, rock_origin,
                 track_time, track_depth, grt_frac, path_method,
                 lowest_permeability, conv_speed, angle, time_step, init_data['theriak'], debugging_recorder)

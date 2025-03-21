@@ -1580,7 +1580,7 @@ class Ext_method_master:
             solid_volume_before, solid_volume_new,
             save_factor, master_norm, phase_data,
             tensile_s, differential_stress, friction, subduction_angle,
-            fluid_pressure_mode, fluid_name_tag, extraction_connectivity=0.0, extraction_treshold=False, rock_item_tag=0):
+            fluid_pressure_mode, fluid_name_tag, extraction_connectivity=0.0, extraction_threshold=False, rock_item_tag=0):
         """
         Initialize all the values and data necessary for calculations
 
@@ -1616,7 +1616,7 @@ class Ext_method_master:
         self.failure_dictionary = {}
         self.fluid_name_tag = fluid_name_tag
         self.fluid_pressure_mode = fluid_pressure_mode
-        self.extraction_treshold = extraction_treshold
+        self.extraction_threshold = extraction_threshold
         self.extraction_connectivity = extraction_connectivity
 
     def couloumb_method(self, t_ref_solid, tensile=20):
@@ -2170,9 +2170,9 @@ class Ext_method_master:
 
         # ##########################################
         # Failure envelope test
-        tresh_value = self.extraction_connectivity
+        thresh_value = self.extraction_connectivity
         # mcg_plot(cohesion, self.friction, self.diff_stress, self.shear_stress, sig1, hydro)
-        if (vol_t0-self.solid_t1)/vol_t0 >= tresh_value:
+        if (vol_t0-self.solid_t1)/vol_t0 >= thresh_value:
             if self.diff_stress >= self.tensile_strength*5.66:
 
                 print("Compressive shear failure test")
@@ -2234,8 +2234,10 @@ class Ext_method_master:
             print("Testing porosity and interconnectivity.")
             print("P_f factor is {:.3f}".format(hydro/litho), "and porosity is {:.3f}".format(self.fluid_t1/(vol_t0-self.solid_t1)))
             # if hydro/litho > 0.9 and (vol_t0-self.solid_t1)/vol_t0 > 0.002:
-            if (vol_t0-self.solid_t1)/vol_t0 >= self.extraction_treshold and self.fluid_t1 > 0:
+            if (vol_t0-self.solid_t1)/vol_t0 >= self.extraction_threshold and self.fluid_t1 > 0:
                 self.frac_respo = 5
+            elif (vol_t0-self.solid_t1)/vol_t0 >= thresh_value:
+                pass
             else:
                 hydro = np.nan
 
@@ -2866,7 +2868,10 @@ class TraceElementDistribution():
         self.distribution_coefficients = read_trace_element_content()
         self.database = database
 
-        self.phase_set, self.phase_original = phases_translated(self.database, self.phase_data.index)
+        if 'tc55' in database:
+            self.phase_set, self.phase_original = phases_translated('tc55.txt', self.phase_data.index)
+        else:
+            self.phase_set, self.phase_original = phases_translated(self.database, self.phase_data.index)
 
     def distribute_tracers(self, temperature, pressure, iteration):
         """

@@ -922,7 +922,7 @@ class ThorPT_Routines():
                                         friction= master_rock[item]['friction'],
                                         fluid_pressure_mode= master_rock[item]['fluid_pressure_mode'],
                                         fluid_name_tag=fluid_name_tag ,subduction_angle=self.angle,
-                                        extraction_treshold = master_rock[item]['extraction treshold'],
+                                        extraction_threshold = master_rock[item]['extraction threshold'],
                                         extraction_connectivity = master_rock[item]['fluid connectivity']
                                         )
                     # //////////////////////////////////////////////////////////////////////////
@@ -1116,7 +1116,7 @@ class ThorPT_Routines():
                                     print(f"*** Extracting fluid from {item}")
 
                                     if failure_mech == 'Mohr-Coulomb-Griffith' and master_rock[item]['fluid_calculation'].frac_respo == 5:
-                                        master_rock[item]['fluid_extraction'].hydrogen_partial_ext(master_rock[item]['extraction treshold'])
+                                        master_rock[item]['fluid_extraction'].hydrogen_partial_ext(master_rock[item]['extraction threshold'])
                                     else:
                                         master_rock[item]['fluid_extraction'].hydrogen_ext_all(master_rock[item]['extraction percentage'])
 
@@ -1796,7 +1796,7 @@ class ThorPT_Routines():
                         fluid_pressure_mode= master_rock[item]['fluid_pressure_mode'],
                         fluid_name_tag=fluid_name_tag, subduction_angle=self.angle,
                         rock_item_tag=item,
-                        extraction_treshold = master_rock[item]['extraction treshold'],
+                        extraction_threshold = master_rock[item]['extraction threshold'],
                                         extraction_connectivity = master_rock[item]['fluid connectivity']
                         )
                     # //////////////////////////////////////////////////////////////////////////
@@ -1961,7 +1961,7 @@ class ThorPT_Routines():
                                 master_rock[item]['fluid_oxygen'].append(master_rock[item]['df_element_total'][fluid_name_tag]['O'].copy())
                                 # Execute the extraction
                                 if failure_mech == 'Mohr-Coulomb-Griffith' and master_rock[item]['fluid_calculation'].frac_respo == 5:
-                                        master_rock[item]['fluid_extraction'].hydrogen_partial_ext(master_rock[item]['extraction treshold'])
+                                        master_rock[item]['fluid_extraction'].hydrogen_partial_ext(master_rock[item]['extraction threshold'])
                                 else:
                                     master_rock[item]['fluid_extraction'].hydrogen_ext_all(master_rock[item]['extraction percentage'])
 

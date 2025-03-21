@@ -998,6 +998,9 @@ class Rock:
 
     failure_model: any
 
+    trace_element_data: any
+
+
 
 # Compiled data as dataclass
 @dataclass
@@ -1353,6 +1356,11 @@ class ThorPT_hdf5_reader():
                 element_record[group_key] = pd.DataFrame(f[group_key]['SystemData']['st_elements'])
                 element_record[group_key].index = td_data_tag02
 
+                # trace element data
+                trace_element_df = {}
+                for phase in f[group_key]['SystemData']['trace_element_data']:
+                    trace_element_df[phase] = pd.DataFrame(f[group_key]['SystemData']['trace_element_data'][phase])
+
 
                 #######################################################
                 # Write the dataclass
@@ -1391,7 +1399,8 @@ class ThorPT_hdf5_reader():
                     garnet=garnets,
                     garnets_bools=garnets_bools,
                     element_record=element_record,
-                    failure_model=failure_module_data)
+                    failure_model=failure_module_data,
+                    trace_element_data=trace_element_df)
 
                 #######################################################
                 # Compiling section
@@ -6577,12 +6586,40 @@ class ThorPT_plots():
         extraction_volumes_cum = []
 
         # Collecting differential stress, extraction number, and tensile strength for all rocks
-        for i, item in enumerate(self.comprock.all_diffs):
+        """for i, item in enumerate(self.comprock.all_diffs):
             # Create the cumulative volume of extracted fluid
             take_bool = np.array(all_boolean[i])
             if len(take_bool) != len(all_porosity[i]):
                 take_bool = np.insert(take_bool, 0, 1)
             
+            all_boolean_array.append(take_bool)
+
+            extractionVol = np.ma.masked_array(all_porosity[i], take_bool)
+            extractionVol = np.ma.filled(extractionVol, 0)
+
+            extraction_volumes.append(extractionVol)
+
+            extractionVol = np.cumsum(extractionVol) * 100
+            extraction_volumes_cum.append(extractionVol)"""
+
+        # Collecting differential stress, extraction number, and tensile strength for all rocks
+        for i, item in enumerate(self.rockdic.keys()):
+            # Create the cumulative volume of extracted fluid
+            take_bool = self.rockdic[item].frac_bool
+            if len(take_bool) != len(all_porosity[i]):
+                take_bool = np.insert(take_bool, 0, 1)
+
+            # replace all 1 in take_bool with 0
+            take_bool = np.where(take_bool == 5, 0, take_bool)
+            # replace all 5 in take_bool with 1
+            # take_bool = np.where(take_bool == 5, 1, take_bool)
+
+            # do boolean from numbers in take_bool
+            take_bool = np.array(take_bool, dtype='bool')
+
+            # invert the boolean array
+            take_bool = np.logical_not(take_bool)
+
             all_boolean_array.append(take_bool)
 
             extractionVol = np.ma.masked_array(all_porosity[i], take_bool)
@@ -6675,8 +6712,8 @@ class ThorPT_plots():
         # Add labels and title
         plt.xlabel('Temperature [°C]')
         plt.ylabel('Pressure [GPa]')
-        plt.ylim(0.5, 3.0)
-        plt.xlim(350, 700)
+        plt.ylim(0.25, 3.0)
+        plt.xlim(300, 700)
 
         #plt.title(title)
         # save the plot
@@ -6838,6 +6875,24 @@ class ThorPT_plots():
         water_content = []
         # store the bulk d18O
         bulk_d18O = []
+        # store rutile
+        rutile_content = []
+        # store kyanite
+        kyanite_content = []
+        # titanite
+        titanite_content = []
+        # chlorite
+        chlorite_content = []
+        # quartz
+        quartz_content = []
+        # olivine
+        olivine_content = []
+        # antigorite
+        antigorite_content = []
+        # brucite
+        brucite_content = []
+
+        garnet_trace_df = pd.DataFrame()
 
         # loop over each rock in the model receiving the data for the rock and mineral phases to reformat into matrices for the plot
         for i, rock in enumerate(self.rockdic.keys()):
@@ -6918,6 +6973,70 @@ class ThorPT_plots():
             else:
                 garnet_val = np.zeros(len(ts))
 
+            # get the data for garnet
+            if 'Rutile' in legend_phases:
+                rutile_val = np.array(y.loc['Rutile'])
+                # cumulative sum of garnet content
+                rutile_val = np.cumsum(rutile_val)
+            else:
+                rutile_val = np.zeros(len(ts))
+
+            # get the data for garnet
+            if 'Kyanite' in legend_phases:
+                kyanite_val = np.array(y.loc['Kyanite'])
+                # cumulative sum of garnet content
+                kyanite_val = np.cumsum(kyanite_val)
+            else:
+                kyanite_val = np.zeros(len(ts))
+
+            # get the data for garnet
+            if 'Titanite' in legend_phases:
+                titanite_val = np.array(y.loc['Titanite'])
+                # cumulative sum of garnet content
+                titanite_val = np.cumsum(titanite_val)
+            else:
+                titanite_val = np.zeros(len(ts))
+
+            # get the data for garnet
+            if 'Chlorite' in legend_phases:
+                chlorite_val = np.array(y.loc['Chlorite'])
+                # cumulative sum of garnet content
+                chlorite_val = np.cumsum(chlorite_val)
+            else:
+                chlorite_val = np.zeros(len(ts))
+
+            # get the data for quartz
+            if 'Quartz' in legend_phases:
+                quartz_val = np.array(y.loc['Quartz'])
+                # cumulative sum of garnet content
+                quartz_val = np.cumsum(quartz_val)
+            else:
+                quartz_val = np.zeros(len(ts))
+
+            # get the data for olivine
+            if 'Olivine' in legend_phases:
+                olivine_val = np.array(y.loc['Olivine'])
+                # cumulative sum of garnet content
+                olivine_val = np.cumsum(olivine_val)
+            else:
+                olivine_val = np.zeros(len(ts))
+
+            # get the data for antigorite
+            if 'Serp_Atg' in legend_phases:
+                antigorite_val = np.array(y.loc['Serp_Atg'])
+                # cumulative sum of garnet content
+                antigorite_val = np.cumsum(antigorite_val)
+            else:
+                antigorite_val = np.zeros(len(ts))
+
+            # get the data for brucite
+            if 'Br_Br' in legend_phases:
+                brucite_val = np.array(y.loc['Br_Br'])
+                # cumulative sum of garnet content
+                brucite_val = np.cumsum(brucite_val)
+            else:
+                brucite_val = np.zeros(len(ts))
+
             # get oxygen isotope signature of bulk
             bulk_oxygen_rock = self.rockdic[rock].bulk_deltao_post
 
@@ -6934,6 +7053,28 @@ class ThorPT_plots():
             garnet_content.append(garnet_val)
             water_content.append(fluid_val)
             bulk_d18O.append(bulk_oxygen_rock)
+            rutile_content.append(rutile_val)
+            kyanite_content.append(kyanite_val)
+            titanite_content.append(titanite_val)
+            chlorite_content.append(chlorite_val)
+            quartz_content.append(quartz_val)
+            olivine_content.append(olivine_val)
+            antigorite_content.append(antigorite_val)
+            brucite_content.append(brucite_val)
+
+
+            
+            # trace elements of garnet
+            # need to merge multiple garnet entries
+            
+            for item in self.rockdic[rock].trace_element_data.keys():
+                if 'GARNET' in item:
+                    garnet_trace_df = pd.concat([garnet_trace_df, self.rockdic[rock].trace_element_data[item]], axis=0)
+
+
+
+
+
         
 
         # plotting the compiled data
@@ -6946,7 +7087,73 @@ class ThorPT_plots():
         plot_compiled_list_array(amphibole_content, rock_keys, data, self.mainfolder, self.filename, 'amph_volume_perc', norming=False)
         plot_compiled_list_array(omphacite_content, rock_keys, data, self.mainfolder, self.filename, 'omph_volume_perc', norming=False)
         plot_compiled_list_array(bulk_d18O, rock_keys, data, self.mainfolder, self.filename, 'd18O_bulk', norming=False)
+        plot_compiled_list_array(rutile_content, rock_keys, data, self.mainfolder, self.filename, 'rutile_volume_perc', norming=False)
+        plot_compiled_list_array(kyanite_content, rock_keys, data, self.mainfolder, self.filename, 'kyanite_volume_perc', norming=False)
+        plot_compiled_list_array(titanite_content, rock_keys, data, self.mainfolder, self.filename, 'titanite_volume_perc', norming=False)
+        plot_compiled_list_array(chlorite_content, rock_keys, data, self.mainfolder, self.filename, 'chlorite_volume_perc', norming=False)
+        plot_compiled_list_array(quartz_content, rock_keys, data, self.mainfolder, self.filename, 'quartz_volume_perc', norming=False)
+        plot_compiled_list_array(olivine_content, rock_keys, data, self.mainfolder, self.filename, 'olivine_volume_perc', norming=False)
+        plot_compiled_list_array(antigorite_content, rock_keys, data, self.mainfolder, self.filename, 'antigorite_volume_perc', norming=False)
+        plot_compiled_list_array(brucite_content, rock_keys, data, self.mainfolder, self.filename, 'brucite_volume_perc', norming=False)
+
         plot_compiled_list_array(all_fluid_pressure, rock_keys, data, self.mainfolder, self.filename, 'fluid_pressure', norming=False, low_val=0, max_val=2, div_color='diverging')
+
+
+
+        plt.figure(figsize=(10, 8))
+        element_number = 14 + 2
+        # Find the maximum value in the current array
+        max_value = np.max(garnet_trace_df.iloc[:,element_number])
+        min_value = np.min(garnet_trace_df.iloc[:,element_number])
+        
+        
+        cmap = plt.get_cmap('viridis')
+        # Convert the colormap to a list of colors
+        cmap_colors = cmap(np.linspace(0, 1, cmap.N))
+        # Create a new colormap with the modified colors
+        cmap = mcolors.ListedColormap(cmap_colors)
+        # Normalize the values with a custom midpoint
+        norm = mcolors.Normalize(vmin=min_value, vmax=max_value)
+        # Map the normalized values to colors
+        colors = [cmap(norm(value)) for value in garnet_trace_df.iloc[:,element_number]]
+
+        temperatures = garnet_trace_df.iloc[:,2]
+        pressures = garnet_trace_df.iloc[:,1]
+        plt.scatter(temperatures, pressures / 10000, 
+                        color=colors, 
+                        s=100, alpha=0.8, marker='s')
+        # Add labels and title
+        plt.xlabel('Temperature [°C]')
+        plt.ylabel('Pressure [GPa]')
+        plt.ylim(0.5, 3.0)
+        plt.xlim(350, 700)
+
+        # save the plot
+        os.makedirs(
+            f'{self.mainfolder}/img_{self.filename}/fracture_mesh', exist_ok=True)
+        plt.savefig(f'{self.mainfolder}/img_{self.filename}/fracture_mesh/TE_in_garnet.pdf',
+                    transparent=False, facecolor='white')
+        
+        fig, ax = plt.subplots(figsize=(6, 1))
+        fig.subplots_adjust(bottom=0.5)
+        # Create a colorbar based on the viridis colormap
+        sm = plt.cm.ScalarMappable(cmap='viridis', norm=norm)
+        sm.set_array([])
+        # Add the colorbar to the plot
+        cbar = fig.colorbar(sm, cax=ax, orientation='horizontal')
+        cbar.set_label('Extraction Volume')
+        # Show the colorbar plot
+        os.makedirs(
+                f'{self.mainfolder}/img_{self.filename}/fracture_mesh/colorbars', exist_ok=True)
+        plt.savefig(f'{self.mainfolder}/img_{self.filename}/fracture_mesh/colorbars/TE_in_garnet_colorbar.pdf',
+                    transparent=False, facecolor='white')
+
+
+
+
+
+
+
 
         """sm = plt.cm.ScalarMappable(cmap='viridis', norm=plt.Normalize(vmin=0, vmax=extraction_volumes[0].max()+1))
         sm._A = []
@@ -6962,9 +7169,16 @@ class ThorPT_plots():
         X = np.linspace(min(np.array(_log_T)), max(np.array(_log_T)))
         Y = np.linspace(min(np.array(_log_P)), max(np.array(_log_P)))
         X, Y = np.meshgrid(X, Y) 
-        interp = scipy.interpolate.CloughTocher2DInterpolator(list(zip(np.array(_log_T), np.array(_log_P))), np.array(_log_Z_))
-        interp = scipy.interpolate.CloughTocher2DInterpolator(tri, np.array(_log_Z_), fill_value=np.nan, tol=1e-06, maxiter=400)
+        interp = scipy.interpolate.CloughTocher2DInterpolator(list(zip(np.array(_log_T), np.array(_log_P))), np.array(titanite_content))
+        interp = scipy.interpolate.CloughTocher2DInterpolator(tri, np.array(titanite_content), fill_value=np.nan, tol=1e-06, maxiter=400)
+
+        # interp = scipy.interpolate.CloughTocher2DInterpolator(list(zip(np.array(_log_T), np.array(_log_P))), np.array(_log_Z_))
+        # interp = scipy.interpolate.CloughTocher2DInterpolator(tri, np.array(_log_Z_), fill_value=np.nan, tol=1e-06, maxiter=400)
+        
         Z = interp(X, Y)
+        # contour plot of Z
+        plt.figure(figsize=(10, 8))
+        plt.contourf(X, Y, np.array(_log_Z_), cmap='viridis')
         plt.pcolormesh(X, Y, Z, shading='auto')
         plt.plot(np.array(_log_T), np.array(_log_P), "ok", label="input point")
         plt.legend()
@@ -7104,14 +7318,14 @@ if __name__ == '__main__':
 
     # compPlot.oxygen_isotope_interaction_scenario3(img_save=True, img_type='pdf')
 
-    compPlot.bulk_rock_sensitivity_cumVol()
+    # compPlot.bulk_rock_sensitivity_cumVol()
     # compPlot.bulk_rock_sensitivity_twin()
     # compPlot.tensile_strength_sensitivity_cumVol()
     # compPlot.tensile_strength_sensitivity()
     # compPlot.mohr_coulomb_diagram(rock_tag='rock079')
 
     # compPlot.plot_heatmap(plot_type="cumulative")
-    # compPlot.plot_heatmap_PT(plot_type="cumulative")
+    compPlot.plot_heatmap_PT(plot_type="cumulative")
     # compPlot.plot_heatmap_TPZ(plot_type="cumulative")
 
     from joblib import Parallel, delayed
