@@ -6685,6 +6685,8 @@ class ThorPT_plots():
             if min_value < smallest_extraction_volume:
                 smallest_extraction_volume = min_value
 
+        largest_extraction_volume = 0.10
+
         for j, arr in enumerate(all_boolean_array):
             temperatures = data.rock[rock_keys[j]].temperature
             pressures = data.rock[rock_keys[j]].pressure
@@ -7072,11 +7074,6 @@ class ThorPT_plots():
                     garnet_trace_df = pd.concat([garnet_trace_df, self.rockdic[rock].trace_element_data[item]], axis=0)
 
 
-
-
-
-        
-
         # plotting the compiled data
         plot_compiled_list_array(all_porosity, rock_keys, data, self.mainfolder, self.filename, 'porosity')
         plot_compiled_list_array(all_sys_volume, rock_keys, data, self.mainfolder, self.filename, 'system_volume', norming=False)
@@ -7325,22 +7322,23 @@ if __name__ == '__main__':
     # compPlot.mohr_coulomb_diagram(rock_tag='rock079')
 
     # compPlot.plot_heatmap(plot_type="cumulative")
-    compPlot.plot_heatmap_PT(plot_type="cumulative")
+    # compPlot.plot_heatmap_PT(plot_type="cumulative")
     # compPlot.plot_heatmap_TPZ(plot_type="cumulative")
 
     from joblib import Parallel, delayed
     # results = Parallel(n_jobs=-1)(delayed(compPlot.phases_stack_plot_v2)(key, cumulative=True, img_type='png') for key in data.rock.keys())
     # results = Parallel(n_jobs=-1)(delayed(compPlot.phases_stack_plot)(key, cumulative=True, img_type='pdf') for key in data.rock.keys())
 
-    for key in data.rock.keys():
+    #for key in data.rock.keys():
     #    print(key)
-        compPlot.phases_stack_plot_v2(
-            rock_tag=key, img_save=True,
-                val_tag='volume', transparent=False, 
-                fluid_porosity=True, cumulative=False, img_type='png'
-                          )
+        # compPlot.phases_stack_plot_v2(
+        #     rock_tag=key, img_save=True,
+        #         val_tag='volume', transparent=False, 
+        #         fluid_porosity=True, cumulative=False, img_type='pdf'
+        #                   )
     #
-        compPlot.oxygen_isotopes_v2(rock_tag=key, img_save=True, img_type='png')
+        # compPlot.oxygen_isotopes_v2(rock_tag=key, img_save=True, img_type='png')
+        # compPlot.oxygen_isotopes_realtive_v2(rock_tag=key, img_save=True, img_type='png')
 
 
     # compPlot.fluid_distribution_sgm23(img_save=True, gif_save=True, x_axis_log=False)

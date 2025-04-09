@@ -943,9 +943,9 @@ OLIVINEi      (IDEAL)2   M(2):Mg,Fe
 !=================================================================================
 ! Calcite - mgnesite - dolomite
 ! -----------------------------
-! Tim Holland and Roger Powell(2003): ActivityÐcomposition relations for phases in 
+! Tim Holland and Roger Powell(2003): Activityï¿½composition relations for phases in 
 ! petrological calculations: an asymmetric multicomponent formulation.
-! Contrib Mineral Petrol (2003) 145: 492Ð501
+! Contrib Mineral Petrol (2003) 145: 492ï¿½501
 !
 **** MINERAL DATA ***** HollandPowell 2003 example
 calcite2             CA(2)O(6)C(2)    cc2           1nh
@@ -1015,8 +1015,8 @@ sanidine - anorthiteC1
 !---------
 ! "ternary" feldspar from the supplementary material (file nckfmash) in:
 ! Baldwin J.A. et al. (2005): Modelling of mineral equilibria in ultrahigh-
-! temperature metamorphic rocks from the AnapolisÐItaucu Complex, central Brazil
-! J. metamorphic Geol., 2005, 23, 511Ð531
+! temperature metamorphic rocks from the Anapolisï¿½Itaucu Complex, central Brazil
+! J. metamorphic Geol., 2005, 23, 511ï¿½531
 ! Based on: Holland, TJB & Powell, R (2003) Activity-composition relations for 
 ! phases in petrological calculations: an asymmetric multicomponent formulation.
 ! Contributions to Mineralogy and Petrology, 145, 492-501.
@@ -1456,7 +1456,7 @@ paragonite2 - Fe-celadonite
 ! ----------
 ! R. COGGON AND T. J . B. HOLLAND(2002): Mixing properties of phengitic micas and 
 ! revised garnet-phengite thermobarometers.
-! J. metamorphic Geol., 2002, 20, 683Ð696
+! J. metamorphic Geol., 2002, 20, 683ï¿½696
 !
 *****  SuLUTION DATA  *****  phng
 PHNG    (-SITE,MARGULES)   A(1):K,Na - M2A(1):Al,Mg,Fe - T1(2):Al,Si
@@ -1478,7 +1478,7 @@ paragonite - Fe-celadonite
 ! white mica tc325
 ! ----------
 ! R. COGGON AND T. J . B. HOLLAND(2002): Mixing properties of phengitic micas and 
-! revised garnet-phengite thermobarometers. J. metamorphic Geol., 2002, 20, 683Ð696
+! revised garnet-phengite thermobarometers. J. metamorphic Geol., 2002, 20, 683ï¿½696
 !
 *****  SuLUTION DATA  *****
 PHNG    (-SITE,MARGULES)   A(1):K,Na - M2A(1):Al,Mg,Fe - T1(2):Al,Si
