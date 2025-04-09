@@ -19,6 +19,8 @@ import os
 from pathlib import Path
 from mpl_toolkits.axes_grid1 import host_subplot
 from matplotlib.ticker import (MultipleLocator, AutoMinorLocator)
+import matplotlib.colors as mcolors
+import matplotlib.cm as cm
 from tkinter import *
 from tkinter import filedialog
 import imageio
@@ -950,6 +952,7 @@ class Rock:
         garnet: The garnet present in the rock.
         garnets_bools: A boolean indicating the presence of garnets.
         element_record: The record of elements in the rock.
+        pf_values: Record of the fluid pressure values.
     """
     name: str
     temperature: any
@@ -994,6 +997,9 @@ class Rock:
     element_record: any
 
     failure_model: any
+
+    trace_element_data: any
+
 
 
 # Compiled data as dataclass
@@ -1110,6 +1116,7 @@ class ThorPT_hdf5_reader():
         all_fluid_pressure = []
         all_starting_bulk = []
         all_fluid_pressure_mode = []
+        all_pf_values = []
         all_extracted_fluid_volume = []
         garnets = {}
         sysv = {}
@@ -1184,7 +1191,17 @@ class ThorPT_hdf5_reader():
                 if failure_module_data.empty is True:
                     fluid_pressure = np.array(0)
                 else:
-                    fluid_pressure = failure_module_data['fluid pressure']
+                    fluid_pressure = np.zeros(len(ps))
+                    # searching for the fluid pressure in the failure module data and match with the ps array
+                    # then overwrite the zero at the matching position to store the fluid pressure
+                    for pp, pressure in enumerate(failure_module_data['sigma 3']):
+                        # define the target pressure value
+                        target_val = pressure + failure_module_data['diff stress'][pp]/2
+                        # find value in ps array
+                        for t, val in enumerate(ps):
+                            if target_val == val/10:
+                                fluid_pressure[t] = failure_module_data['fluid pressure'][pp]*10 / val
+
 
                 # get some physics arrays
                 sys_physc = {}
@@ -1339,6 +1356,11 @@ class ThorPT_hdf5_reader():
                 element_record[group_key] = pd.DataFrame(f[group_key]['SystemData']['st_elements'])
                 element_record[group_key].index = td_data_tag02
 
+                # trace element data
+                trace_element_df = {}
+                for phase in f[group_key]['SystemData']['trace_element_data']:
+                    trace_element_df[phase] = pd.DataFrame(f[group_key]['SystemData']['trace_element_data'][phase])
+
 
                 #######################################################
                 # Write the dataclass
@@ -1377,7 +1399,8 @@ class ThorPT_hdf5_reader():
                     garnet=garnets,
                     garnets_bools=garnets_bools,
                     element_record=element_record,
-                    failure_model=failure_module_data)
+                    failure_model=failure_module_data,
+                    trace_element_data=trace_element_df)
 
                 #######################################################
                 # Compiling section
@@ -2742,6 +2765,306 @@ class ThorPT_plots():
         plt.clf()
         plt.close()
 
+    def phases_stack_plot_v2(self, rock_tag, img_save=True, val_tag='volume',
+                      transparent=False, fluid_porosity=True, cumulative=False, img_type='png'):
+
+        """
+        Plot the phase changes for P-T-t.
+
+        Parameters:
+        rock_tag (str): The tag of the rock.
+        img_save (bool, optional): Whether to save the plot as an image. Defaults to False.
+        val_tag (bool, optional): The value tag for the stack plot input. Defaults to False.
+        transparent (bool, optional): Whether to make the plot transparent. Defaults to False.
+        fluid_porosity (bool, optional): Whether to include the fluid-filled porosity in the plot. Defaults to True.
+        """
+
+        group_key = self.rockdic[rock_tag].group_key
+        subfolder = 'stack_plot'
+
+        # XMT naming and coloring
+        database = self.rockdic[rock_tag].database
+        phases2 = self.rockdic[rock_tag].phases2
+        legend_phases, color_set = phases_and_colors_XMT(database, phases2)
+
+        phases = self.rockdic[rock_tag].phases
+        phase_data = self.rockdic[rock_tag].phase_data
+        frac_bool = self.rockdic[rock_tag].frac_bool
+        frac_bool = np.insert(frac_bool, 0, 0)
+
+        garnet = self.rockdic[rock_tag].garnet[rock_tag]
+        garnet_bool = self.rockdic[rock_tag].garnets_bools[rock_tag]
+
+        # Input for the variable of interest
+        if not val_tag:
+            tag_in = input("Please provide what you want to convert to a stack. ['vol%', 'volume', 'wt%', 'wt']")
+            tag = 'df_' + tag_in
+        else:
+            if val_tag in ['vol%', 'volume', 'wt%', 'wt']:
+                tag = 'df_' + val_tag
+            else:
+                print("Try again and select a proper value for stack plot input")
+                quit()
+
+        # Compile data for plotting
+        system_vol_pre = self.rockdic[rock_tag].systemVolPre
+        system_vol_post = self.rockdic[rock_tag].systemVolPost
+        st_fluid_before = self.rockdic[rock_tag].fluidbefore
+        temperatures = self.rockdic[rock_tag].temperature
+        pressures = self.rockdic[rock_tag].pressure
+        line = np.arange(1, len(temperatures) + 1, 1)
+
+        if len(frac_bool) > len(temperatures):
+            frac_bool = frac_bool[1:]
+
+        y = phase_data[tag].fillna(value=0)
+        y.columns = legend_phases
+        y = y.T
+
+        if len(legend_phases) != len(np.unique(legend_phases)):
+            y, legend_phases, color_set = clean_frame(y, legend_phases, color_set)
+
+        if 'Water' in legend_phases:
+            y, legend_phases, color_set = resort_frame(y, legend_phases, color_set)
+
+        new_list = y.loc[(y != 0).any(axis=1)].index.tolist()
+        new_color_set = [color_set[y.index.tolist().index(phase)] for phase in y.index if phase in new_list]
+        y = y.loc[(y != 0).any(axis=1)]
+        legend_phases = new_list
+        color_set = new_color_set
+
+        if 'Garnet' in y.index and len(garnet.name) > 0:
+            y.loc['Garnet', y.loc['Garnet'].isna()] = 0
+            kk = 0
+            garnet_in = False
+            for k, xval in enumerate(y.loc['Garnet']):
+                if xval == 0 and garnet_in:
+                    y.loc['Garnet', k] = np.cumsum(garnet.volume[:1 + kk])[-1]
+                elif xval != 0:
+                    garnet_in = True
+                    y.loc['Garnet', k] = np.cumsum(garnet.volume[:1 + kk])[-1]
+                    kk += 1
+
+        y = y / y.sum()[0]
+
+        def plot_stack(ax, x, y, legend_phases, color_set, transparent):
+            alpha = 0.35 if transparent else 0.7
+            ax.stackplot(x, y, labels=legend_phases, colors=color_set, alpha=alpha, edgecolor='black')
+
+        def plot_fluid_porosity(ax, x, y2, frac_bool, fluid_porosity_color):
+            twin1 = ax.twinx()
+            twin1.plot(x, y2, 'o--', c=fluid_porosity_color, linewidth=2, markeredgecolor='black')
+            twin1.set_ylabel("Vol% of fluid-filled porosity", color=fluid_porosity_color, fontsize=15, weight='bold')
+            twin1.set_ymargin(0)
+            if len(frac_bool) > 0:
+                extension_bool = np.isin(frac_bool, 1)
+                extend_shear_bool = np.isin(frac_bool, 2)
+                compress_shear_bool = np.isin(frac_bool, 3)
+                ten_bool = np.isin(frac_bool, 10)
+                treshhold_model_bool = np.isin(frac_bool, 5)
+                twin1.plot(x[extension_bool], y2[extension_bool], 'Dr')
+                twin1.plot(x[extend_shear_bool], y2[extend_shear_bool], 'Dg')
+                twin1.plot(x[compress_shear_bool], y2[compress_shear_bool], 'Db')
+                twin1.plot(x[ten_bool], y2[ten_bool], 'D', c='violet')
+                twin1.plot(x[treshhold_model_bool], y2[treshhold_model_bool], 'D', c='#397dad')
+            return twin1
+
+        def set_labels(ax2, ax3, twin1, tag, temperatures, pressures, line, step, fluid_porosity_color):
+            # ax2.set_xticks(line[::step])
+            # ax2.set_xticklabels(np.around(temperatures[::step], 0).astype(int))
+            
+            min_temp = np.floor(min(temperatures) / 10) * 10  # Round down to nearest 10
+            max_temp = np.ceil(max(temperatures) / 10) * 10   # Round up to nearest 10
+            even_temps = np.arange(min_temp, max_temp + 1, 50)  # Generate even-numbered ticks
+
+            # Find the closest indices in 'line' corresponding to the even temperatures
+            even_indices = [np.abs(temperatures - t).argmin() for t in even_temps]
+
+            ax2.set_xticks(line[even_indices])
+            ax2.set_xticklabels(even_temps.astype(int))
+            ax2.xaxis.set_minor_locator(AutoMinorLocator())
+
+
+            ax3.set_xticks(line[::step])
+            ax3.set_xticklabels(np.around(np.array(pressures[::step]) / 10000, 1))
+            ax2.set_ylabel("Relative volume" if tag[3:] == 'volume[ccm]' else tag[3:])
+            ax2.set_xlabel('Temperature [°C]')
+            ax3.set_xlabel('Pressure [GPa]')
+            ax3.axis["right"].major_ticklabels.set_visible(False)
+            ax3.axis["right"].major_ticks.set_visible(False)
+            twin1.tick_params(colors=fluid_porosity_color)
+            twin1.set_yticklabels(twin1.get_yticks(), weight='heavy', size=14)
+            ymax = np.round(max(y2), 2)
+            twin1.set_ylim(0, np.round(ymax + ymax * 0.05, 2))
+
+        def finalize_plot(ax2, twin1, line, legend):
+            ax2.hlines(1, -2, max(line) + 5, 'black', linewidth=1.5, linestyle='--')
+            ax2.set_xlim(0, max(line) + 1)
+            ax3.set_xlim(ax2.get_xlim())  # Align both x-axes
+            ax2.set_facecolor("#fcfcfc")
+            ax2.set_alpha(0.5)
+            ax2.set_ylim(0, 1.1)
+            plt.tight_layout(rect=[0, 0, 1, 1])
+            # ax2.legend(legend, bbox_to_anchor=(1.4, 0.9))
+            ax2.legend(legend)
+
+        plt.rc('axes', labelsize=16)
+        plt.rc('xtick', labelsize=10)
+        plt.rc('ytick', labelsize=10)
+        plt.figure(111, figsize=(9, 6), facecolor=None)
+        ax2 = host_subplot(111)
+
+        #if np.any(np.diff(temperatures)[np.diff(temperatures) < 0]):
+        plot_stack(ax2, line, y, legend_phases, color_set, transparent)
+        con = round(10 / len(line), 2)
+        con = round(len(line) * con)
+        step = max(round(len(line) / 10), 1)
+        fluid_porosity_color = "#4750d4"
+        y2 = (st_fluid_before) / system_vol_pre * 100
+        twin1 = plot_fluid_porosity(ax2, line, y2, frac_bool, fluid_porosity_color)
+        ax3 = ax2.twin()
+        set_labels(ax2, ax3, twin1, tag, temperatures, pressures, line, step, fluid_porosity_color)
+        finalize_plot(ax2, twin1, line, legend_phases)
+        """else:
+            plot_stack(ax2, temperatures, y, legend_phases, color_set, transparent)
+            fluid_porosity_color = "#4750d4"
+            y2 = (st_fluid_before) / system_vol_pre * 100
+            if cumulative:
+                y2 = st_fluid_before / system_vol_pre
+                mark_extr = np.array(system_vol_pre - system_vol_post, dtype='bool')
+                mark_extr = np.logical_not(mark_extr)
+                y2 = np.ma.masked_array(y2, mark_extr)
+                y2 = np.ma.filled(y2, 0)
+                y2 = np.cumsum(y2) * 100
+            twin1 = plot_fluid_porosity(ax2, temperatures, y2, frac_bool, fluid_porosity_color)
+            ax3 = ax2.twiny()
+            ax3.plot(np.zeros(len(pressures)), pressures, alpha=0)
+            set_labels(ax2, ax3, twin1, tag, temperatures, pressures, temperatures, 1, fluid_porosity_color)
+            finalize_plot(ax2, twin1, temperatures, legend_phases)"""
+
+        if img_save:
+            os.makedirs(f'{self.mainfolder}/img_{self.filename}/{subfolder}', exist_ok=True)
+            filename = f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}_stack_plot'
+            plt.savefig(f'{filename}_transparent.{img_type}', transparent=True) if transparent else plt.savefig(f'{filename}.{img_type}', transparent=False)
+        else:
+            plt.show()
+        plt.clf()
+        plt.close()
+
+    def oxygen_isotopes_realtive_v2(self, rock_tag, img_save=False, img_type="png"):
+        """Plotting function for the modelled oxygen isotope data
+
+        Args:
+            rock_tag (str): the name of the rock such as "rock0", "rock1", ...
+            img_save (bool, optional): Optional argument to save the plot as an image to the directory. Defaults to False.
+        """
+
+        group_key = self.rockdic[rock_tag].group_key
+        subfolder = 'oxygen_plot'
+
+        # Read the oxygen data from the dictionary
+        summary = self.rockdic[rock_tag].oxygen_data.T.describe()
+        oxyframe = self.rockdic[rock_tag].oxygen_data.T
+        oxyframe.columns = self.rockdic[rock_tag].temperature
+
+        # Read metastable garnet data
+        garnet = self.rockdic[rock_tag].garnet[rock_tag]
+
+        # XMT naming and coloring
+        database = self.rockdic[rock_tag].database
+        phases2 = oxyframe.index
+        legend_phases, color_set = phases_and_colors_XMT(database, phases2)
+
+        # Remove unwanted items from legend_phases
+        for item in ['"H"', '"Si"', '"Ti"', '"Al"']:
+            if item in legend_phases:
+                legend_phases.remove(item)
+
+        oxyframe.index = legend_phases
+
+        # Clean dataframe from multiple phase names - combine rows into one
+        if len(legend_phases) != len(np.unique(legend_phases)):
+            oxyframe, legend_phases, color_set = clean_frame(oxyframe, legend_phases, color_set)
+
+        # Handle metastable garnet data
+        if 'Garnet' in oxyframe.index and len(garnet.name) > 0:
+            garnet_in = False
+            for k, xval in enumerate(oxyframe.loc['Garnet']):
+                if xval == 0 and garnet_in:
+                    oxyframe.loc['Garnet'].iloc[k] = oxyframe.loc['Garnet'].iloc[k-1]
+                elif xval != 0:
+                    garnet_in = True
+
+        # Replace 0 in oxyframe with NaN
+        oxyframe.replace(0, np.nan, inplace=True)
+
+        # Print differences for Garnet and Phengite
+        print("Garnet diff =", oxyframe.loc['Garnet'].max() - oxyframe.loc['Garnet'].min())
+        if 'Phengite' in oxyframe.index:
+            print("Phengite diff =", oxyframe.loc['Phengite'].max() - oxyframe.loc['Phengite'].min())
+
+        # Create line array
+        line = np.arange(1, len(self.rockdic[rock_tag].temperature) + 1, 1)
+
+        # Plotting routine
+        fig, ax211 = plt.subplots(1, 1, figsize=(8, 5))
+        for t, phase in enumerate(oxyframe.index):
+            ax211.plot(line, oxyframe.loc[phase] - self.rockdic[rock_tag].bulk_deltao_post, '--d',
+                    color=color_set[t], linewidth=0.7, markeredgecolor='black', markersize=9)
+
+        ax211.plot(line,
+                self.rockdic[rock_tag].bulk_deltao_post - self.rockdic[rock_tag].bulk_deltao_post, '-', c='black')
+
+        legend_list = list(oxyframe.index) + ["bulk"]
+        ax211.legend(legend_list, bbox_to_anchor=(1.28, 0.9))
+
+        min_min = min(summary.loc['min'] - self.rockdic[rock_tag].bulk_deltao_post)
+        max_max = max(summary.loc['max'] - self.rockdic[rock_tag].bulk_deltao_post)
+        min_val = min_min - (max_max - min_min) * 0.05
+        max_val = max_max + (max_max - min_min) * 0.05
+        ax211.set_ylim(min_val, max_val)
+        ax211.set_ylabel("$\delta^{18}$O [‰ vs. VSMOW]")
+        ax211.set_xlabel("Temperature [°C]")
+
+        # Add second x-axis for pressure
+        ax212 = ax211.twiny()
+        ax212.set_xlabel('Pressure [GPa]')
+        ax212.set_xlim(ax211.get_xlim())
+        ax212.set_xticks(line)
+        pressures = self.rockdic[rock_tag].pressure
+        pressure_labels = np.around(np.array(pressures) / 10000, 1)
+
+        # Ensure the number of ticks matches the number of labels
+        if len(line) == len(pressure_labels):
+            ax212.set_xticklabels(pressure_labels, fontsize=9)
+        else:
+            # Adjust the number of ticks and labels to match
+            tick_indices = np.linspace(0, len(pressure_labels) - 1, len(line), dtype=int)
+            ax212.set_xticks(line)
+            ax212.set_xticklabels(pressure_labels[tick_indices], fontsize=9)
+
+        # Set temperature labels on the bottom x-axis with font size 12
+        ax211.set_xticks(line)
+        temperature_labels = np.around(self.rockdic[rock_tag].temperature, 0).astype(int)
+        if len(line) == len(temperature_labels):
+            ax211.set_xticklabels(temperature_labels, fontsize=9)
+        else:
+            tick_indices = np.linspace(0, len(temperature_labels) - 1, len(line), dtype=int)
+            ax211.set_xticks(line)
+            ax211.set_xticklabels(temperature_labels[tick_indices], fontsize=9)
+
+        plt.subplots_adjust(right=0.8)
+
+        # Save or show the plot
+        if img_save:
+            os.makedirs(f'{self.mainfolder}/img_{self.filename}/{subfolder}', exist_ok=True)
+            plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}_oxygen_isotope_plot_bulkn.{img_type}',
+                        transparent=False, facecolor='white')
+        else:
+            plt.show()
+        plt.clf()
+        plt.close()
+
     def binary_plot(self, rock_tag, img_save=False):
         """
         Generates a binary plot based on the provided rock tag and user input for x-axis and y-axis data.
@@ -2921,6 +3244,130 @@ class ThorPT_plots():
                     f'{self.mainfolder}/img_{self.filename}/{subfolder}', exist_ok=True)
             plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}_oxygen_isotope_plot.{img_type}',
                             transparent=False, facecolor='white')
+        else:
+            plt.show()
+        plt.clf()
+        plt.close()
+
+    def oxygen_isotopes_v2(self, rock_tag, img_save=False, img_type="png"):
+        """Plotting function for the modelled oxygen isotope data
+
+        Args:
+            rock_tag (str): the name of the rock such as "rock0", "rock1", ...
+            img_save (bool, optional): Optional argument to save the plot as an image to the directory. Defaults to False.
+        """
+
+        group_key = self.rockdic[rock_tag].group_key
+        subfolder = 'oxygen_plot'
+
+        # Read the oxygen data from the dictionary
+        summary = self.rockdic[rock_tag].oxygen_data.T.describe()
+        oxyframe = self.rockdic[rock_tag].oxygen_data.T
+        oxyframe.columns = self.rockdic[rock_tag].temperature
+
+        # Read metastable garnet data
+        garnet = self.rockdic[rock_tag].garnet[rock_tag]
+
+        # XMT naming and coloring
+        database = self.rockdic[rock_tag].database
+        phases2 = oxyframe.index
+        legend_phases, color_set = phases_and_colors_XMT(database, phases2)
+
+        # Remove unwanted items from legend_phases
+        for item in ['"H"', '"Si"', '"Ti"', '"Al"']:
+            if item in legend_phases:
+                legend_phases.remove(item)
+
+        oxyframe.index = legend_phases
+
+        # Clean dataframe from multiple phase names - combine rows into one
+        if len(legend_phases) != len(np.unique(legend_phases)):
+            oxyframe, legend_phases, color_set = clean_frame(oxyframe, legend_phases, color_set)
+
+        # Handle metastable garnet data
+        if 'Garnet' in oxyframe.index and len(garnet.name) > 0:
+            garnet_in = False
+            for k, xval in enumerate(oxyframe.loc['Garnet']):
+                if xval == 0 and garnet_in:
+                    oxyframe.loc['Garnet'].iloc[k] = oxyframe.loc['Garnet'].iloc[k-1]
+                elif xval != 0:
+                    garnet_in = True
+
+        # Replace 0 in oxyframe with NaN
+        oxyframe.replace(0, np.nan, inplace=True)
+
+        # Print differences for Garnet and Phengite
+        # print("Garnet diff =", oxyframe.loc['Garnet'].max() - oxyframe.loc['Garnet'].min())
+        if 'Phengite' in oxyframe.index:
+            print("Phengite diff =", oxyframe.loc['Phengite'].max() - oxyframe.loc['Phengite'].min())
+
+        # Create line array
+        line = np.arange(1, len(self.rockdic[rock_tag].temperature) + 1, 1)
+
+        # Plotting routine
+        fig, ax211 = plt.subplots(1, 1, figsize=(8, 5))
+        for t, phase in enumerate(oxyframe.index):
+            ax211.plot(line, oxyframe.loc[phase], '--d',
+                    color=color_set[t], linewidth=0.7, markeredgecolor='black', markersize=9)
+
+        ax211.plot(line,
+                self.rockdic[rock_tag].bulk_deltao_post, '-', c='black')
+
+        legend_list = list(oxyframe.index) + ["bulk"]
+        ax211.legend(legend_list, bbox_to_anchor=(1.28, 0.9))
+
+        min_min = min(summary.loc['min'])
+        max_max = max(summary.loc['max'])
+        min_val = min_min - (max_max - min_min) * 0.05
+        max_val = max_max + (max_max - min_min) * 0.05
+        ax211.set_ylim(min_val, max_val)
+        ax211.set_ylabel("$\delta^{18}$O [‰ vs. VSMOW]")
+
+
+        def set_labels(ax211, ax212, temperatures, pressures, line, step):
+            # ax2.set_xticks(line[::step])
+            # ax2.set_xticklabels(np.around(temperatures[::step], 0).astype(int))
+            
+            min_temp = np.floor(min(temperatures) / 10) * 10  # Round down to nearest 10
+            max_temp = np.ceil(max(temperatures) / 10) * 10   # Round up to nearest 10
+            even_temps = np.arange(min_temp, max_temp + 1, 50)  # Generate even-numbered ticks
+
+            # Find the closest indices in 'line' corresponding to the even temperatures
+            even_indices = [np.abs(temperatures - t).argmin() for t in even_temps]
+
+            ax211.set_xticks(line[even_indices])
+            ax211.set_xticklabels(even_temps.astype(int))
+            ax211.xaxis.set_minor_locator(AutoMinorLocator())
+
+
+            ax212.set_xticks(line[::step])
+            ax212.set_xticklabels(np.around(np.array(pressures[::step]) / 10000, 1))
+
+            ax211.set_xlabel('Temperature [°C]')
+            ax212.set_xlabel('Pressure [GPa]')
+
+
+
+        # Add second x-axis for pressure
+        ax212 = ax211.twiny()
+
+        pressures = self.rockdic[rock_tag].pressure
+        temperatures = self.rockdic[rock_tag].temperature
+
+        con = round(10 / len(line), 2)
+        con = round(len(line) * con)
+        step = max(round(len(line) / 10), 1)
+
+        set_labels(ax211, ax212, temperatures, pressures, line, step)
+        
+        ax212.set_xlim(ax211.get_xlim())
+
+        plt.subplots_adjust(right=0.8)
+        # Save or show the plot
+        if img_save:
+            os.makedirs(f'{self.mainfolder}/img_{self.filename}/{subfolder}', exist_ok=True)
+            plt.savefig(f'{self.mainfolder}/img_{self.filename}/{subfolder}/{group_key}_oxygen_isotope_plot.{img_type}',
+                        transparent=False, facecolor='white')
         else:
             plt.show()
         plt.clf()
@@ -6122,6 +6569,741 @@ class ThorPT_plots():
         # Show the plot
         plt.show()
 
+    def plot_heatmap_PT(self, plot_type='porosity'):
+        
+        """Plot heatmap of extraction volumes in P-T space (T on x-axis).
+
+        Args:
+            plot_type (str): Type of data to plot. Options are 'porosity', 'extracted', 'cumulative'.
+        """
+        # Assuming all_porosity is a 2D numpy array
+        all_porosity = self.comprock.all_porosity
+        all_boolean = self.comprock.all_extraction_boolean
+        all_sys_volume = self.comprock.all_system_vol_pre
+        all_fluid_pressure = self.comprock.all_fluid_pressure
+        all_boolean_array = []
+        extraction_volumes = []
+        extraction_volumes_cum = []
+
+        # Collecting differential stress, extraction number, and tensile strength for all rocks
+        """for i, item in enumerate(self.comprock.all_diffs):
+            # Create the cumulative volume of extracted fluid
+            take_bool = np.array(all_boolean[i])
+            if len(take_bool) != len(all_porosity[i]):
+                take_bool = np.insert(take_bool, 0, 1)
+            
+            all_boolean_array.append(take_bool)
+
+            extractionVol = np.ma.masked_array(all_porosity[i], take_bool)
+            extractionVol = np.ma.filled(extractionVol, 0)
+
+            extraction_volumes.append(extractionVol)
+
+            extractionVol = np.cumsum(extractionVol) * 100
+            extraction_volumes_cum.append(extractionVol)"""
+
+        # Collecting differential stress, extraction number, and tensile strength for all rocks
+        for i, item in enumerate(self.rockdic.keys()):
+            # Create the cumulative volume of extracted fluid
+            take_bool = self.rockdic[item].frac_bool
+            if len(take_bool) != len(all_porosity[i]):
+                take_bool = np.insert(take_bool, 0, 1)
+
+            # replace all 1 in take_bool with 0
+            take_bool = np.where(take_bool == 5, 0, take_bool)
+            # replace all 5 in take_bool with 1
+            # take_bool = np.where(take_bool == 5, 1, take_bool)
+
+            # do boolean from numbers in take_bool
+            take_bool = np.array(take_bool, dtype='bool')
+
+            # invert the boolean array
+            take_bool = np.logical_not(take_bool)
+
+            all_boolean_array.append(take_bool)
+
+            extractionVol = np.ma.masked_array(all_porosity[i], take_bool)
+            extractionVol = np.ma.filled(extractionVol, 0)
+
+            extraction_volumes.append(extractionVol)
+
+            extractionVol = np.cumsum(extractionVol) * 100
+            extraction_volumes_cum.append(extractionVol)
+
+        # Format to arrays
+        # extraction_volumes = np.array(extraction_volumes)
+        # extraction_volumes_cum = np.array(extraction_volumes_cum)
+
+        """# Select data to plot based on plot_type
+        if plot_type == 'porosity':
+            data_to_plot = all_porosity * 100
+            title = 'Heatmap of Porosity Values'
+        elif plot_type == 'extracted':
+            data_to_plot = extraction_volumes
+            title = 'Heatmap of Extracted Fluid Volumes'
+        elif plot_type == 'cumulative':
+            data_to_plot = extraction_volumes_cum
+            title = 'Heatmap of Cumulative Extracted Fluid Volumes'
+        else:
+            raise ValueError("Invalid plot_type. Options are 'porosity', 'extracted', 'cumulative'.")"""
+
+        # reading temperature and pressure data
+        rock_keys = list(data.rock.keys())
+        temperatures = data.rock[rock_keys[0]].temperature
+        pressures = data.rock[rock_keys[0]].pressure
+
+        # Upsample the temperature and pressure arrays
+        fine_temperatures = np.linspace(temperatures.min()-50, temperatures.max()+50, len(temperatures) * 100)
+        fine_pressures = np.linspace(pressures.min()-1000, pressures.max()+1000, len(pressures) * 100)
+
+        # Create a meshgrid for P-T space
+        T, P = np.meshgrid(fine_temperatures, fine_pressures)
+
+        # Create a heatmap
+        plt.figure(figsize=(10, 8))
+        """sns.heatmap(data_to_plot_fine, cmap='viridis', cbar=True, 
+                    xticklabels=fine_temperatures, 
+                    yticklabels=np.around(fine_pressures / 10000, 1))"""
+
+        # Overlay markers where boolean array is False
+        _log_T = []
+        _log_P = []
+        _log_Z_ = []
+
+
+        # Initialize a variable to hold the largest extraction volume
+        largest_extraction_volume = 0
+        smallest_extraction_volume = 100
+        # Iterate through each array in the list
+        for array in extraction_volumes:
+            # Find the maximum value in the current array
+            max_value = np.max(array)
+            min_value = np.min(array)
+            # Update the largest extraction volume if the current max_value is larger
+            if max_value > largest_extraction_volume:
+                largest_extraction_volume = max_value
+            if min_value < smallest_extraction_volume:
+                smallest_extraction_volume = min_value
+
+        largest_extraction_volume = 0.10
+
+        for j, arr in enumerate(all_boolean_array):
+            temperatures = data.rock[rock_keys[j]].temperature
+            pressures = data.rock[rock_keys[j]].pressure
+            extractionVol = extraction_volumes[j]
+            # plot the pt path
+            # plt.plot(temperatures, pressures/10000, color='black', linestyle='--', linewidth=1, alpha=0.5)
+            # plt.scatter(temperatures, pressures/10000, color='black', alpha=0.5)
+            for i, val in enumerate(arr):
+                # print(val == 0)
+                if val == False:
+                    _log_T.append(temperatures[i])
+                    _log_P.append(pressures[i])
+                    _log_Z_.append(extractionVol[i])
+
+                    # scatter plot of extraction volume as transparent square with color representing the value between 0 and max value in extractionVol
+                    plt.scatter(temperatures[i], pressures[i] / 10000, 
+                                color=plt.cm.viridis(extractionVol[i] / largest_extraction_volume), 
+                                s=100, alpha=0.8, marker='s')
+                    # plt.scatter(temperatures[i], pressures[i]/10000, color='red', s=5)
+                else:
+                    _log_T.append(temperatures[i])
+                    _log_P.append(pressures[i])
+                    _log_Z_.append(np.nan)
+
+        # Add labels and title
+        plt.xlabel('Temperature [°C]')
+        plt.ylabel('Pressure [GPa]')
+        plt.ylim(0.25, 3.0)
+        plt.xlim(300, 700)
+
+        #plt.title(title)
+        # save the plot
+        os.makedirs(
+            f'{self.mainfolder}/img_{self.filename}/fracture_mesh', exist_ok=True)
+        plt.savefig(f'{self.mainfolder}/img_{self.filename}/fracture_mesh/extraction_heat_map_PT.pdf',
+                    transparent=False, facecolor='white')
+
+        # do a colobar based for extraction volume in separate plot
+        # Create a separate colorbar plot
+        fig, ax = plt.subplots(figsize=(6, 1))
+        fig.subplots_adjust(bottom=0.5)
+        # Create a colorbar based on the viridis colormap
+        norm = plt.Normalize(vmin=0, vmax=largest_extraction_volume)
+        sm = plt.cm.ScalarMappable(cmap='viridis', norm=norm)
+        sm.set_array([])
+        # Add the colorbar to the plot
+        cbar = fig.colorbar(sm, cax=ax, orientation='horizontal')
+        cbar.set_label('Extraction Volume')
+        # Show the colorbar plot
+        os.makedirs(
+                f'{self.mainfolder}/img_{self.filename}/fracture_mesh/colorbars', exist_ok=True)
+        plt.savefig(f'{self.mainfolder}/img_{self.filename}/fracture_mesh/colorbars/heat_map_PT_colorbar.pdf',
+                    transparent=False, facecolor='white')
+
+        # Plot any compiled list of arrays from the modelling results       
+        def plot_compiled_list_array(data_list, rock_keys, data, mainfolder, filename, data_name, norming=True, low_val=False, max_val=False, div_color=False):
+            # fluid filled porosity
+            plt.figure(figsize=(10, 8))
+            largest_ffp = 0
+            smallest_ffp = 100
+
+            for array in data_list:
+                # Find the maximum value in the current array
+                max_value = np.max(array)
+                min_value = np.min(array)
+                # Update the largest extraction volume if the current max_value is larger
+                if max_value > largest_ffp:
+                    largest_ffp = max_value
+                if min_value < smallest_ffp:
+                    smallest_ffp = min_value
+
+            # manual adjustment of min and max values
+            if low_val is not False:
+                smallest_ffp = low_val
+            if max_val is not False:
+                largest_ffp = max_val
+
+
+            for i, val in enumerate(data_list):
+                # np.nan where zeros
+                # Create a colormap
+                # Get the existing colormap
+                # matplotlib.colormaps.get_cmap()`` or ``pyplot.get_cmap()`` instead.
+
+                if div_color == 'diverging':
+                    cmap = plt.get_cmap('coolwarm')
+                    # Convert the colormap to a list of colors
+                    cmap_colors = cmap(np.linspace(0, 1, cmap.N))
+                    # Modify the first color to be white (fake transparent color)
+                    cmap_colors[0] = [1, 1, 1, 1]  # RGBA for white
+                    # Create a new colormap with the modified colors
+                    cmap = mcolors.ListedColormap(cmap_colors)
+                    # Normalize the values with a custom midpoint
+                    norm = mcolors.TwoSlopeNorm(vmin=smallest_ffp, vcenter=1, vmax=largest_ffp)
+                    # Map the normalized values to colors
+                    colors = [cmap(norm(value)) for value in val]
+
+                else:
+                    cmap = plt.get_cmap('viridis')
+                    # Convert the colormap to a list of colors
+                    cmap_colors = cmap(np.linspace(0, 1, cmap.N))
+                    # Modify the first color to be white
+                    cmap_colors[0] = [1, 1, 1, 1]  # RGBA for white  # fake transparent color
+                    # Create a new colormap with the modified colors
+                    cmap = mcolors.ListedColormap(cmap_colors)
+                    # Normalize the values to the range [0, 1]
+                    norm_values = (val - smallest_ffp) / (largest_ffp - smallest_ffp)
+                    norm = mcolors.Normalize(vmin=smallest_ffp, vmax=largest_ffp)
+                    # Map the normalized values to colors
+                    colors = [cmap(norm_value) for norm_value in norm_values]
+
+                temperatures = data.rock[rock_keys[i]].temperature
+                pressures = data.rock[rock_keys[i]].pressure
+                # scatter plot of extraction volume as transparent square with color representing the value between 0 and max value in extractionVol
+                if norming == True:
+                    plt.scatter(temperatures, pressures / 10000, 
+                                color=plt.cm.viridis(val / largest_ffp), 
+                                s=100, alpha=0.8, marker='s')
+                else:
+                    plt.scatter(temperatures, pressures / 10000, 
+                            color=colors, 
+                            s=100, alpha=0.8, marker='s')
+            # Add labels and title
+            plt.xlabel('Temperature [°C]')
+            plt.ylabel('Pressure [GPa]')
+            plt.ylim(0.5, 3.0)
+            plt.xlim(350, 700)
+
+            #plt.title(title)
+            # save the plot
+            os.makedirs(
+                f'{mainfolder}/img_{filename}/fracture_mesh', exist_ok=True)
+            plt.savefig(f'{mainfolder}/img_{filename}/fracture_mesh/map_PT_{data_name}.pdf',
+                        transparent=False, facecolor='white')
+            
+            # close figure
+            plt.clf()
+            plt.close()
+
+            # do a colobar based for extraction volume in separate plot
+            # Create a separate colorbar plot
+            fig, ax = plt.subplots(figsize=(6, 1))
+            fig.subplots_adjust(bottom=0.5)
+            # Create a colorbar based on the viridis colormap
+            if norming == True:
+                norm = plt.Normalize(vmin=0, vmax=largest_ffp)
+                sm = plt.cm.ScalarMappable(cmap='viridis', norm=norm)
+                sm.set_array([])
+            else:
+                if div_color == 'diverging':
+                    sm = plt.cm.ScalarMappable(cmap='coolwarm', norm=norm)
+                else:
+                    sm = plt.cm.ScalarMappable(cmap='viridis', norm=norm)
+                sm.set_array([smallest_ffp, largest_ffp])
+
+            # Add the colorbar to the plot
+            cbar = fig.colorbar(sm, cax=ax, orientation='horizontal')
+            cbar.set_label(f'{data_name}')
+            # Show the colorbar plot
+            os.makedirs(
+                f'{mainfolder}/img_{filename}/fracture_mesh/colorbars', exist_ok=True)
+            plt.savefig(f'{mainfolder}/img_{filename}/fracture_mesh/colorbars/map_PT_colorbar_{data_name}.pdf',
+                        transparent=False, facecolor='white')
+
+            # close figure
+            plt.clf()
+            plt.close()
+
+        # record the phase assemblage for each rock in the model and store it in a list
+        phase_assemblages = []
+        # store the formatted data for each rock in the model in a list
+        phase_data = []
+        # store the amount of amphibole
+        amphibole_content = []
+        # store the amount of glaucophane
+        glaucophane_content = []
+        # store zoisite
+        zoisite_content = []
+        # store the amount of omphacite
+        omphacite_content = []
+        # store the amount of hydrous phases
+        hydrous_content = []
+        # store the amount of lawsonite
+        lawsonite_content = []
+        # store the amount of garnet
+        garnet_content = []
+        # store the amount of water
+        water_content = []
+        # store the bulk d18O
+        bulk_d18O = []
+        # store rutile
+        rutile_content = []
+        # store kyanite
+        kyanite_content = []
+        # titanite
+        titanite_content = []
+        # chlorite
+        chlorite_content = []
+        # quartz
+        quartz_content = []
+        # olivine
+        olivine_content = []
+        # antigorite
+        antigorite_content = []
+        # brucite
+        brucite_content = []
+
+        garnet_trace_df = pd.DataFrame()
+
+        # loop over each rock in the model receiving the data for the rock and mineral phases to reformat into matrices for the plot
+        for i, rock in enumerate(self.rockdic.keys()):
+            ts = self.rockdic[rock].temperature
+            # read the database from the rockdic and store it in a variable
+            database = self.rockdic[rock].database
+            phases2 = list(self.rockdic[rock].phase_data['df_vol%'].columns)
+            legend_phases, color_set = phases_and_colors_XMT(database, phases2)
+
+            # read the vol% data to a variable and replace the NaN values with 0 and transpose the dataframe
+            y = self.rockdic[rock].phase_data['df_vol%'].fillna(value=0)
+            y.columns = legend_phases
+            y = y.T
+
+            # clean the dataframe from multiple phase names - combine rows into one
+            if len(legend_phases) == len(np.unique(legend_phases)):
+                pass
+            else:
+                y, legend_phases, color_set = clean_frame(y, legend_phases, color_set)
+
+            # drop rows with all zeros
+            y = y.loc[(y != 0).any(axis=1)]
+            legend_phases = list(y.index)
+
+            # add the legend_phases to the phase_assemblages list
+            phase_assemblages.append(legend_phases)
+            # add the y dataframe to the phase_data list
+            phase_data.append(y)
+
+            # define the fluid content from the dataframe based on 'Water' and plot it
+            if 'Water' in legend_phases:
+                fluid_val = np.array(y.loc['Water'])
+            else:
+                fluid_val = np.zeros(len(ts))
+
+            # if -Glaucophane-
+            if 'Glaucophane' in legend_phases:
+                glaucophane_val = np.array(y.loc['Glaucophane'])
+            else:
+                glaucophane_val = np.zeros(len(ts))
+            # if -Zoisite-
+            if 'Zoisite' in legend_phases:
+                zoisite_val = np.array(y.loc['Zoisite'])
+            else:
+                zoisite_val = np.zeros(len(ts))
+
+            # if -Omphacite-
+            if 'Omphacite' in legend_phases:
+                omphacite_val = np.array(y.loc['Omphacite'])
+            else:
+                omphacite_val = np.zeros(len(ts))
+
+            # if -Amphibole-
+            if 'Amphibole' in legend_phases:
+                amphibole_val = np.array(y.loc['Amphibole'])
+
+                # lopp through hydrous phases, test if they are in the legend_phases, get the indices and sum their values from y
+                hydrous_phases = ['Muscovite', 'Amphibole', 'Glaucophane', 'Lawsonite', 'Talc', 'Phengite']
+                inid_list = []
+                for item in hydrous_phases:
+                    if item in legend_phases:
+                        inid_list.append(legend_phases.index(item))
+                hydrous_val = np.array(y.iloc[inid_list].sum(axis=0))
+            else:
+                amphibole_val = np.zeros(len(ts))
+
+            # if -Lawsonite- 
+            if 'Lawsonite' in legend_phases:
+                lawsonite_val = np.array(y.loc['Lawsonite'])
+            else:
+                lawsonite_val = np.zeros(len(ts))
+
+            # get the data for garnet
+            if 'Garnet' in legend_phases:
+                garnet_val = np.array(y.loc['Garnet'])
+                # cumulative sum of garnet content
+                garnet_val = np.cumsum(garnet_val)
+            else:
+                garnet_val = np.zeros(len(ts))
+
+            # get the data for garnet
+            if 'Rutile' in legend_phases:
+                rutile_val = np.array(y.loc['Rutile'])
+                # cumulative sum of garnet content
+                rutile_val = np.cumsum(rutile_val)
+            else:
+                rutile_val = np.zeros(len(ts))
+
+            # get the data for garnet
+            if 'Kyanite' in legend_phases:
+                kyanite_val = np.array(y.loc['Kyanite'])
+                # cumulative sum of garnet content
+                kyanite_val = np.cumsum(kyanite_val)
+            else:
+                kyanite_val = np.zeros(len(ts))
+
+            # get the data for garnet
+            if 'Titanite' in legend_phases:
+                titanite_val = np.array(y.loc['Titanite'])
+                # cumulative sum of garnet content
+                titanite_val = np.cumsum(titanite_val)
+            else:
+                titanite_val = np.zeros(len(ts))
+
+            # get the data for garnet
+            if 'Chlorite' in legend_phases:
+                chlorite_val = np.array(y.loc['Chlorite'])
+                # cumulative sum of garnet content
+                chlorite_val = np.cumsum(chlorite_val)
+            else:
+                chlorite_val = np.zeros(len(ts))
+
+            # get the data for quartz
+            if 'Quartz' in legend_phases:
+                quartz_val = np.array(y.loc['Quartz'])
+                # cumulative sum of garnet content
+                quartz_val = np.cumsum(quartz_val)
+            else:
+                quartz_val = np.zeros(len(ts))
+
+            # get the data for olivine
+            if 'Olivine' in legend_phases:
+                olivine_val = np.array(y.loc['Olivine'])
+                # cumulative sum of garnet content
+                olivine_val = np.cumsum(olivine_val)
+            else:
+                olivine_val = np.zeros(len(ts))
+
+            # get the data for antigorite
+            if 'Serp_Atg' in legend_phases:
+                antigorite_val = np.array(y.loc['Serp_Atg'])
+                # cumulative sum of garnet content
+                antigorite_val = np.cumsum(antigorite_val)
+            else:
+                antigorite_val = np.zeros(len(ts))
+
+            # get the data for brucite
+            if 'Br_Br' in legend_phases:
+                brucite_val = np.array(y.loc['Br_Br'])
+                # cumulative sum of garnet content
+                brucite_val = np.cumsum(brucite_val)
+            else:
+                brucite_val = np.zeros(len(ts))
+
+            # get oxygen isotope signature of bulk
+            bulk_oxygen_rock = self.rockdic[rock].bulk_deltao_post
+
+            # write the data to the empty list
+            amphibole_content.append(amphibole_val)
+            glaucophane_content.append(glaucophane_val)
+            omphacite_content.append(omphacite_val)
+            try:
+                hydrous_content.append(hydrous_val)
+            except:
+                hydrous_content.append(np.zeros(len(ts)))
+            lawsonite_content.append(lawsonite_val)
+            zoisite_content.append(zoisite_val)
+            garnet_content.append(garnet_val)
+            water_content.append(fluid_val)
+            bulk_d18O.append(bulk_oxygen_rock)
+            rutile_content.append(rutile_val)
+            kyanite_content.append(kyanite_val)
+            titanite_content.append(titanite_val)
+            chlorite_content.append(chlorite_val)
+            quartz_content.append(quartz_val)
+            olivine_content.append(olivine_val)
+            antigorite_content.append(antigorite_val)
+            brucite_content.append(brucite_val)
+
+
+            
+            # trace elements of garnet
+            # need to merge multiple garnet entries
+            
+            for item in self.rockdic[rock].trace_element_data.keys():
+                if 'GARNET' in item:
+                    garnet_trace_df = pd.concat([garnet_trace_df, self.rockdic[rock].trace_element_data[item]], axis=0)
+
+
+        # plotting the compiled data
+        plot_compiled_list_array(all_porosity, rock_keys, data, self.mainfolder, self.filename, 'porosity')
+        plot_compiled_list_array(all_sys_volume, rock_keys, data, self.mainfolder, self.filename, 'system_volume', norming=False)
+        plot_compiled_list_array(lawsonite_content, rock_keys, data, self.mainfolder, self.filename, 'lws_volume_perc', norming=False)
+        plot_compiled_list_array(zoisite_content, rock_keys, data, self.mainfolder, self.filename, 'zoisite_volume_perc', norming=False)
+        plot_compiled_list_array(glaucophane_content, rock_keys, data, self.mainfolder, self.filename, 'gln_volume_perc', norming=False)
+        plot_compiled_list_array(garnet_content, rock_keys, data, self.mainfolder, self.filename, 'grt_volume_perc', norming=False)
+        plot_compiled_list_array(amphibole_content, rock_keys, data, self.mainfolder, self.filename, 'amph_volume_perc', norming=False)
+        plot_compiled_list_array(omphacite_content, rock_keys, data, self.mainfolder, self.filename, 'omph_volume_perc', norming=False)
+        plot_compiled_list_array(bulk_d18O, rock_keys, data, self.mainfolder, self.filename, 'd18O_bulk', norming=False)
+        plot_compiled_list_array(rutile_content, rock_keys, data, self.mainfolder, self.filename, 'rutile_volume_perc', norming=False)
+        plot_compiled_list_array(kyanite_content, rock_keys, data, self.mainfolder, self.filename, 'kyanite_volume_perc', norming=False)
+        plot_compiled_list_array(titanite_content, rock_keys, data, self.mainfolder, self.filename, 'titanite_volume_perc', norming=False)
+        plot_compiled_list_array(chlorite_content, rock_keys, data, self.mainfolder, self.filename, 'chlorite_volume_perc', norming=False)
+        plot_compiled_list_array(quartz_content, rock_keys, data, self.mainfolder, self.filename, 'quartz_volume_perc', norming=False)
+        plot_compiled_list_array(olivine_content, rock_keys, data, self.mainfolder, self.filename, 'olivine_volume_perc', norming=False)
+        plot_compiled_list_array(antigorite_content, rock_keys, data, self.mainfolder, self.filename, 'antigorite_volume_perc', norming=False)
+        plot_compiled_list_array(brucite_content, rock_keys, data, self.mainfolder, self.filename, 'brucite_volume_perc', norming=False)
+
+        plot_compiled_list_array(all_fluid_pressure, rock_keys, data, self.mainfolder, self.filename, 'fluid_pressure', norming=False, low_val=0, max_val=2, div_color='diverging')
+
+
+
+        plt.figure(figsize=(10, 8))
+        element_number = 14 + 2
+        # Find the maximum value in the current array
+        max_value = np.max(garnet_trace_df.iloc[:,element_number])
+        min_value = np.min(garnet_trace_df.iloc[:,element_number])
+        
+        
+        cmap = plt.get_cmap('viridis')
+        # Convert the colormap to a list of colors
+        cmap_colors = cmap(np.linspace(0, 1, cmap.N))
+        # Create a new colormap with the modified colors
+        cmap = mcolors.ListedColormap(cmap_colors)
+        # Normalize the values with a custom midpoint
+        norm = mcolors.Normalize(vmin=min_value, vmax=max_value)
+        # Map the normalized values to colors
+        colors = [cmap(norm(value)) for value in garnet_trace_df.iloc[:,element_number]]
+
+        temperatures = garnet_trace_df.iloc[:,2]
+        pressures = garnet_trace_df.iloc[:,1]
+        plt.scatter(temperatures, pressures / 10000, 
+                        color=colors, 
+                        s=100, alpha=0.8, marker='s')
+        # Add labels and title
+        plt.xlabel('Temperature [°C]')
+        plt.ylabel('Pressure [GPa]')
+        plt.ylim(0.5, 3.0)
+        plt.xlim(350, 700)
+
+        # save the plot
+        os.makedirs(
+            f'{self.mainfolder}/img_{self.filename}/fracture_mesh', exist_ok=True)
+        plt.savefig(f'{self.mainfolder}/img_{self.filename}/fracture_mesh/TE_in_garnet.pdf',
+                    transparent=False, facecolor='white')
+        
+        fig, ax = plt.subplots(figsize=(6, 1))
+        fig.subplots_adjust(bottom=0.5)
+        # Create a colorbar based on the viridis colormap
+        sm = plt.cm.ScalarMappable(cmap='viridis', norm=norm)
+        sm.set_array([])
+        # Add the colorbar to the plot
+        cbar = fig.colorbar(sm, cax=ax, orientation='horizontal')
+        cbar.set_label('Extraction Volume')
+        # Show the colorbar plot
+        os.makedirs(
+                f'{self.mainfolder}/img_{self.filename}/fracture_mesh/colorbars', exist_ok=True)
+        plt.savefig(f'{self.mainfolder}/img_{self.filename}/fracture_mesh/colorbars/TE_in_garnet_colorbar.pdf',
+                    transparent=False, facecolor='white')
+
+
+
+
+
+
+
+
+        """sm = plt.cm.ScalarMappable(cmap='viridis', norm=plt.Normalize(vmin=0, vmax=extraction_volumes[0].max()+1))
+        sm._A = []
+        cbar = plt.colorbar(sm)
+        cbar.set_label('Extraction Volume [%]')"""
+
+        """from scipy.spatial import Delaunay
+        points = np.vstack((np.array(_log_T), np.array(_log_P))).T
+        # Perform Delaunay triangulation
+        tri = Delaunay(points)
+
+        import scipy.interpolate
+        X = np.linspace(min(np.array(_log_T)), max(np.array(_log_T)))
+        Y = np.linspace(min(np.array(_log_P)), max(np.array(_log_P)))
+        X, Y = np.meshgrid(X, Y) 
+        interp = scipy.interpolate.CloughTocher2DInterpolator(list(zip(np.array(_log_T), np.array(_log_P))), np.array(titanite_content))
+        interp = scipy.interpolate.CloughTocher2DInterpolator(tri, np.array(titanite_content), fill_value=np.nan, tol=1e-06, maxiter=400)
+
+        # interp = scipy.interpolate.CloughTocher2DInterpolator(list(zip(np.array(_log_T), np.array(_log_P))), np.array(_log_Z_))
+        # interp = scipy.interpolate.CloughTocher2DInterpolator(tri, np.array(_log_Z_), fill_value=np.nan, tol=1e-06, maxiter=400)
+        
+        Z = interp(X, Y)
+        # contour plot of Z
+        plt.figure(figsize=(10, 8))
+        plt.contourf(X, Y, np.array(_log_Z_), cmap='viridis')
+        plt.pcolormesh(X, Y, Z, shading='auto')
+        plt.plot(np.array(_log_T), np.array(_log_P), "ok", label="input point")
+        plt.legend()
+        plt.colorbar()
+        plt.axis("equal")"""
+        
+        
+        
+        """# Interpolate the data in 3D
+        Z_grid = griddata((np.array(_log_T), np.array(_log_P)), np.array(_log_Z_), 
+                          (T, P), method='cubic', fill_value=np.nan, rescale=True)
+        
+        # flip y axis to match the plot
+        # Z_grid = np.flipud(Z_grid)
+        
+        # Create a heatmap
+        plt.figure(figsize=(10, 8))
+        sns.heatmap(Z_grid, cmap='viridis', cbar=True)
+
+        # Add labels and title
+        plt.xlabel('Temperature [°C]')
+        plt.ylabel('Pressure [GPa]')
+        plt.title('Interpolated Z values in P-T space')
+        #plt.ylim(0.5, 3.0)
+        #plt.xlim(350, 700)
+        
+        # save the plot
+        os.makedirs(
+            f'{self.mainfolder}/img_{self.filename}/fracture_mesh', exist_ok=True)
+        plt.savefig(f'{self.mainfolder}/img_{self.filename}/fracture_mesh/heat_map_PT_interpolated.png',
+                    transparent=False, facecolor='white')"""
+
+
+
+    def plot_heatmap_TPZ(self, plot_type='porosity'):
+        """Plot heatmap of extraction volumes in T-P-Z space (T on x-axis, P on y-axis, Z on z-axis).
+
+        Args:
+            plot_type (str): Type of data to plot. Options are 'porosity', 'extracted', 'cumulative'.
+        """
+        # Assuming all_porosity is a 2D numpy array
+        all_porosity = self.comprock.all_porosity
+        all_boolean = self.comprock.all_extraction_boolean
+        all_depths = self.comprock.all_depth  # Assuming depths are available
+        all_boolean_array = []
+        extraction_volumes = []
+        extraction_volumes_cum = []
+
+        # Collecting differential stress, extraction number, and tensile strength for all rocks
+        for i, item in enumerate(self.comprock.all_diffs):
+            # Create the cumulative volume of extracted fluid
+            take_bool = np.array(all_boolean[i])
+            if len(take_bool) != len(all_porosity[i]):
+                take_bool = np.insert(take_bool, 0, 0)
+            
+            all_boolean_array.append(take_bool)
+
+            extractionVol = np.ma.masked_array(all_porosity[i], take_bool)
+            extractionVol = np.ma.filled(extractionVol, 0)
+
+            extraction_volumes.append(extractionVol)
+
+            extractionVol = np.cumsum(extractionVol) * 100
+            extraction_volumes_cum.append(extractionVol)
+
+        # Format to arrays
+        # all_boolean_array = np.array(all_boolean_array)
+        #extraction_volumes = np.array(extraction_volumes)
+        # extraction_volumes_cum = np.array(extraction_volumes_cum)
+
+        # Reading temperature, pressure, and depth data
+        rock_keys = list(self.rockdic.keys())
+        temperatures = self.rockdic[rock_keys[0]].temperature
+        pressures = self.rockdic[rock_keys[0]].pressure
+        depths = self.rockdic[rock_keys[0]].depth  # Assuming depths are available
+
+        # Create a 3D scatter plot
+        fig = plt.figure(figsize=(10, 8))
+        ax = fig.add_subplot(111, projection='3d')
+
+        # Initialize a variable to hold the largest extraction volume
+        largest_extraction_volume = 0
+        smallest_extraction_volume = 100
+        # Iterate through each array in the list
+        for array in extraction_volumes:
+            # Find the maximum value in the current array
+            max_value = np.max(array)
+            min_value = np.min(array)
+            # Update the largest extraction volume if the current max_value is larger
+            if max_value > largest_extraction_volume:
+                largest_extraction_volume = max_value
+            if min_value < smallest_extraction_volume:
+                smallest_extraction_volume = min_value
+        # Normalize the extraction volumes for color mapping
+        norm = mcolors.Normalize(vmin=0, vmax=largest_extraction_volume)
+
+        # Create a colormap
+        cmap = cm.viridis
+
+        # Plot the data
+        for j, arr in enumerate(all_boolean_array):
+            temperatures = self.rockdic[rock_keys[j]].temperature
+            pressures = self.rockdic[rock_keys[j]].pressure
+            depths = self.rockdic[rock_keys[j]].depth
+            extractionVol = extraction_volumes[j]
+            for i, val in enumerate(arr):
+                if val == 0:
+                    color = cmap(norm(extractionVol[i]))
+                    ax.scatter(temperatures[i], pressures[i]/10000, depths[i]/1000, color=color, s=100, alpha=0.8, marker='o')
+
+        # Add labels and title
+        ax.set_xlabel('Temperature [°C]')
+        ax.set_ylabel('Pressure [GPa]')
+        ax.set_zlabel('Depth [km]')
+        # ax.set_title(title)
+
+        ax.set_ylim(0.5, 3.0)
+        ax.set_xlim(350, 700)
+
+        # Add colorbar
+        sm = cm.ScalarMappable(cmap=cmap, norm=norm)
+        sm.set_array([])
+        cbar = plt.colorbar(sm, ax=ax, orientation='vertical')
+        cbar.set_label('Extraction Volume')
+
+
+        # Show the plot
+        plt.show()
 
 if __name__ == '__main__':
 
@@ -6134,25 +7316,31 @@ if __name__ == '__main__':
     # compPlot.oxygen_isotope_interaction_scenario3(img_save=True, img_type='pdf')
 
     # compPlot.bulk_rock_sensitivity_cumVol()
-    
     # compPlot.bulk_rock_sensitivity_twin()
-
-    """compPlot.tensile_strength_sensitivity_cumVol()
-    compPlot.tensile_strength_sensitivity()"""
+    # compPlot.tensile_strength_sensitivity_cumVol()
+    # compPlot.tensile_strength_sensitivity()
     # compPlot.mohr_coulomb_diagram(rock_tag='rock079')
 
-    
-    compPlot.plot_heatmap(plot_type="cumulative")
+    # compPlot.plot_heatmap(plot_type="cumulative")
+    # compPlot.plot_heatmap_PT(plot_type="cumulative")
+    # compPlot.plot_heatmap_TPZ(plot_type="cumulative")
 
-    for key in data.rock.keys():
-        print(key)
+    from joblib import Parallel, delayed
+    # results = Parallel(n_jobs=-1)(delayed(compPlot.phases_stack_plot_v2)(key, cumulative=True, img_type='png') for key in data.rock.keys())
+    # results = Parallel(n_jobs=-1)(delayed(compPlot.phases_stack_plot)(key, cumulative=True, img_type='pdf') for key in data.rock.keys())
 
-        #compPlot.oxygen_isotopes_realtive(rock_tag=key, img_save=True, img_type='pdf')
-        compPlot.phases_stack_plot(rock_tag=key, img_save=True,
-                     val_tag='volume', transparent=False, fluid_porosity=True, cumulative=False, img_type='png')
-        
-        # compPlot.oxygen_isotopes(rock_tag=key, img_save=True, img_type='png')
-        
+    #for key in data.rock.keys():
+    #    print(key)
+        # compPlot.phases_stack_plot_v2(
+        #     rock_tag=key, img_save=True,
+        #         val_tag='volume', transparent=False, 
+        #         fluid_porosity=True, cumulative=False, img_type='pdf'
+        #                   )
+    #
+        # compPlot.oxygen_isotopes_v2(rock_tag=key, img_save=True, img_type='png')
+        # compPlot.oxygen_isotopes_realtive_v2(rock_tag=key, img_save=True, img_type='png')
+
+
     # compPlot.fluid_distribution_sgm23(img_save=True, gif_save=True, x_axis_log=False)
 
     """

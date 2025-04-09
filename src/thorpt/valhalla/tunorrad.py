@@ -21,6 +21,7 @@ from scipy.optimize import minimize
 import copy
 from collections.abc import Iterable
 import keyboard
+import os
 
 
 @dataclass
@@ -396,7 +397,7 @@ def decode_lines(line_number, line_file, number=11, one_element_row=True):
     return temp_dictionary
 
 
-def run_theriak(theriak_path, database, temperature, pressure, whole_rock):
+def run_theriak(theriak_path, database, temperature, pressure, whole_rock, theriak_input_rock_before=False):
     """
     Function to run theriak with specified P-T condition and returns output as a list.
     it includes the path where theriak can be executed, writes the Therin file for the P-T
@@ -416,48 +417,6 @@ def run_theriak(theriak_path, database, temperature, pressure, whole_rock):
         FileNotFoundError: If the theriak executable file is not found.
 
     """
-
-
-    ######################################################################
-    # Old way of calling theriak - now with input by user in init
-    """
-    if platform.system() == 'Windows':
-        data_folder = Path(theriak_path)
-        file_to_open = data_folder / "theriak.exe"
-    else:
-        data_folder = Path(theriak_path)
-        file_to_open = data_folder / "theriak"
-    """
-
-    """
-    main_folder = Path(__file__).parent.absolute()
-    if platform.system() == 'Windows':
-        data_folder = main_folder / "_theriak" / "WIN" / "Programs"
-        file_to_open = data_folder / "theriak.exe"
-    else:
-        data_folder = main_folder / "_theriak" / "MAC" / "Programs"
-        file_to_open = data_folder / "theriak"
-    """
-    """path_split = theriak_path.split("\\")
-    print(path_split)
-    pos = path_split.index("_theriak")
-    path_split = '\\'.join(path_split[:pos])
-
-    # define THERIN and XBIN location
-    therin = Path(path_split) / 'THERIN'
-    xbin = Path(path_split) / 'XBIN'"""
-
-    """# stores the momentary P, T condition passed to Theriak for calculation
-    with open(therin, 'w') as file_object:
-        file_object.write(therin_condition)
-    # opens THERIN and writes new P,T condition
-    # with open('THERIN', 'a') as file_object:
-        file_object.write("\n")
-        file_object.write(whole_rock_write)
-    with open(xbin, 'w') as file_object:
-        file_object.write(database)
-        file_object.write("\n")
-        file_object.write("no")"""
 
     ######################################################################
     # New way of calling theriak - now with input by user in init
@@ -481,17 +440,61 @@ def run_theriak(theriak_path, database, temperature, pressure, whole_rock):
     # Runs Theriak, saves output, strips it to list
     ######################################################################
     # # opens THERIN and writes more input parameters as elemental composition
-
     # Option 1 - Philips approach
-    theriak_xbin_in = database + "\n" + "no\n"
-    theriak_exe = file_to_open / "theriak"
-    out = subprocess.run([theriak_exe],
-                             input=theriak_xbin_in,
-                             encoding="utf-8",
-                             capture_output=True)
+    theriak_input_rock_before = False
+    if theriak_input_rock_before == False:
+        # Executing minimization for new bulk, P, T condition
+        theriak_xbin_in = database + "\n" + "no\n"
+        theriak_exe = file_to_open / "theriak"
+        out = subprocess.run([theriak_exe],
+                                input=theriak_xbin_in,
+                                encoding="utf-8",
+                                capture_output=True)
 
-    theriak_output = out.stdout
-    theriak_output = theriak_output.splitlines()
+        theriak_output = out.stdout
+        theriak_output = theriak_output.splitlines()
+
+    elif theriak_input_rock_before['bulk'][-1] == whole_rock and theriak_input_rock_before['temperature'][-1] == temperature and theriak_input_rock_before['pressure'][-1] == pressure:
+        with open('ThkRun.log', 'rb') as file:
+            # read the txt file and write it into the list
+            output = file.read()
+
+        _thk_run_check = output.decode('utf-8').splitlines()
+        if 'GARNET' in _thk_run_check[0]:
+            # Executing minimization for new bulk, P, T condition
+            theriak_xbin_in = database + "\n" + "no\n"
+            theriak_exe = file_to_open / "theriak"
+            out = subprocess.run([theriak_exe],
+                                    input=theriak_xbin_in,
+                                    encoding="utf-8",
+                                    capture_output=True)
+
+            theriak_output = out.stdout
+            theriak_output = theriak_output.splitlines()
+
+        else:
+            print("no minimization - txt-read only")
+            # this argument runs the copy script - avoiding running the same minimization twice
+            # reading the already written theriakoutput
+            # does not call the process but only reads ThkOut.txt into the 'theriak_in_lines'-list
+            output = 1
+            with open('ThkOut.txt', 'rb') as file:
+                # read the txt file and write it into the list
+                output = file.read()
+
+            theriak_output = output.decode('utf-8').splitlines()
+
+    else:
+        # Executing minimization for new bulk, P, T condition
+        theriak_xbin_in = database + "\n" + "no\n"
+        theriak_exe = file_to_open / "theriak"
+        out = subprocess.run([theriak_exe],
+                                input=theriak_xbin_in,
+                                encoding="utf-8",
+                                capture_output=True)
+
+        theriak_output = out.stdout
+        theriak_output = theriak_output.splitlines()
 
     ####################################
     # Option 2 - Old approach
@@ -509,7 +512,7 @@ def run_theriak(theriak_path, database, temperature, pressure, whole_rock):
     theriak_in_lines = output.decode('utf-8').splitlines()"""
 
 
-    # reads each line in the output.txt and apends it to the 'theriak_in_lines'-list
+    
     return theriak_output
 
 
@@ -566,7 +569,7 @@ def read_to_dataframe(index_entry, df_index_as_list, input_in_lines, skip=2, num
         pass
 
 
-def read_theriak(theriak_path, database, temperature, pressure, whole_rock):
+def read_theriak(theriak_path, database, temperature, pressure, whole_rock, theriak_input_rock_before):
     """
     Starts and reads the theriak minimization at specific P-T and bulk rock to Dataframes that
     contain the physical values for each stable phase,
@@ -583,18 +586,12 @@ def read_theriak(theriak_path, database, temperature, pressure, whole_rock):
         dict: A dictionary that contains all the created dataframes.
     """
 
-    # Print the calculation inforamtion
-    # print(
-    #     f"--------Calculation for P = {pressure} Bar and T = {temperature} °C-------"
-    #     "With whole rock:"
-    # )
-    # print(whole_rock)
     # Call the connection to the console and execute theriak
     Data_dic = {}
     del Data_dic
     Data_dic = {}
     theriak_in_lines = run_theriak(theriak_path,
-        database, temperature, pressure, whole_rock)
+        database, temperature, pressure, whole_rock, theriak_input_rock_before)
 
     # #######################################################
     # Following reads passages from the theriak output
@@ -701,7 +698,7 @@ def read_theriak(theriak_path, database, temperature, pressure, whole_rock):
     # test if data dictionary is empty
     if not data:
         df_Vol_Dens = pd.DataFrame(data)
-        print("---ERROR:---No solid stable phases detected.")
+        # print("---ERROR:---No solid stable phases detected.")
     else:
         df_Vol_Dens = pd.concat(data, axis=1)
     # writes the created 'data' dictionary which contains all
@@ -789,7 +786,7 @@ def read_theriak(theriak_path, database, temperature, pressure, whole_rock):
             [df_H2O_content_solids], axis=1)
         # print("Only solid h2o cont true")
     else:
-        print("---EXCEPTION--- no h2o content true")
+        # print("---EXCEPTION--- no h2o content true")
         pass
 
     # 3) Elements in stable phases #####
@@ -1086,6 +1083,25 @@ def boron_fraction(fluidV, rockV, conc_TE_rock, Frac_fac_whitemica=1.4, conc_flu
     return conc_TE_rock, Ratio_FR
 
 
+def read_trace_element_content():
+    # get script file path
+    # Get the script file location
+    script_path = os.path.dirname(os.path.abspath(__file__))
+    # Enter DataFiles folder
+    new_folder_path = os.path.join(script_path, 'DataFiles')
+    # read txt file distribution_coeff_tracers.txt with pandas
+    file_to_open = os.path.join(new_folder_path, 'distribution_coeff_tracers.txt')
+    
+    # read the txt file with pandas, only the first 7 rows are needed, space as separator
+    df = pd.read_csv(file_to_open, sep=', ', nrows=6, engine='python')
+    df.index = df['Ratio']
+    df = df.iloc[:,2:]
+
+    return df
+
+    
+
+
 def garnet_bulk_from_dataframe(frame, moles, volumePermole, volume):
     """
     Generate a bulk formula string for garnet from a dataframe.
@@ -1208,7 +1224,10 @@ class Therm_dyn_ther_looper:
         # passing the fluid name tag based on the database used
         self.fluid_name_tag = fluid_name_tag
 
-    def thermodynamic_looping_station(self, marco=False):
+    def thermodynamic_looping_station(
+            self, marco=False, oversaturation=False,
+                        theriak_input_rock_before=False
+                        ):
         """
         Calls theriak and passes T, P and bulk rock. Resulting data is read and formatted.
         First check for 'water.fluid' is included.
@@ -1229,10 +1248,11 @@ class Therm_dyn_ther_looper:
         # - returns theriak_data (which is a dictionary with Dataframes)
 
         theriak_data, g_sys, pot_frame = read_theriak(
-            self.theriak_path, self.database, self.temperature, self.pressure, self.bulk_rock)
+            self.theriak_path, self.database, self.temperature, self.pressure, self.bulk_rock,
+            theriak_input_rock_before=theriak_input_rock_before)
 
         # recalculation to delete for oversaturation of water
-        if marco is False:
+        if marco is False and oversaturation is False:
             if self.num < 1:
                 if self.fluid_name_tag in theriak_data['df_elements_in_phases'].columns:
                     # print("333333 - First step free fluid detected - recalc initialized")
@@ -1249,7 +1269,8 @@ class Therm_dyn_ther_looper:
                     reset_bulk = check_redo_bulk(new_bulk)
                     self.bulk_rock = reset_bulk
                     theriak_data, g_sys, pot_frame = read_theriak(
-                        self.theriak_path, self.database, self.temperature, self.pressure, self.bulk_rock)
+                        self.theriak_path, self.database, self.temperature, self.pressure, self.bulk_rock, 
+                        theriak_input_rock_before=theriak_input_rock_before)
 
         self.g_sys = g_sys
         self.pot_frame = pot_frame
@@ -1559,7 +1580,7 @@ class Ext_method_master:
             solid_volume_before, solid_volume_new,
             save_factor, master_norm, phase_data,
             tensile_s, differential_stress, friction, subduction_angle,
-            fluid_pressure_mode, fluid_name_tag, rock_item_tag=0):
+            fluid_pressure_mode, fluid_name_tag, extraction_connectivity=0.0, extraction_threshold=False, rock_item_tag=0):
         """
         Initialize all the values and data necessary for calculations
 
@@ -1595,6 +1616,8 @@ class Ext_method_master:
         self.failure_dictionary = {}
         self.fluid_name_tag = fluid_name_tag
         self.fluid_pressure_mode = fluid_pressure_mode
+        self.extraction_threshold = extraction_threshold
+        self.extraction_connectivity = extraction_connectivity
 
     def couloumb_method(self, t_ref_solid, tensile=20):
         """
@@ -2031,7 +2054,7 @@ class Ext_method_master:
         vol_t0 = self.solid_t0 + self.fluid_t0
         vol_new = self.solid_t1 + self.fluid_t1
 
-
+        # ####################################
         # CORK-real - Calculate P2/P1
 
         R = 0.083144621  # cm³kbarK⁻¹mol⁻¹ (gas constant)
@@ -2039,9 +2062,9 @@ class Ext_method_master:
         #n = self.moles_fluid  # moles
         #V1 = self.fluid_t1  # cm^3 (initial volume)
         Vm1 = self.moles_vol_fluid
-        P0 = 2 # in kbar
-        P = 20 # in kbar
 
+        # Cork parameters - values from Holland and Powell 1991 -
+        # A Compensated-Redlich-Kwong (CORK) equation for volumes and fugacities of CO2 and H2O in the range 1 bar to 50 kbar and 100-1600°C
         a0 = 113.4
         a4 = -0.22291
         a5 = -3.8022 * 10**-4
@@ -2050,7 +2073,7 @@ class Ext_method_master:
 
         b = 1.465  # kJ kbar^-1 mol^-1, converted to L/mol
 
-        """c0 = -3.025650 * 10**-2
+        c0 = -3.025650 * 10**-2
         c1 = -5.343144*10**-6
         c = c0 + c1 * T
 
@@ -2058,10 +2081,20 @@ class Ext_method_master:
         d1 = 2.2215221*10**-6
         d = d0 + d1 * T
 
-        Vm1 = Vm1 + c * np.sqrt(P-P0) + d*(P-P0)"""
+        """Vm1 = Vm1 + c * np.sqrt(P-P0) + d*(P-P0)"""
 
-        V2 = 1/(self.fluid_t1/(vol_t0-self.solid_t1)) * (Vm1) # - c * np.sqrt(P-P0) - d*(P-P0)
-        p2_p1_cork_real = ( (R * T) / (V2 - b) - (a) / (V2 * (V2 + b) * np.sqrt(T)) ) / \
+        if self.solid_t1 == vol_t0 and self.fluid_t1 == 0:
+            V2 = self.fluid_t1
+            p2_p1_cork_real = 0
+        elif self.fluid_t1 == 0:
+            V2 = vol_t0-self.solid_t1
+            p2_p1_cork_real = 0
+        else:
+            comp_term = c * np.sqrt(litho-0.2) + d*(litho-0.2)
+            # litho - 0.2 is the compensation term and 0.2 is pressure in bar as the value when MRK is deviating at high pressures
+            V2 = 1/(self.fluid_t1/(vol_t0-self.solid_t1)) * (Vm1) # - comp_term
+
+            p2_p1_cork_real = ( (R * T) / (V2 +  - b) - (a) / (V2 * (V2 + b) * np.sqrt(T)) ) / \
                 ( (R * T) / (Vm1 - b) - (a) / (Vm1 * (Vm1 + b) * np.sqrt(T)) )
 
 
@@ -2074,7 +2107,7 @@ class Ext_method_master:
             # ideal fluid
             hydro = litho * self.fluid_t1/(vol_t0-self.solid_t1)
             # real fluid factor
-            hydro = litho * self.fluid_t1/(vol_t0-self.solid_t1) * (0.0651 * self.fluid_t1/(vol_t0-self.solid_t1) + 0.936)
+            # hydro = litho * self.fluid_t1/(vol_t0-self.solid_t1) * (0.0651 * self.fluid_t1/(vol_t0-self.solid_t1) + 0.936)
             hydro_CORK = litho * p2_p1_cork_real
 
             hydro = hydro_CORK
@@ -2137,69 +2170,76 @@ class Ext_method_master:
 
         # ##########################################
         # Failure envelope test
+        thresh_value = self.extraction_connectivity
         # mcg_plot(cohesion, self.friction, self.diff_stress, self.shear_stress, sig1, hydro)
+        if (vol_t0-self.solid_t1)/vol_t0 >= thresh_value:
+            if self.diff_stress >= self.tensile_strength*5.66:
 
-        if self.diff_stress >= self.tensile_strength*5.66:
+                print("Compressive shear failure test")
+                # print(f"Diff.-stress is {self.diff_stress} and > than T*5.66")
 
-            print("Compressive shear failure test")
-            # print(f"Diff.-stress is {self.diff_stress} and > than T*5.66")
+                # Test possible extensional fracturing
+                output, minimum = checkCollision_linear(a, b, c, x=pos, y=0, radius=r)
+                # print(f"Maximum differential stress calculated as {minimum*2} MPa, but is {self.diff_stress}.")
 
-            # Test possible extensional fracturing
-            output, minimum = checkCollision_linear(a, b, c, x=pos, y=0, radius=r)
-            # print(f"Maximum differential stress calculated as {minimum*2} MPa, but is {self.diff_stress}.")
+                # Critical fluid pressure
+                # print(f"Difference of fluid pressure and critical fluid pressure is:\n{crit_fluid_pressure-hydro} (Pf_crit - Pf)")
 
-            # Critical fluid pressure
-            # print(f"Difference of fluid pressure and critical fluid pressure is:\n{crit_fluid_pressure-hydro} (Pf_crit - Pf)")
+                if output is True:
+                    print("---> Failure due to compressive shear.")
+                    self.frac_respo = 3
+                else:
+                    print("---> No failure")
 
-            if output is True:
-                print("---> Failure due to compressive shear.")
-                self.frac_respo = 3
+                # mcg_plot(cohesion, internal_friction, self.diff_stress, self.shear_stress, sig1, hydro)
+
+            elif self.diff_stress < self.tensile_strength*5.66 and self.diff_stress > 4*self.tensile_strength:
+                print("Extensional shear failure test")
+                #print(f"Diff.-stress is {self.diff_stress} and < than T*5.66 and > T*4")
+                output, minimum = checkCollision_curve(pos=pos, diff=self.diff_stress, tensile=self.tensile_strength)
+                #print(f"Maximum differential stress calculated as {minimum*2} MPa, but is {self.diff_stress}.")
+                #print(f"Difference of fluid pressure and critical fluid pressure is:\n{pf_crit_griffith-hydro} (Pf_crit - Pf)")
+
+                if output is True:
+                    print("---> Failure due to extensional shear.")
+                    self.frac_respo = 2
+                else:
+                    print("---> No failure")
+
+                # mcg_plot(cohesion, internal_friction, self.diff_stress, self.shear_stress, sig1, hydro)
+
+            elif self.diff_stress <= 4*self.tensile_strength:
+                print("Pure extensional failure test")
+                # print(f"Diff.-stress is {self.diff_stress} and < T*4")
+
+                if sig3-hydro <= -cohesion/2:
+                    print("---> Failure due to pure extensional fail.")
+                    self.frac_respo = 1
+                else:
+                    print("---> No failure")
+
+                # mcg_plot(cohesion, internal_friction, self.diff_stress, self.shear_stress, sig1, hydro)
+
             else:
-                print("---> No failure")
-
-            # mcg_plot(cohesion, internal_friction, self.diff_stress, self.shear_stress, sig1, hydro)
-
-        elif self.diff_stress < self.tensile_strength*5.66 and self.diff_stress > 4*self.tensile_strength:
-            print("Extensional shear failure test")
-            #print(f"Diff.-stress is {self.diff_stress} and < than T*5.66 and > T*4")
-            output, minimum = checkCollision_curve(pos=pos, diff=self.diff_stress, tensile=self.tensile_strength)
-            #print(f"Maximum differential stress calculated as {minimum*2} MPa, but is {self.diff_stress}.")
-            #print(f"Difference of fluid pressure and critical fluid pressure is:\n{pf_crit_griffith-hydro} (Pf_crit - Pf)")
-
-            if output is True:
-                print("---> Failure due to extensional shear.")
-                self.frac_respo = 2
-            else:
-                print("---> No failure")
-
-            # mcg_plot(cohesion, internal_friction, self.diff_stress, self.shear_stress, sig1, hydro)
-
-        elif self.diff_stress <= 4*self.tensile_strength:
-            print("Pure extensional failure test")
-            # print(f"Diff.-stress is {self.diff_stress} and < T*4")
-
-            if sig3-hydro <= -cohesion/2:
-                print("---> Failure due to pure extensional fail.")
-                self.frac_respo = 1
-            else:
-                print("---> No failure")
-
-            # mcg_plot(cohesion, internal_friction, self.diff_stress, self.shear_stress, sig1, hydro)
-
+                print("Differential stress seems to have a problem. We decided to test the value. The value is:\n")
+                print(self.diff_stress)
+                self.frac_respo = 0
         else:
-            print("Differential stress seems to have a problem. We decided to test the value. The value is:\n")
-            print(self.diff_stress)
+            print("Fluid-filled porosity to small to interconnect.")
             self.frac_respo = 0
 
         # NOTE Treshold sequence
-
-        #if self.frac_respo == 0:
-        #    print("No mechanical failure detected.")
-        #    print("Testing porosity and interconnectivity.")
-        #    print("P_f factor is {:.3f}".format(hydro/litho), "and porosity is {:.3f}".format(self.fluid_t1/(vol_t0-self.solid_t1)))
-        #    if hydro/litho > 0.9 and (vol_t0-self.solid_t1)/vol_t0 > 0.03:
-        #        self.frac_respo = 5
-
+        if self.frac_respo == 0:
+            print("No mechanical failure detected.")
+            print("Testing porosity and interconnectivity.")
+            print("P_f factor is {:.3f}".format(hydro/litho), "and porosity is {:.3f}".format(self.fluid_t1/(vol_t0-self.solid_t1)))
+            # if hydro/litho > 0.9 and (vol_t0-self.solid_t1)/vol_t0 > 0.002:
+            if (vol_t0-self.solid_t1)/vol_t0 >= self.extraction_threshold and self.fluid_t1 > 0:
+                self.frac_respo = 5
+            elif (vol_t0-self.solid_t1)/vol_t0 >= thresh_value:
+                pass
+            else:
+                hydro = np.nan
 
         self.failure_dictionary = {
             "sigma 1":copy.deepcopy(sig1),
@@ -2319,37 +2359,38 @@ class Fluid_master():
         self.st_fluid_post = st_fluid_post
         self.fluid_name_tag = fluid_name_tag
 
-    def hydrogen_ext_all(self):
-            """
-            Recalculates hydrogen content due to fluid extraction.
+    def hydrogen_ext_all(self, extraction_percentage):
+        """
+        Recalculates hydrogen content due to fluid extraction.
 
-            This method updates the hydrogen content in the system after fluid extraction.
-            It subtracts the hydrogen content of the extracted fluid from the total system,
-            and sets the remaining hydrogen content as the new bulk hydrogen content.
-            The fluid hydrogen content is set to zero after this step.
+        This method updates the hydrogen content in the system after fluid extraction.
+        It subtracts the hydrogen content of the extracted fluid from the total system,
+        and sets the remaining hydrogen content as the new bulk hydrogen content.
+        The fluid hydrogen content is set to zero after this step.
 
-            Parameters:
-            - None
+        Parameters:
+        - None
 
-            Returns:
-            - None
-            """
-            new_extraction = self.phase_data_fluid
-            self.ext_data = pd.concat([self.ext_data, new_extraction], axis=1)
-            self.ext_data = self.ext_data.rename(
-                columns={self.fluid_name_tag: self.temp})
+        Returns:
+        - None
+        """
+        new_extraction = self.phase_data_fluid
+        self.ext_data = pd.concat([self.ext_data, new_extraction], axis=1)
+        self.ext_data = self.ext_data.rename(
+            columns={self.fluid_name_tag: self.temp})
 
-            # diminish double total: in dataframe
-            if self.element_frame.columns[-1] == self.element_frame.columns[-2]:
-                self.element_frame = self.element_frame.iloc[:, :-1]
+        # diminish double total: in dataframe
+        if self.element_frame.columns[-1] == self.element_frame.columns[-2]:
+            self.element_frame = self.element_frame.iloc[:, :-1]
 
-            # settings some important values from element data frame
-            extracted_fluid_vol = self.phase_data_fluid['volume[ccm]']
-            fluid_H = self.element_frame.loc['H', self.fluid_name_tag]
-            sys_H = self.element_frame.loc['H', 'total:']
-            fluid_O = self.element_frame.loc['O', self.fluid_name_tag]
-            sys_O = self.element_frame.loc['O','total:']
+        # settings some important values from element data frame
+        extracted_fluid_vol = self.phase_data_fluid['volume[ccm]']
+        fluid_H = self.element_frame.loc['H', self.fluid_name_tag]
+        sys_H = self.element_frame.loc['H', 'total:']
+        fluid_O = self.element_frame.loc['O', self.fluid_name_tag]
+        sys_O = self.element_frame.loc['O','total:']
 
+        if extraction_percentage == 1.0:
             # remaining H and O in bulk
             total_hydrogen = sys_H - fluid_H
             total_oxygen = sys_O - fluid_O
@@ -2363,19 +2404,69 @@ class Fluid_master():
             self.element_frame.loc['H', self.fluid_name_tag] = 0.0
             self.st_fluid_post[-1] = self.st_fluid_post[-1] - extracted_fluid_vol
             # print("=====================================")
-            print("======= Fluid fractionation 100% ========")
-            print("\t    \N{BLACK DROPLET}")
-            print("\t   \N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
-            print("\t \N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
-            print("\t\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
-            print("\t\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
-            print("\t \N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
-            print("\t   \N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
+            print("======= Fluid fractionation 100% ========") 
+        else:
+            if new_extraction['vol%']/100 < extraction_percentage:
+                fraction = 0.0
+            else:
+                fraction = (new_extraction['vol%']/100 - extraction_percentage) / (new_extraction['vol%']/100)
+
+            # remaining H and O in bulk
+            total_hydrogen = sys_H - fluid_H * fraction
+            total_oxygen = sys_O - fluid_O * fraction
+
+            # IMPORTANT step - substracting H and O of fluid from total system - total system will be new bulk
+            self.element_frame.loc['H', 'total:'] = total_hydrogen
+            self.element_frame.loc['O', 'total:'] = total_oxygen
+
+            # set fluid O and H to zero after this step
+            self.element_frame.loc['O', self.fluid_name_tag] = fluid_O - fluid_O * fraction
+            self.element_frame.loc['H', self.fluid_name_tag] = fluid_H - fluid_H * fraction
+            self.st_fluid_post[-1] = self.st_fluid_post[-1] - extracted_fluid_vol * fraction
             # print("=====================================")
+            print(f"======= Fluid fractionation {fraction*100}% ========")
 
-    def hydrogen_partial_ext(self):
-        pass
+        print("\t    \N{BLACK DROPLET}")
+        print("\t   \N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
+        print("\t \N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
+        print("\t\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
+        print("\t\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
+        print("\t \N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
+        print("\t   \N{BLACK DROPLET}\N{BLACK DROPLET}\N{BLACK DROPLET}")
+        # print("=====================================")
 
+    def hydrogen_partial_ext(self, fraction_value):
+        new_extraction = self.phase_data_fluid
+        self.ext_data = pd.concat([self.ext_data, new_extraction], axis=1)
+        self.ext_data = self.ext_data.rename(
+            columns={self.fluid_name_tag: self.temp})
+
+        # diminish double total: in dataframe
+        if self.element_frame.columns[-1] == self.element_frame.columns[-2]:
+            self.element_frame = self.element_frame.iloc[:, :-1]
+
+        # settings some important values from element data frame
+        extracted_fluid_vol = self.phase_data_fluid['volume[ccm]']
+        fluid_H = self.element_frame.loc['H', self.fluid_name_tag]
+        sys_H = self.element_frame.loc['H', 'total:']
+        fluid_O = self.element_frame.loc['O', self.fluid_name_tag]
+        sys_O = self.element_frame.loc['O','total:']
+
+        # remaining H and O in bulk
+        fractionation_value = (new_extraction['vol%']/100 - fraction_value) / (new_extraction['vol%']/100)
+        total_hydrogen = sys_H - fluid_H * fractionation_value
+        total_oxygen = sys_O - fluid_O * fractionation_value
+
+        # IMPORTANT step - substracting H and O of fluid from total system - total system will be new bulk
+        self.element_frame.loc['H', 'total:'] = total_hydrogen
+        self.element_frame.loc['O', 'total:'] = total_oxygen
+
+        # set fluid O and H to zero after this step
+        self.element_frame.loc['O', self.fluid_name_tag] = fluid_O - fluid_O * fractionation_value
+        self.element_frame.loc['H', self.fluid_name_tag] = fluid_H - fluid_H * fractionation_value
+        self.st_fluid_post[-1] = self.st_fluid_post[-1] - extracted_fluid_vol * fractionation_value
+
+        print(f"======= Fluid fractionation {fractionation_value*100}% ========")
 
 class System_status:
     """
@@ -2644,7 +2735,7 @@ class Isotope_calc():
         # print(f"Bulk oxygen is {self.start_bulk}")
 
         # deep copy moles of oxygen in the phase to not modifiy data
-        oxygen_moles = copy.deepcopy(np.array(self.element_oxy))
+        oxygen_moles = copy.deepcopy(np.asarray(self.element_oxy))
         # delete the excluded values from phases such as ("SI", ...)
         oxygen_moles = np.delete(oxygen_moles, excluded_phases_index, 0)
 
@@ -2672,7 +2763,7 @@ class Isotope_calc():
         d = np.hstack((n0, d))
         d = np.hstack((d, np.zeros((n, 1))))
         # moles_frac[-2] = 0
-        moles_frac = list(np.nan_to_num(moles_frac, 0))
+        moles_frac = list(np.nan_to_num(np.asarray(moles_frac), 0))
         if len(list(flatten(database_names))) == len(moles_frac):
             moles_frac.append(-sum(moles_frac))
         else:
@@ -2707,7 +2798,205 @@ class Isotope_calc():
             # print('phase:{} Oxy-Val:{}'.format(phase, result))
         self.oxygen_dic['Phases'] = stable_phases
         self.oxygen_dic['delta_O'] = oxygen_values
-        print("Oxygen fractionation calculation done.")
+        #print("Oxygen fractionation calculation done.")
+
+
+def phases_translated(database, phases):
+    """
+    Returns a list of phase names and their corresponding colors based on the given database and phases.
+
+    Parameters:
+    - database (str): The name of the database.
+    - phases (list): A list of phase names.
+
+    Returns:
+    - phase_set (list): A list of phase names.
+    - color_set (list): A list of RGB color tuples corresponding to each phase.
+
+    """
+
+    # Translation file - database to XMT names
+    script_folder = Path(__file__).parent.absolute()
+    dot_indi = database.index('.')
+    file_to_open = script_folder / "DataFiles" / \
+        f"MINERAL_NAMES_{database[:dot_indi]}_to_TE.txt"
+    min_translation = pd.read_csv(file_to_open, delimiter='\t')
+
+    # Iterating through phases 
+    phase_set = []
+    phase_original = []
+    z = 0
+    for mini in phases:
+        if mini == 'fluid' or mini == 'H2O.liq' or mini == 'Liqtc6_H2Ol' or mini == 'H2O' or mini == 'water.fluid':
+            phase_set.append('Fluid')
+            phase_original.append(mini)
+        elif mini in list(min_translation['Database-name']):
+            phase_set.append(min_translation[
+                min_translation['Database-name']== mini]['XMT-name'].iloc[0])
+            phase_original.append(mini)
+        elif '_' in mini:
+            mini_inid = mini.index('_')
+            base_name = mini[:mini_inid]
+            if base_name in list(min_translation['Database-name']):
+                phase_set.append(min_translation[min_translation['Database-name']
+                                           == base_name]['XMT-name'].iloc[0])
+                phase_original.append(mini)
+
+    return phase_set, phase_original
+
+# Function to check if a variable is np.float64 and NaN
+def is_float64_nan(value):
+    return isinstance(value, np.float64) and np.isnan(value)
+
+class TraceElementDistribution():
+
+    def __init__(self, data_mol_from_frame, eq_data, element_data, bulk_trace_elements, database):
+        """
+        Initilization of datasets, frames and values
+
+        Args:
+            data_mol_from_frame (Dataframe): Data with information about the moles for each phase
+            eq_data (Dataframe): Information about the phases and sthe solid solutions
+            element_data (Dataframe): Element distribution in moles for the stable phases
+            bulk_trace_elements (int): Bulk rock trace element value at input condition
+        """
+
+        self.phase_data = data_mol_from_frame
+        self.eq_data = eq_data
+        self.element_data = element_data
+        self.start_bulk = bulk_trace_elements
+        self.distribution_coefficients = read_trace_element_content()
+        self.database = database
+
+        if 'tc55' in database:
+            self.phase_set, self.phase_original = phases_translated('tc55.txt', self.phase_data.index)
+        else:
+            self.phase_set, self.phase_original = phases_translated(self.database, self.phase_data.index)
+
+    def distribute_tracers(self, temperature, pressure, iteration):
+        """
+        runs the distribution of trace elements between the stable phases
+        """
+
+        # name list is self.distribution_coefficients.index but clip /Grt from each name
+        name_list = [name[:-4] for name in self.distribution_coefficients.index]
+        name_list.append('Garnet')
+        phase_list = self.phase_data.index
+        element_list = self.distribution_coefficients.columns
+
+        # Assuming self.distribution_coefficients is a DataFrame
+        # add 'Grt' to distribution_coefficients with array of ones
+        distribution_coefficients = self.distribution_coefficients
+        distribution_coefficients.loc['Garnet'] = np.ones(len(distribution_coefficients.columns))
+        distribution_coefficients.index = name_list
+
+        # collecting stable phases moles and names
+        assembled_distribution_coefficients = pd.DataFrame([])
+        for name in name_list:
+            if name in self.phase_set:
+                assembled_distribution_coefficients = pd.concat([
+                        assembled_distribution_coefficients, 
+                        distribution_coefficients.loc[name]], axis=1)
+
+        # final assembled distribution coefficients based on predicted stable phases
+        assembled_distribution_coefficients = assembled_distribution_coefficients.T
+        # update name_list to the names of the phases that are present
+        name_list = assembled_distribution_coefficients.index
+        
+        # Calculating mineral/matrix distribution coefficients 
+        # (D_min-grt_e / sum(D_min-grt_e) = D_min-mtrx_e)
+        # -----------------------------------------------------------
+
+        # Convert the DataFrame to a numpy array for faster operations
+        coeff_array = assembled_distribution_coefficients.values
+
+        # Calculate the sum of each column
+        column_sums = np.sum(coeff_array, axis=0)
+
+        # Calculate the coefficient values
+        _m_min_matrix_coeff = coeff_array / column_sums.T
+        #TODO - check if this is correct if not all mineral phases are present
+
+        _m_min_matrix_coeff_df = pd.DataFrame(
+            _m_min_matrix_coeff,
+            index=name_list,
+            columns=element_list)
+
+        # Calculating k-matrix coefficients
+        # (c_bulk_e / sum(moles_min *D_min-mtrx_e) = K_e)
+        # -----------------------------------------------------------
+        # create empty dataframe to be filled with k values
+        mass_balanced_trace_elements = pd.DataFrame([])
+        selected_phase_moles = []
+        assembled_matrix_coeff = pd.DataFrame([])
+        selected_phase_name_original = []
+        #assembling the trace element distribution matrix
+        for i, name in enumerate(self.phase_set):
+            if name in name_list:
+                if is_float64_nan(self.phase_data.iloc[i,-1]):
+                    pass
+                else:
+                    selected_phase_moles.append(self.phase_data.iloc[i,-1])
+                    selected_phase_name_original.append(self.phase_original[i])
+                    assembled_matrix_coeff = pd.concat([
+                        assembled_matrix_coeff, _m_min_matrix_coeff_df.loc[name]], axis=1)
+
+        assembled_matrix_coeff = assembled_matrix_coeff.T
+        selected_phase_moles = np.array(selected_phase_moles)
+
+        # Calculating the mass balanced distribution coefficients
+        # mass_balanced_trace_elements = selected_phase_moles.values * assembled_matrix_coeff.values
+        mass_balanced_trace_elements = selected_phase_moles[:, np.newaxis] * assembled_matrix_coeff.values
+        # mass_balanced_trace_elements = pd.DataFrame(selected_phase_moles.values * assembled_matrix_coeff.values)
+        # mass_balanced_trace_elements.columns = element_list
+        # mass_balanced_trace_elements.index = selected_phase_moles.index
+        
+        # Calculate the sum of each column
+        column_sums = np.sum(mass_balanced_trace_elements, axis=0)
+        
+        # Calculate the coefficient values by dividing the bulk values by the sum of the column
+        if len(column_sums) == 0:
+            
+            column_sums = np.nan
+            k_factor = self.start_bulk.values[0] / column_sums
+
+            content =  k_factor
+            selected_phase_name_original = 'None'
+            content_df = pd.DataFrame(content)
+            content_df.index = element_list
+            #content_df.columns = selected_phase_name_original
+        else:
+            k_factor = self.start_bulk.values[0] / column_sums
+
+            # Calculating the content of element e in mineral
+            # content = K_e * moles_min * D_min-mtrx_e
+            # -----------------------------------------------------------
+
+            #content =  k_factor * selected_phase_moles.values  * assembled_matrix_coeff.values
+            content =  k_factor * selected_phase_moles[:, np.newaxis]  * assembled_matrix_coeff.values
+            
+            #build dataframe of content
+            #content_df = pd.DataFrame(content, index=selected_phase_moles.index, columns=element_list)
+            #content_df = pd.DataFrame(content, index=selected_phase_moles.index, columns=element_list)
+            content_df = pd.DataFrame(content)
+            content_df.columns = element_list
+            content_df.index = selected_phase_name_original
+        
+            """
+            norming = np.array([
+                0.3670, 0.9570, 0.1370, 0.7110, 0.2310, 0.0870, 0.3060, 
+                0.0580, 0.3810, 0.0851, 0.2490, 0.0356, 0.2480, 0.0381])
+            test = content_df/norming
+
+            # test plot in log scale on the y axis, y_label is REE/Chondrite and x_label is elements
+            for phase in test.index:
+                plt.plot(test.loc[phase], 'D--' , label=phase)
+            plt.yscale('log')
+            plt.xlabel('Elements')
+            plt.ylabel('REE/Chondrite')
+            plt.legend()
+            """
+        return content_df
 
 
 class Garnet_recalc():
@@ -2761,7 +3050,88 @@ class Garnet_recalc():
             Data_dic, g_sys, pot_frame = read_theriak(
                 self.theriak_path,
                 database=db, temperature=self.temperature,
-                pressure=self.pressure, whole_rock=bulk)
+                pressure=self.pressure, whole_rock=bulk,
+                theriak_input_rock_before=False)
+            grt = Data_dic['df_Vol_Dens'].columns[0]
+            phase_list = list(Data_dic['df_Vol_Dens'].columns)
+
+            # check for couble garnet
+            double_grt_check = []
+            selected_garnet_name = False
+            for item in phase_list:
+                if garnet_name in item:
+                    selected_garnet_name = item
+                    double_grt_check.append(item)
+
+            if selected_garnet_name is False:
+                print("WARNING: Garnet increment no longer stable. Press ESC to continue.")
+                print(f"Bulk is: {bulk}")
+                # keyboard.wait('esc')
+                v = 0
+                g = 0
+            else:
+                # backward - Volume of the garnet shell to be added (back-normlaized from 1 mole to x-mol (garnet.moles))
+                rec_mole = garnet.volume/garnet.volPmole
+                v = Data_dic['df_Vol_Dens'][grt]['volume/mol']*rec_mole
+                g = Data_dic['df_Vol_Dens'][grt]['wt/mol']*rec_mole
+
+            self.recalc_volume += v
+            self.recalc_weight += g
+
+
+class Metastable_phase_recalculator():
+    """
+    Class for performing recalculation of garnets.
+
+    Attributes:
+        theriak (str): The path to the Theriak software.
+        dataclass (list): List of garnet data objects.
+        temperature (float): The temperature in Kelvin.
+        pressure (float): The pressure in bars.
+        recalc_volume (float): The recalculated volume of garnets.
+        recalc_weight (float): The recalculated weight of garnets.
+    """
+
+    def __init__(self, theriak, dataclass, temperature, pressure):
+        """
+        Initialize a Tunorrad object.
+
+        Args:
+            theriak (str): The path to the Theriak executable.
+            dataclass: The data class for the mineral.
+            temperature (float): The temperature in Kelvin.
+            pressure (float): The pressure in bars.
+        """
+        self.mineral = dataclass
+        self.recalc_volume = 0
+        self.recalc_weight = 0
+        self.temperature = temperature
+        self.pressure = pressure
+        self.theriak_path = theriak
+
+    def recalculation_of_garnets(self, database, garnet_name):
+        """
+        Recalculates the volume and weight of garnets based on the provided data.
+
+        Returns:
+            None
+        """
+        for garnet in self.mineral:
+            vals = garnet.elements[0]
+            index = garnet.elements[1]
+            relements = pd.DataFrame(vals, index=index)
+
+            # create the bulk from element entry - normalized to 1 mol for theriak
+            # forward - volume needs to be back-converted to the moles of the shell (garnet.moles)
+            bulk = garnet_bulk_from_dataframe(relements, garnet.moles, garnet.volPmole, garnet.volume)
+
+            # FIXME static database tc55 for garnet recalculation
+            db = f"{database}    {garnet_name}"
+            Data_dic, g_sys, pot_frame = read_theriak(
+                self.theriak_path,
+                database=db, temperature=self.temperature,
+                pressure=self.pressure, whole_rock=bulk,
+                theriak_input_rock_before=False)
             grt = Data_dic['df_Vol_Dens'].columns[0]
             phase_list = list(Data_dic['df_Vol_Dens'].columns)
 
