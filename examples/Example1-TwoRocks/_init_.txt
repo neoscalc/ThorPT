@@ -44,11 +44,14 @@ Fluid phase name:		water.fluid
 *Starting bulk oxygen isotope composition
 Geometry:				[1,1,1]
 *Size of the modelled rock volume in m*m*m
-Extraction scheme:		Mohr-Coulomb-Griffith
+Extraction scheme:			Mohr-Coulomb-Griffith
+Extraction percentage[%]:		100
+Fluid pressure:				mean stress
+Fluid Volume Threshold[Vol%]:		4.0
+Fluid Connectivity[Vol%]:		0.2
 Friction:				0.75
-Tensile strength:		20.0
-Diffential stress:		50
-Fluid pressure:			Mean stress
+Tensile strength:			20.0
+Diffential stress:			50
 ***
 Database:				tc55_Serp
 *options: 'tc55', 'tc55_Serp', 'JUN92hp', 'ds62mp', 'td-ds62-mb50-v07'
@@ -64,9 +67,12 @@ OxygenVal:				3.0
 *Starting bulk oxygen isotope composition
 Geometry:				[1,1,1]
 *Size of the modelled rock volume in m*m*m
-Extraction scheme:		Mohr-Coulomb-Griffith
+Extraction scheme:			Mohr-Coulomb-Griffith
+Extraction percentage[%]:		100
+Fluid pressure:				mean stress
+Fluid Volume Threshold[Vol%]:		4.0
+Fluid Connectivity[Vol%]:		0.2
 Friction:				0.75
-Tensile strength:		3.0
-Diffential stress:		50
-Fluid pressure:			Mean stress
+Tensile strength:			3.0
+Diffential stress:			50
 ***

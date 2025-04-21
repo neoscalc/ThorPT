@@ -43,49 +43,12 @@ OxygenVal:				5.8
 *Starting bulk oxygen isotope composition
 Geometry:				[1,1,1]
 *Size of the modelled rock volume in m*m*m
-Extraction scheme:		Mohr-Coulomb-Griffith
+Extraction scheme:			Mohr-Coulomb-Griffith
+Extraction percentage[%]:		100
+Fluid pressure:				mean stress
+Fluid Volume Threshold[Vol%]:		4.0
+Fluid Connectivity[Vol%]:		0.2
 Friction:				0.75
-Tensile strength:		20.0
-Diffential stress:		50
-Fluid pressure:			Mean stress
-***
-Database:				tc55_AngiRaim
-*options: 'tc55', 'tc55_Serp', 'JUN92hp', 'ds62mp', 'td-ds62-mb50-v07'
-Bulk:					[53.2, 0.0, 14.7, 7.9, 0.4, 0.27, 6.1, 11.5, 5.9, 0.3]
-*SIO2, TIO2, AL2O3, FEO, FE2O3, MNO, MGO, CAO, NA2O, K2O, H2O, CO2
-Mole of H:				0.3
-* Starting condition for amount of hydrogen
-Mole of C:				0.0
-* Starting condition for amount of carbon
-Fluid phase name:		water.fluid
-*Name of fluid-phase to be fractionated
-OxygenVal:				5.8
-*Starting bulk oxygen isotope composition
-Geometry:				[1,1,1]
-*Size of the modelled rock volume in m*m*m
-Extraction scheme:		Mohr-Coulomb-Griffith
-Friction:				0.75
-Tensile strength:		20.0
-Diffential stress:		55
-Fluid pressure:			Mean stress
-***
-Database:				tc55_AngiRaim
-*options: 'tc55', 'tc55_Serp', 'JUN92hp', 'ds62mp', 'td-ds62-mb50-v07'
-Bulk:					[53.2, 0.0, 14.7, 7.9, 0.4, 0.27, 6.1, 11.5, 5.9, 0.3]
-*SIO2, TIO2, AL2O3, FEO, FE2O3, MNO, MGO, CAO, NA2O, K2O, H2O, CO2
-Mole of H:				0.3
-* Starting condition for amount of hydrogen
-Mole of C:				0.0
-* Starting condition for amount of carbon
-Fluid phase name:		water.fluid
-*Name of fluid-phase to be fractionated
-OxygenVal:				5.8
-*Starting bulk oxygen isotope composition
-Geometry:				[1,1,1]
-*Size of the modelled rock volume in m*m*m
-Extraction scheme:		Mohr-Coulomb-Griffith
-Friction:				0.75
-Tensile strength:		20.0
-Diffential stress:		60
-Fluid pressure:			Mean stress
+Tensile strength:			3.0
+Diffential stress:			50
 ***

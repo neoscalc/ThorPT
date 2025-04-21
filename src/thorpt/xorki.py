@@ -7329,13 +7329,13 @@ if __name__ == '__main__':
     # results = Parallel(n_jobs=-1)(delayed(compPlot.phases_stack_plot_v2)(key, cumulative=True, img_type='png') for key in data.rock.keys())
     # results = Parallel(n_jobs=-1)(delayed(compPlot.phases_stack_plot)(key, cumulative=True, img_type='pdf') for key in data.rock.keys())
 
-    #for key in data.rock.keys():
+    for key in data.rock.keys():
     #    print(key)
-        # compPlot.phases_stack_plot_v2(
-        #     rock_tag=key, img_save=True,
-        #         val_tag='volume', transparent=False, 
-        #         fluid_porosity=True, cumulative=False, img_type='pdf'
-        #                   )
+        compPlot.phases_stack_plot_v2(
+             rock_tag=key, img_save=True,
+                 val_tag='volume', transparent=False, 
+                 fluid_porosity=True, cumulative=False, img_type='pdf'
+                           )
     #
         # compPlot.oxygen_isotopes_v2(rock_tag=key, img_save=True, img_type='png')
         # compPlot.oxygen_isotopes_realtive_v2(rock_tag=key, img_save=True, img_type='png')
