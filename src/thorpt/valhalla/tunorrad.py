@@ -2232,7 +2232,7 @@ class Ext_method_master:
         if self.frac_respo == 0:
             print("No mechanical failure detected.")
             print("Testing porosity and interconnectivity.")
-            print("P_f factor is {:.3f}".format(hydro/litho), "and porosity is {:.3f}".format(self.fluid_t1/(vol_t0-self.solid_t1)))
+            # print("P_f factor is {:.3f}".format(hydro/litho), "and porosity is {:.3f}".format(self.fluid_t1/(vol_t0-self.solid_t1)))
             # if hydro/litho > 0.9 and (vol_t0-self.solid_t1)/vol_t0 > 0.002:
             if (vol_t0-self.solid_t1)/vol_t0 >= self.extraction_threshold and self.fluid_t1 > 0:
                 self.frac_respo = 5

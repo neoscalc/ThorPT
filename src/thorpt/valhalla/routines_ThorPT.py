@@ -1395,8 +1395,15 @@ class ThorPT_Routines():
                             # ------------------------------------------------------
                             # access the fluid trace element data from the infiltrating fluid - calculate the influx amount multiplied by the geometry factor
                             last_entry_key = list(master_rock[rock_react_item]['trace_element_data'].keys())[-1]
-                            tracer_addition = master_rock[rock_react_item]['trace_element_data'][
-                                last_entry_key].loc[master_rock[rock_react_item]['database_fluid_name']] * fluid_influx_factor
+
+                            # FIXME - quick debug solution for missing water.fluid for the transfer in trace element dataframe
+                            if master_rock[rock_react_item]['database_fluid_name'] in master_rock[rock_react_item]['trace_element_data'][
+                                last_entry_key].index:
+                                tracer_addition = master_rock[rock_react_item]['trace_element_data'][
+                                    last_entry_key].loc[master_rock[rock_react_item]['database_fluid_name']] * fluid_influx_factor
+                            else:
+                                # empty dataframe to add zeros
+                                tracer_addition = np.zeros(14)                   
                             # update the trace element bulk with the new influx
                             master_rock[item]['init_trace_element_bulk'] = master_rock[item]['init_trace_element_bulk'] + tracer_addition
 
@@ -1797,7 +1804,7 @@ class ThorPT_Routines():
                         fluid_name_tag=fluid_name_tag, subduction_angle=self.angle,
                         rock_item_tag=item,
                         extraction_threshold = master_rock[item]['extraction threshold'],
-                                        extraction_connectivity = master_rock[item]['fluid connectivity']
+                        extraction_connectivity = master_rock[item]['fluid connectivity']
                         )
                     # //////////////////////////////////////////////////////////////////////////
                     # LINK 1) selection of the failure and fluid extraction
@@ -2071,16 +2078,10 @@ class ThorPT_Routines():
         # Main variables mechanical model
         lowest_permeability = self.minimum_permeability
 
-        """
-        # REVIEW - mechanical methods
-        # Methods
-        factor_method = self.mechanical_methods[0]
-        steady_method = self.mechanical_methods[1]
-        dynamic_method = self.mechanical_methods[2]
-        coulomb = self.mechanical_methods[3]
-        coulomb_permea = self.mechanical_methods[4]
-        coulomb_permea2 = self.mechanical_methods[5]
-        """
+        # initialize the trace element composition of the bulk rock
+        for item in master_rock.keys():
+            # trace element distribution
+            master_rock[item]['init_trace_element_bulk'] = self.trace_element_bulk
 
 
         # Main variables fractionation
@@ -2170,7 +2171,7 @@ class ThorPT_Routines():
                             master_rock[item]['new_bulk'] = whole_rock_convert_3(ready_mol_bulk=bulka)
 
                             # Recalculate bulk delta-oxygen after fluid input
-                            new_O_bulk = fluid_injection_isotope_recalculation(
+                            new_O_bulk, fluid_end_d18O, free_fluid_oxygen = fluid_injection_isotope_recalculation(
                                         master_rock[item]['save_oxygen'],
                                         master_rock[item]['df_element_total'],
                                         master_rock[rock_react_item]['save_oxygen'][-1],
@@ -2186,6 +2187,15 @@ class ThorPT_Routines():
 
                             print(f"New bulk oxygen is {master_rock[item]['bulk_oxygen_before_influx'][-1]}")
                             print(f"New bulk oxygen is {master_rock[item]['bulk_oxygen_after_influx'][-1]}")
+
+                            # recalculate the trace element bulk after infiltration
+                            # ------------------------------------------------------
+                            # access the fluid trace element data from the infiltrating fluid - calculate the influx amount multiplied by the geometry factor
+                            last_entry_key = list(master_rock[rock_react_item]['trace_element_data'].keys())[-1]
+                            tracer_addition = master_rock[rock_react_item]['trace_element_data'][
+                                last_entry_key].loc[master_rock[rock_react_item]['database_fluid_name']] * fluid_influx_factor
+                            # update the trace element bulk with the new influx
+                            master_rock[item]['init_trace_element_bulk'] = master_rock[item]['init_trace_element_bulk'] + tracer_addition
 
                     else:
                         # Bulk rock calculation - normal
@@ -2392,8 +2402,73 @@ class ThorPT_Routines():
                     master_rock[item]['bulk_oxygen'])
                 ### Backup dictionary - save oxygen data
                 rock_origin[item]['save_oxygen'].append(copy.deepcopy(master_rock[item]['model_oxygen'].oxygen_dic))
+
+
+                # LINK - 5-2) Trace element module
+                master_rock[item]['model_tracers'] = TraceElementDistribution(
+                    master_rock[item]['df_var_dictionary']['df_N'],
+                    master_rock[item]['minimization'].sol_sol_base,
+                    master_rock[item]['df_element_total'],
+                    master_rock[item]['init_trace_element_bulk'],
+                    database=master_rock[item]['database'])
+                # call the distribution of tracers
+                trace_df = master_rock[item]['model_tracers'].distribute_tracers(temperature[tt], pressure=pressures[num], iteration=num)
+                # save the tracer data
+                master_rock[item]['trace_element_data'][(num, pressures[num][tt], temperature[tt])] = trace_df
+                master_rock[item]['trace_element_bulk'][(num, pressures[num][tt], temperature[tt])] = master_rock[item]['init_trace_element_bulk']
+
+                # !!! When fluid is consumed after interaction the d18O of the fluid in equilibirum with the system is defined by the equilibration calculation
+                # fluid volume new < fluid volume extern + fluid volume before
+                # taking the bulk rock elements and add the extracted fluid from layer below
+                if master_rock[rock_react_item]['reactivity'].react is True and num > 0 and tt != 0:
+                    if master_rock[item]['fluid_volume_new'
+                                        ] <= master_rock[item]['fluid_volume_before'
+                                                        ] + master_rock[rock_react_item]['extracted_fluid_data'
+                                                                ].loc['volume[ccm]'].iloc[-1] * fluid_influx_factor:
+                        pass
+
+                    else:
+                        if master_rock[item]['fluid_volume_new'
+                                            ] > master_rock[item]['fluid_volume_before'
+                                                        ] + master_rock[rock_react_item]['extracted_fluid_data'
+                                                                ].loc['volume[ccm]'].iloc[-1] * fluid_influx_factor:
+
+                            # internal oxygen moles and oxygen isotope signature
+                            oxygen_dic = master_rock[item]['model_oxygen'].oxygen_dic
+                            df_o_temp = pd.DataFrame(
+                                    oxygen_dic['delta_O'],
+                                    index=oxygen_dic['Phases']
+                                        )
+                            internal_fluid_d18o = df_o_temp.loc[fluid_name_tag][0]
+                            internal_fluid_oxy = master_rock[item]['df_element_total'][fluid_name_tag].loc['O']
+
+                            # external oxygen moles         = free_fluid_oxygen
+                            # interacted isotope signature  = fluid_end_d18O
+
+                            """oxygen_dic = master_rock[rock_react_item]['save_oxygen'][-1]
+                            df_o_temp = pd.DataFrame(
+                                    oxygen_dic['delta_O'],
+                                    index=oxygen_dic['Phases']
+                                    )
+                            input_fluid_d18o = df_o_temp.loc[fluid_name_tag][0]
+                            input_oxygen = master_rock[rock_react_item]['fluid_oxygen'][-1]*fluid_influx_factor"""
+
+
+                            fluid_mix_d18O = (free_fluid_oxygen*fluid_end_d18O + (internal_fluid_oxy-free_fluid_oxygen)*internal_fluid_d18o) / (free_fluid_oxygen+(internal_fluid_oxy-free_fluid_oxygen))
+                            print(f"Fluid mix update d18O is: {fluid_mix_d18O}")
+
+                            # index number of fluid_name_tag in Phases of oxygen_dic
+                            index = oxygen_dic['Phases'].index(fluid_name_tag)
+
+                            # overwriting the fluid oxygen isotope composition to the one calculated by the mixing
+                            rock_origin[item]['save_oxygen'][-1]['delta_O'][index] = fluid_mix_d18O
+
+
+
                 print("d18O after oxygen isotope module")
                 print(f"Value is {master_rock[item]['bulk_oxygen']}")
+
+
                 # //////////////////////////////////////////////////////////////////////////
                 # 6)
                 # LINK - 6) Mineral Fractionation
@@ -2414,6 +2489,18 @@ class ThorPT_Routines():
                                 # # if name=='GARNET' or name=='SERP' or name=='BR':
                                 new_bulk_oxygen = master_rock[item]['minimization'].mineral_fractionation(
                                     master_rock[item]['save_oxygen'][-1], name)
+
+                                # modify the trace element content
+                                if np.size(trace_df) > 0:
+                                    #last_entry_key = data_storage_keys[-1]
+                                    #last_entry_value = master_rock[item]['data_storage'][last_entry_key]
+
+                                    master_rock[item]['init_trace_element_bulk'] = modify_trace_element_content(
+                                        trace_element_bulk=master_rock[item]['init_trace_element_bulk'],
+                                        trace_element_distirbution=trace_df,
+                                        min_name = phase
+                                    )
+
                                 master_rock[item]['garnet'].append(
                                     master_rock[item]['minimization'].separate)
                                 # Collect the volume of each formed garnet
@@ -2427,6 +2514,7 @@ class ThorPT_Routines():
                                 master_rock[item]['garnet_check'].append(1)
                             if len(master_rock[item]['garnet_check']) < num:
                                 master_rock[item]['garnet_check'].append(0)
+
                 # Do not delete - necessary step -
                 master_rock[item]['df_element_total'] = master_rock[item]['minimization'].df_all_elements
                 # LINK - 7) Metastable garnet
@@ -2473,7 +2561,6 @@ class ThorPT_Routines():
                 master_rock[item]['st_solid'].append(
                     master_rock[item]['solid_volume_new'])
 
-                print("All rocks passed the petrochemical model set-up")
                 # //////////////////////////////////////////////////////////////////////////
                 # LINK - MECHANICAL FAILURE MODEL
                 # 1) Failure and extraction mode selection
@@ -2497,8 +2584,8 @@ class ThorPT_Routines():
 
                     # Start Extraction Master Module
                     master_rock[item]['fluid_calculation'] = Ext_method_master(
-                        pressures[num][tt], temperature,
-                        master_rock[item]['df_var_dictionary']['df_volume/mol'].loc[fluid_name_tag][-1],
+                        pressures[num][tt], temperature[tt],
+                        master_rock[item]['df_var_dictionary']['df_volume/mol'].loc[fluid_name_tag].iloc[-1],
                         fluid_before, master_rock[item]['fluid_volume_new'],
                         master_rock[item]['solid_volume_before'], master_rock[item]['solid_volume_new'],
                         master_rock[item]['save_factor'], master_rock[item]['master_norm'][-1],
@@ -2508,7 +2595,9 @@ class ThorPT_Routines():
                         friction= master_rock[item]['friction'],
                         fluid_pressure_mode= master_rock[item]['fluid_pressure_mode'],
                         fluid_name_tag=fluid_name_tag, subduction_angle=self.angle,
-                        rock_item_tag=item
+                        rock_item_tag=item,
+                        extraction_threshold = master_rock[item]['extraction threshold'],
+                        extraction_connectivity = master_rock[item]['fluid connectivity']
                         )
                     # //////////////////////////////////////////////////////////////////////////
                     # LINK 1) selection of the failure and fluid extraction
@@ -2583,7 +2672,6 @@ class ThorPT_Routines():
                         v_permea = int_permea
                         master_rock[item]['live_fluid-flux'].append(volume_flux)
                         master_rock[item]['live_permeability'].append(int_permea)
-                        print(f"-> Virtual permeability test results: {v_permea}")
 
                         # Latest failure criterion 07.02.2023
                         # LINK i) Mohr-Coulomb failure w. diff. stress input and min. permeabiltiy
@@ -2671,7 +2759,11 @@ class ThorPT_Routines():
                                 master_rock[item]['fluid_hydrogen'].append(master_rock[item]['df_element_total'][fluid_name_tag]['H'].copy())
                                 master_rock[item]['fluid_oxygen'].append(master_rock[item]['df_element_total'][fluid_name_tag]['O'].copy())
                                 # Execute the extraction
-                                master_rock[item]['fluid_extraction'].hydrogen_ext_all()
+                                if failure_mech == 'Mohr-Coulomb-Griffith' and master_rock[item]['fluid_calculation'].frac_respo == 5:
+                                        master_rock[item]['fluid_extraction'].hydrogen_partial_ext(master_rock[item]['extraction threshold'])
+                                else:
+                                    master_rock[item]['fluid_extraction'].hydrogen_ext_all(master_rock[item]['extraction percentage'])
+
                                 # Read the data of the fluid extracted
                                 master_rock[item]['extracted_fluid_data'] = master_rock[item]['fluid_extraction'].ext_data
                                 # Read the element frame when extraction
@@ -2685,6 +2777,17 @@ class ThorPT_Routines():
                                 master_rock[item]['extr_svol'].append(
                                     np.sum(master_rock[item]['df_var_dictionary']['df_volume[ccm]'].iloc[:, -1]))
                                 master_rock[item]['track_refolidv'] = []
+
+                                # fractionate trace elements from the bulk
+                                if np.size(trace_df) > 0:
+                                    #last_entry_key = data_storage_keys[-1]
+                                    #last_entry_value = master_rock[item]['data_storage'][last_entry_key]
+
+                                    master_rock[item]['init_trace_element_bulk'] = modify_trace_element_content(
+                                        trace_element_bulk=master_rock[item]['init_trace_element_bulk'],
+                                        trace_element_distirbution=trace_df,
+                                        min_name = phase
+                                        )
                             else:
                                 print("!!! No release!")
                                 master_rock[item]['reactivity'].react=False
@@ -2703,8 +2806,8 @@ class ThorPT_Routines():
                     # Recalculate bulk rock oxygen value after possible extraction
                     print("Oxygen isotope signature recalculation fluid extraction - before")
                     print(f"Value is {master_rock[item]['bulk_oxygen']}")
-                    if item == 'rock003':
-                        print("break")
+                    """if item == 'rock003':
+                        print("break")"""
                     new_O_bulk = oxygen_isotope_recalculation(
                         master_rock[item]['save_oxygen'],
                         master_rock[item]['df_element_total'])

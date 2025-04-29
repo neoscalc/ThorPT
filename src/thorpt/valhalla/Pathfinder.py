@@ -17,8 +17,9 @@ import json
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from tkinter import Tk, filedialog, messagebox, simpledialog
-from scipy.interpolate import splev, splrep
+from scipy.interpolate import splev, splrep, splprep
 from scipy.interpolate import Rbf, InterpolatedUnivariateSpline
+import numpy as np
 
 
 def getReferenceLength(index):
@@ -332,7 +333,7 @@ class Pathfinder_Theoule:
         """
         return crust2layer_model(self.pressure, self.time, self.speed, self.angle, self.dt)
 
-    def fit_model_to_path(self, c_p_list):
+    def fit_model_to_path(self, c_p_list, loop=False):
         """
         Fit the model to the P-T path.
 
@@ -343,16 +344,24 @@ class Pathfinder_Theoule:
         Returns:
             yinterp (numpy.ndarray): Interpolated temperature values.
         """
-        from scipy.interpolate import splprep, splev
+        # Prepare the data
         data = [
             self.temp[:len(c_p_list[0])], 
             np.array(c_p_list[0]), 
             np.array(c_p_list[2]), 
             np.array(c_p_list[1])
-            ]
-        
+        ]
+
+        if loop is True:
+            # Remove duplicates from the data while keeping all arrays the same length and preserving order
+            _, unique_indices = np.unique(data[0], return_index=True)
+            unique_indices = np.sort(unique_indices)
+            data = [arr[unique_indices] for arr in data]
+        else:
+            pass
+
         # Create a spline representation of the parametric curve
-        tck, u = splprep(data, s=0)
+        tck, _ = splprep(data, s=0, k=3)
 
         # Define new parameter values for evaluation
         new_u = np.linspace(0, 1, 1000)
@@ -362,7 +371,7 @@ class Pathfinder_Theoule:
 
         return new_data 
 
-    def filter_steps(self, yinterp, c_p_list):
+    def filter_steps(self, yinterp, c_p_list, loop=False):
         """
         Filter the steps based on pressure and temperature increments.
 
@@ -383,24 +392,50 @@ class Pathfinder_Theoule:
             self.time = np.ones(len(c_p_list[0]))
         new_t = [self.time[0]]
 
-        
-        for i, val in enumerate(c_p_list[0]):
-            step_p = val - new_y[-1]
-            step_t = yinterp[i] - new_x[-1]
-            if step_p >= self.p_increment:
-                if step_t >= self.t_increment:
-                    new_y.append(val)
-                    new_x.append(yinterp[i])
-                    new_d.append(c_p_list[1][i])
-                    new_t.append(c_p_list[2][i])
-            elif step_t >= self.t_increment:
+        if loop is True:
+            # Initialize the new arrays with the first point
+            P_filtered = [c_p_list[0][0]]
+            T_filtered = [yinterp[0]]
+
+            # Loop through the high-res arrays
+            for i in range(1, len(c_p_list[0])):
+                dP = abs(c_p_list[0][i] - new_y[-1])
+                dT = abs(yinterp[i] - new_x[-1])
+                
+                if i <= np.argmax(c_p_list[0]):
+                    # Add point only if minimum step is exceeded
+                    if (dP >= self.p_increment) and (dT >= self.t_increment):
+                        new_y.append(c_p_list[0][i])
+                        new_x.append(yinterp[i])
+                        new_d.append(c_p_list[1][i])
+                        new_t.append(c_p_list[2][i])
+                else:
+                    if (dP >= 500) or (dT >= 15):
+                        new_y.append(c_p_list[0][i])
+                        new_x.append(yinterp[i])
+                        new_d.append(c_p_list[1][i])
+                        new_t.append(c_p_list[2][i])
+            yinterp = np.array(new_x)
+            c_p_list = np.array(new_y)
+
+        else:
+            for i, val in enumerate(c_p_list[0]):
+                step_p = val - new_y[-1]
+                step_t = yinterp[i] - new_x[-1]
                 if step_p >= self.p_increment:
-                    new_y.append(val)
-                    new_x.append(yinterp[i])
-                    new_d.append(c_p_list[1][i])
-                    new_t.append(c_p_list[2][i])
-        yinterp = np.array(new_x)
-        c_p_list = np.array(new_y)
+                    if step_t >= self.t_increment:
+                        new_y.append(val)
+                        new_x.append(yinterp[i])
+                        new_d.append(c_p_list[1][i])
+                        new_t.append(c_p_list[2][i])
+                elif step_t >= self.t_increment:
+                    if step_p >= self.p_increment:
+                        new_y.append(val)
+                        new_x.append(yinterp[i])
+                        new_d.append(c_p_list[1][i])
+                        new_t.append(c_p_list[2][i])
+            yinterp = np.array(new_x)
+            c_p_list = np.array(new_y)
 
         self.temp = yinterp
         self.pressure = c_p_list
@@ -429,15 +464,39 @@ class Pathfinder_Theoule:
         self.temp = yinterp
         self.pressure = c_p_list
 
+    def _filter_and_update_results(self, c_p_list):
+        self.time = self.time[1:]
+        yinterp = self.temp
+        # c_p_list = self.pressure
+        new_x, new_y, new_d, new_t = self.filter_steps(yinterp, c_p_list)
+        yinterp = np.array(new_x)
+        c_p_list = np.array(new_y)
+        self.time = new_t
+        self.depth = new_d
+        self._select_steps_with_min_temp(yinterp, c_p_list)
+
 
     def loop(self):
         """
         Performs the burial and exhumation process to generate a P-T path.
         """
         depth, crust_d, c_p_list, c_p, d_step = self._initialize_loop_variables()
-        self._perform_burial(depth, crust_d, c_p_list, c_p, d_step)
-        self._perform_exhumation(depth, crust_d, c_p_list, c_p, d_step)
-        self._filter_and_update_results(c_p_list)
+        c_p_list = self.construct_layer_model()
+        self.temp = np.array(self.temp)
+        self.depth_store = c_p_list[2]
+        self.time_store = c_p_list[1]
+        """self._perform_burial(depth, crust_d, c_p_list, c_p, d_step)
+        self._perform_exhumation(depth, crust_d, c_p_list, c_p, d_step)"""
+
+
+        new_data = self.fit_model_to_path(c_p_list, loop=True)
+
+        new_data = self.select_steps(new_data)
+
+        self.filter_steps(self.temp, [self.pressure, self.depth, self.time], loop=True)
+
+        
+        # self._filter_and_update_results(c_p_list)
 
     def _initialize_loop_variables(self):
         depth = 1000  # in meter
@@ -475,17 +534,7 @@ class Pathfinder_Theoule:
             print("Exhumation finished...")
         print('Final depth is: {} m'.format(depth))
 
-    def _filter_and_update_results(self, c_p_list):
-        self.time = self.time[1:]
-        yinterp = self.temp
-        c_p_list = self.pressure
-        new_x, new_y, new_d, new_t = self._filter_steps(yinterp, c_p_list)
-        yinterp = np.array(new_x)
-        c_p_list = np.array(new_y)
-        self.time = new_t
-        self.depth = new_d
-        self._select_steps_with_min_temp(yinterp, c_p_list)
-
+    
     def _select_steps_with_min_temp(self, yinterp, c_p_list):
         frame = pd.DataFrame([yinterp, c_p_list, self.time, self.depth])
         cut_T = self.lower_t_bound

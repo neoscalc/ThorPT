@@ -7334,7 +7334,7 @@ if __name__ == '__main__':
         compPlot.phases_stack_plot_v2(
              rock_tag=key, img_save=True,
                  val_tag='volume', transparent=False, 
-                 fluid_porosity=True, cumulative=False, img_type='pdf'
+                 fluid_porosity=True, cumulative=False, img_type='png'
                            )
     #
         # compPlot.oxygen_isotopes_v2(rock_tag=key, img_save=True, img_type='png')
