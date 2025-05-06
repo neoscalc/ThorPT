@@ -28,6 +28,7 @@ Coesite	coe
 Cordierite	cor
 Dolomite	dol
 Epidote	ep
+Epidote	zo
 Epidote	EP11_ep
 Epidote	EP11_fep
 Garnet	GRT

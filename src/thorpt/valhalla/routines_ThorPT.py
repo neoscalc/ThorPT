@@ -1294,7 +1294,7 @@ class ThorPT_Routines():
             # //////////////////////////////////////////////////////////////////////////
             # preparing bulk rock for calculation
             rocks = list(master_rock.keys())
-            for tt, item in enumerate(rocks):
+            for tt, item in enumerate(tqdm(rocks, desc="Model calculation Gibbs energy min., Oxygen fractionation, Trace Elements:")):
 
                 rock_react_item = list(master_rock.keys())[tt-1]
 
@@ -1626,6 +1626,7 @@ class ThorPT_Routines():
                 # !!! When fluid is consumed after interaction the d18O of the fluid in equilibirum with the system is defined by the equilibration calculation
                 # fluid volume new < fluid volume extern + fluid volume before
                 # taking the bulk rock elements and add the extracted fluid from layer below
+                fluid_name_tag=master_rock[item]['database_fluid_name']
                 if master_rock[rock_react_item]['reactivity'].react is True and num > 0 and tt != 0:
                     if master_rock[item]['fluid_volume_new'
                                         ] <= master_rock[item]['fluid_volume_before'
@@ -2094,7 +2095,7 @@ class ThorPT_Routines():
         k = 0
         kk = len(temperatures[0])*len(master_rock)
         progress(int(k/kk)*100)
-        for num, temperature in enumerate(temperatures):
+        for num, temperature in enumerate(tqdm(temperatures, desc="Processing modelling steps")):
 
             print('\n')
             print("New calculation")
@@ -2105,7 +2106,7 @@ class ThorPT_Routines():
             # //////////////////////////////////////////////////////////////////////////
             # preparing bulk rock for calculation
             rocks = list(master_rock.keys())
-            for tt, item in enumerate(rocks):
+            for tt, item in enumerate(tqdm(rocks, desc="Processing rock")):
 
                 rock_react_item = list(master_rock.keys())[tt-1]
 
@@ -2192,8 +2193,14 @@ class ThorPT_Routines():
                             # ------------------------------------------------------
                             # access the fluid trace element data from the infiltrating fluid - calculate the influx amount multiplied by the geometry factor
                             last_entry_key = list(master_rock[rock_react_item]['trace_element_data'].keys())[-1]
-                            tracer_addition = master_rock[rock_react_item]['trace_element_data'][
-                                last_entry_key].loc[master_rock[rock_react_item]['database_fluid_name']] * fluid_influx_factor
+                            # FIXME - quick debug solution for missing water.fluid for the transfer in trace element dataframe
+                            if master_rock[rock_react_item]['database_fluid_name'] in master_rock[rock_react_item]['trace_element_data'][
+                                last_entry_key].index:
+                                tracer_addition = master_rock[rock_react_item]['trace_element_data'][
+                                    last_entry_key].loc[master_rock[rock_react_item]['database_fluid_name']] * fluid_influx_factor
+                            else:
+                                # empty dataframe to add zeros
+                                tracer_addition = np.zeros(14)                   
                             # update the trace element bulk with the new influx
                             master_rock[item]['init_trace_element_bulk'] = master_rock[item]['init_trace_element_bulk'] + tracer_addition
 
