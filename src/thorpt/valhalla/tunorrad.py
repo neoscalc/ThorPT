@@ -1133,6 +1133,26 @@ def garnet_bulk_from_dataframe(frame, moles, volumePermole, volume):
 
     return new_bulk
 
+def recalculate_FeWtPerc_speciation(total_feo_value, x_fe3):
+    oxide_molar_weight = [60.08, 79.87, 101.96, 71.85, 159.69, 70.94, 40.30, 56.08, 61.98, 94.20] # g/mol
+    cation_molar_weight = [28.08, 47.87, 26.98, 55.85, 55.85, 54.94, 24.30, 40.08, 22.98, 39.09] # g/mol
+    oxide_number_cations = [1, 1, 2, 1, 2, 1, 1, 1, 2, 2]
+    oxide_number_oxygen = [2, 2, 3, 1, 3, 1, 1, 1, 1, 1]
+
+
+    fe_mol = total_feo_value / (oxide_molar_weight[4] * oxide_number_cations[4])
+    # fe_mol = n_fe2 + n_fe3 = (1-0.15)*fe_mol + 0.15 * fe_mol
+
+    n_fe3 = fe_mol * x_fe3
+    n_fe2 = fe_mol * (1-x_fe3)
+
+    wt_FeO = n_fe2 / oxide_number_cations[4] * oxide_molar_weight[4]
+    wt_Fe2O3 = n_fe3 / oxide_number_cations[5] * oxide_molar_weight[5]
+
+    # print("wt Fe2 ", wt_FeO, "\n", "wt Fe3 ", wt_Fe2O3, "\n")
+
+    return wt_FeO, wt_Fe2O3
+
 
 class Therm_dyn_ther_looper:
     """
@@ -1541,6 +1561,118 @@ class Therm_dyn_ther_looper:
             return new_O_bulk
 
 
+
+class ThermodynamicPressureSolver:
+    """
+    Solves the coupled system of equations (5), (6), and (9) to find
+    thermodynamically consistent pressure evolution.
+    """
+    
+    def __init__(self, thermodynamic_data_t0, thermodynamic_data_t1, dt=1.0):
+        """
+        Initialize with thermodynamic data from two Gibbs minimizations.
+        
+        Parameters:
+        -----------
+        thermodynamic_data_t0 : dict
+            Data at t=0 containing: rho_f, rho_s, X_h, T, P
+        thermodynamic_data_t1 : dict  
+            Data at t=1 containing: rho_f, rho_s, X_h, T, P
+        dt : float
+            Time step
+        """
+        self.data_t0 = thermodynamic_data_t0
+        self.data_t1 = thermodynamic_data_t1
+        self.dt = dt
+        
+        # Extract values at t=0
+        self.rho_f_t0 = thermodynamic_data_t0['rho_f']
+        self.rho_s_t0 = thermodynamic_data_t0['rho_s']
+        self.X_h_t0 = thermodynamic_data_t0['X_h']
+        self.T_t0 = thermodynamic_data_t0['T']
+        self.P_t0 = thermodynamic_data_t0['P']
+        
+        # Extract values at t+dt (these are from thermodynamic equilibrium)
+        self.rho_f_t1 = thermodynamic_data_t1['rho_f']
+        self.rho_s_t1 = thermodynamic_data_t1['rho_s']
+        self.X_h_t1 = thermodynamic_data_t1['X_h']
+        self.T_t1 = thermodynamic_data_t1['T']
+        self.P_t1_thermo = thermodynamic_data_t1['P']  # This is from your thermo solver
+        
+        print("=== THERMODYNAMIC PRESSURE SOLVER ===")
+        print(f"Initial state (t=0): P={self.P_t0:.3f}, T={self.T_t0:.1f}, ρf={self.rho_f_t0:.3f}, ρs={self.rho_s_t0:.3f}, Xh={self.X_h_t0:.6f}")
+        print(f"Final state (t+dt): P={self.P_t1_thermo:.3f}, T={self.T_t1:.1f}, ρf={self.rho_f_t1:.3f}, ρs={self.rho_s_t1:.3f}, Xh={self.X_h_t1:.6f}")
+    
+    def calculate_porosity(self, rho_s, X_h, rho_f):
+        """Calculate porosity from equation (3): φf = (ρs×Xh)/[(1-Xh)×ρf]"""
+        return (rho_s * X_h) / ((1 - X_h) * rho_f)
+
+    def solve_simplified_approach(self):
+        """
+        Simplified approach using direct thermodynamic data.
+        
+        Since you have thermodynamic equilibrium data at both time points,
+        you can use the thermodynamic consistency condition.
+        """
+        print(f"\n=== SIMPLIFIED APPROACH ===")
+        
+        # Method 1: Direct thermodynamic result
+        P_direct = self.P_t1_thermo
+        print(f"Method 1 (Direct thermo): P = {P_direct:.6f}")
+        
+        # Method 2: Pressure term evolution
+        pressure_term_t0 = (self.rho_s_t0 * self.X_h_t0) / (1 - self.X_h_t0)
+        pressure_term_t1 = (self.rho_s_t1 * self.X_h_t1) / (1 - self.X_h_t1)
+        pressure_term_ratio = pressure_term_t1 / pressure_term_t0
+        
+        P_evolution = self.P_t0 * pressure_term_ratio
+        print(f"Method 2 (Pressure term): P = {P_evolution:.6f} (ratio = {pressure_term_ratio:.6f})")
+        
+        # Method 3: Density-weighted average
+        density_ratio = self.rho_f_t1 / self.rho_f_t0
+        weight_ratio = self.X_h_t1 / self.X_h_t0
+        
+        combined_ratio = (pressure_term_ratio * density_ratio * weight_ratio)**(1/3)
+        P_combined = self.P_t0 * combined_ratio
+        print(f"Method 3 (Combined): P = {P_combined:.6f} (ratio = {combined_ratio:.6f})")
+        
+        return P_direct, P_evolution, P_combined
+    
+    def validate_solution(self, P_solution):
+        """Validate the solution by checking thermodynamic consistency."""
+        print(f"\n=== SOLUTION VALIDATION ===")
+        
+        # Calculate porosity at both times
+        phi_t0 = self.calculate_porosity(self.rho_s_t0, self.X_h_t0, self.rho_f_t0)
+        phi_t1 = self.calculate_porosity(self.rho_s_t1, self.X_h_t1, self.rho_f_t1)
+        
+        print(f"Porosity evolution: {phi_t0:.6f} → {phi_t1:.6f}")
+        
+        # Check mass conservation
+        mass_term_t0 = self.rho_s_t0 * (1 - self.X_h_t0) * (1 - phi_t0)
+        mass_term_t1 = self.rho_s_t1 * (1 - self.X_h_t1) * (1 - phi_t1)
+        mass_error = abs(mass_term_t1 - mass_term_t0)
+        
+        print(f"Mass conservation: {mass_term_t0:.6f} → {mass_term_t1:.6f}")
+        print(f"Mass conservation error: {mass_error:.6f}")
+        
+        # Check pressure evolution
+        pressure_change = P_solution - self.P_t0
+        relative_change = (P_solution / self.P_t0 - 1) * 100
+        
+        print(f"Pressure evolution: {self.P_t0:.6f} → {P_solution:.6f}")
+        print(f"Pressure change: {pressure_change:.6f} ({relative_change:.2f}%)")
+        
+        return {
+            'porosity_t0': phi_t0,
+            'porosity_t1': phi_t1,
+            'mass_conservation_error': mass_error,
+            'pressure_change': pressure_change,
+            'relative_change': relative_change
+        }
+
+
+
 class Ext_method_master:
     """
     Module to calculate the factor important for the extraction of the water from the system
@@ -1580,7 +1712,10 @@ class Ext_method_master:
             solid_volume_before, solid_volume_new,
             save_factor, master_norm, phase_data,
             tensile_s, differential_stress, friction, subduction_angle,
-            fluid_pressure_mode, fluid_name_tag, extraction_connectivity=0.0, extraction_threshold=False, rock_item_tag=0):
+            reviewer_mode, phase_data_complete, hydrous_data_complete,
+            pressure_before,
+            fluid_pressure_mode, fluid_name_tag, extraction_connectivity=0.0, extraction_threshold=False, rock_item_tag=0
+            ):
         """
         Initialize all the values and data necessary for calculations
 
@@ -1604,6 +1739,7 @@ class Ext_method_master:
         self.unlock_freewater = False
         self.pressure = pressure
         self.temperature = temperature
+        self.pressure_before = pressure_before
         self.moles_vol_fluid = moles_vol_fluid
         # assumption and connected to main code - should be sent by input
         self.tensile_strength = tensile_s
@@ -1618,6 +1754,10 @@ class Ext_method_master:
         self.fluid_pressure_mode = fluid_pressure_mode
         self.extraction_threshold = extraction_threshold
         self.extraction_connectivity = extraction_connectivity
+        self.reviewer_mode = reviewer_mode
+        self.phase_data_complete = phase_data_complete
+        self.hydrous_data_complete = hydrous_data_complete
+        self.pressure_results = []
 
     def couloumb_method(self, t_ref_solid, tensile=20):
         """
@@ -2091,10 +2231,22 @@ class Ext_method_master:
             p2_p1_cork_real = 0
         else:
             comp_term = c * np.sqrt(litho-0.2) + d*(litho-0.2)
+            # Assuming constant number of moles: n = V0 / Vm1 = V1 / Vm2
+            # Solving for Vm2 (V2 here), based on current fluid volume
             # litho - 0.2 is the compensation term and 0.2 is pressure in bar as the value when MRK is deviating at high pressures
             V2 = 1/(self.fluid_t1/(vol_t0-self.solid_t1)) * (Vm1) # - comp_term
+            
+            # check the mass conservation
+            moles_0 = self.fluid_t1 / Vm1
+            moles_1 = (vol_t0-self.solid_t1) / V2
+            # assert when mass is not conserved
+            # NOTE - this is not working for the case when fluid_t1 = 0
+            assert np.isclose(moles_0, moles_1, rtol=1e-4), "Mass not conserved!"
+            # statement when conserved
+            print(f"Mass conserved: {np.isclose(moles_0, moles_1, rtol=1e-4)}")
 
-            p2_p1_cork_real = ( (R * T) / (V2 +  - b) - (a) / (V2 * (V2 + b) * np.sqrt(T)) ) / \
+            # Calculate the real fluid factor with CORK EOS
+            p2_p1_cork_real = ( (R * T) / (V2 - b) - (a) / (V2 * (V2 + b) * np.sqrt(T)) ) / \
                 ( (R * T) / (Vm1 - b) - (a) / (Vm1 * (Vm1 + b) * np.sqrt(T)) )
 
 
@@ -2110,7 +2262,236 @@ class Ext_method_master:
             # hydro = litho * self.fluid_t1/(vol_t0-self.solid_t1) * (0.0651 * self.fluid_t1/(vol_t0-self.solid_t1) + 0.936)
             hydro_CORK = litho * p2_p1_cork_real
 
+            if self.reviewer_mode:
+                # read weight fraction of fluid from phase data
+
+                from scipy.optimize import root_scalar
+
+                # From thermodynamic output
+
+                # Calculate fluid and solid weights and densities for current step (t=1)
+                fluid_weight_bound = self.hydrous_data_complete['df_H2O[g]'].iloc[:, -1].sum() / 1000 - self.hydrous_data_complete['df_H2O[g]'].loc[self.fluid_name_tag].iloc[-1] / 1000
+                weight_total = self.phase_data.loc['wt[g]'].sum() / 1000
+                if self.fluid_name_tag in self.phase_data.columns:
+                    fluid_weight = self.phase_data[self.fluid_name_tag]['wt[g]'] / 1000
+                    # Fluid density calculation
+                    rho_f_1 = self.phase_data[self.fluid_name_tag]['density[g/ccm]'] * 1000  # g/ccm to kg/m^3
+                    fluid_volume = self.phase_data[self.fluid_name_tag]['volume[ccm]'] / 1_000_000  # ccm to m^3
+                else:
+                    fluid_weight = 0.0
+                    rho_f_1 = 0.0
+                    fluid_volume = 0.0
+                solid_weight = weight_total - fluid_weight
+
+                # Volume calculations (convert ccm to m^3)
+                solid_volume_total = self.phase_data.loc['volume[ccm]'].sum() / 1_000_000  # ccm to m^3
+                solid_volume = solid_volume_total - fluid_volume
+
+                # Solid density calculation
+                rho_s_1 = solid_weight / solid_volume  # kg/m^3
+
+                # Previous calculation step (t=0)
+                fluid_weight_bound_before = self.hydrous_data_complete['df_H2O[g]'].iloc[:, -2].sum() / 1000 - self.hydrous_data_complete['df_H2O[g]'].loc[self.fluid_name_tag].iloc[-2] / 1000
+                weight_total_before = self.phase_data_complete["df_wt[g]"].iloc[:, -2].sum() / 1000
+                fluid_weight_before = self.phase_data_complete["df_wt[g]"].loc[self.fluid_name_tag].iloc[-2] / 1000
+                solid_weight_before = weight_total_before - fluid_weight_before
+                rho_f_0 = self.phase_data_complete["df_density[g/ccm]"].loc[self.fluid_name_tag].iloc[-2] * 1000  # g/ccm to kg/m^3
+
+                # Volume calculations for previous step
+                solid_volume_total_before = self.phase_data_complete["df_volume[ccm]"].iloc[:, -2].sum() / 1_000_000
+                fluid_volume_before = self.phase_data_complete["df_volume[ccm]"].loc[self.fluid_name_tag].iloc[-2] / 1_000_000
+                solid_volume_before = solid_volume_total_before - fluid_volume_before
+                rho_s_0 = solid_weight_before / solid_volume_before
+
+                # VOLUME CONSERVATION CONSTRAINT
+                # If total volume remains constant, fluid must expand to fill space left by solid shrinkage
+                V_total_const = solid_volume_total_before  # Constant total volume constraint
+
+                # From thermodynamic output
+                Xh_0 = fluid_weight_bound_before / solid_weight_before
+                Xh_1 = fluid_weight_bound / solid_weight
+                rho_bulk_0 = weight_total_before / solid_volume_total_before
+
+                # print(f"=== VOLUME ANALYSIS ===")
+                # print(f"Total volume before: {solid_volume_total_before:.9f} m³")
+                # print(f"Total volume current: {solid_volume_total:.9f} m³")
+                # print(f"Volume change: {(solid_volume_total - solid_volume_total_before):.9f} m³")
+                # print(f"Solid volume before: {solid_volume_before:.9f} m³")
+                # print(f"Solid volume current: {solid_volume:.9f} m³")
+                # print(f"Solid volume change: {(solid_volume - solid_volume_before):.9f} m³")
+                # print(f"Fluid volume before: {fluid_volume_before:.9f} m³")
+                # print(f"Fluid volume current: {fluid_volume:.9f} m³")
+                # print(f"Fluid volume change: {(fluid_volume - fluid_volume_before):.9f} m³")
+
+                # Known pressures (Pa)
+                Pf_0 = self.pressure_before * 1e5          # Bar → Pa
+                Pf_1 = litho * 1e6         # litho is in MPa → convert to Pa
+
+                # Linear interpolation function
+                def interp(val_0, val_1, Pf_trial):
+                    return val_0 + (val_1 - val_0) * (Pf_trial - Pf_0) / (Pf_1 - Pf_0)
+
+                # Thermo property functions that vary with trial pressure
+                rho_f_func = lambda Pf: interp(rho_f_0, rho_f_1, Pf)
+                rho_s_func = lambda Pf: interp(rho_s_0, rho_s_1, Pf)
+                Xh_func    = lambda Pf: interp(Xh_0, Xh_1, Pf)
+
+                # Volume-conserving residual function
+                def residual_volume_conserving(Pf_trial):
+                    rho_f = rho_f_func(Pf_trial)
+                    rho_s = rho_s_func(Pf_trial)
+                    Xh = Xh_func(Pf_trial)
+
+                    # Calculate solid volume at trial pressure (interpolated)
+                    V_s_0 = solid_volume_before
+                    V_s_1 = solid_volume
+                    V_s_trial = interp(V_s_0, V_s_1, Pf_trial)
+
+                    # Volume conservation: V_total = V_solid + V_fluid = constant
+                    V_f_required = V_total_const - V_s_trial
+
+                    # Calculate fluid mass at trial conditions
+                    m_f_0 = fluid_weight_before
+                    m_f_1 = fluid_weight
+                    m_f_trial = interp(m_f_0, m_f_1, Pf_trial)
+
+                    # Required fluid density to fit in available volume
+                    rho_f_required = m_f_trial / V_f_required
+
+                    # Residual: difference between thermodynamic density and required density
+                    residual = rho_f - rho_f_required
+
+                    # print(f"Pf = {Pf_trial/1e6:.1f} MPa → V_s = {V_s_trial:.9f} m³, V_f_req = {V_f_required:.9f} m³")
+                    # print(f"    rho_f_thermo = {rho_f:.2f} kg/m³, rho_f_required = {rho_f_required:.2f} kg/m³, residual = {residual:.2f}")
+
+                    return residual
+
+                # Alternative: Bulk density conservation with volume constraint
+                def residual_bulk_density_volume_conserving(Pf_trial):
+                    rho_f = rho_f_func(Pf_trial)
+                    rho_s = rho_s_func(Pf_trial)
+                    Xh = Xh_func(Pf_trial)
+
+                    # Calculate solid volume at trial pressure
+                    V_s_0 = solid_volume_before
+                    V_s_1 = solid_volume
+                    V_s_trial = interp(V_s_0, V_s_1, Pf_trial)
+
+                    # Volume conservation constraint
+                    V_f_trial = V_total_const - V_s_trial
+
+                    # Calculate masses at trial conditions
+                    m_f_0 = fluid_weight_before
+                    m_f_1 = fluid_weight
+                    m_f_trial = interp(m_f_0, m_f_1, Pf_trial)
+
+                    m_s_0 = solid_weight_before
+                    m_s_1 = solid_weight
+                    m_s_trial = interp(m_s_0, m_s_1, Pf_trial)
+
+                    # Calculate bulk density with volume constraint
+                    rho_bulk_trial = (m_f_trial + m_s_trial) / V_total_const
+
+                    # Residual: bulk density should remain constant
+                    residual = rho_bulk_trial - rho_bulk_0
+
+                    print(f"Pf = {Pf_trial/1e6:.1f} MPa → V_s = {V_s_trial:.9f}, V_f = {V_f_trial:.9f} m³")
+                    print(f"    m_f = {m_f_trial:.4f}, m_s = {m_s_trial:.4f} kg, rho_bulk = {rho_bulk_trial:.2f} kg/m³, residual = {residual:.2f}")
+
+                    return residual
+
+
+                # Root-finding wrapper
+                def solve_pressure_volume_conserving(Pf_range=(1000e6, 5000e6)):
+                    a, b = Pf_range
+                    res_a = residual_func(a)
+                    res_b = residual_func(b)
+                    # print(f"Residual at {a/1e6:.1f} MPa: {res_a:.4f}")
+                    # print(f"Residual at {b/1e6:.1f} MPa: {res_b:.4f}")
+                    if res_a * res_b > 0:
+                        raise ValueError("Residuals at both ends have the same sign — adjust the bracket!")
+                    
+                    result = root_scalar(residual_func, bracket=Pf_range, method='brentq', xtol=1e-5)
+                    if result.converged:
+                        return result.root
+                    else:
+                        raise RuntimeError("Root-finding did not converge.")
+
+                # Fixed bracket finding function
+                def find_valid_bracket(start=10e6, stop=50000e6, step=1000e6):
+                    Pf_values = np.arange(start, stop + step, step)
+                    prev_Pf = Pf_values[0]
+                    prev_res = residual_func(prev_Pf)
+                    
+                    for Pf in Pf_values[1:]:
+                        curr_res = residual_func(Pf)
+                        if prev_res * curr_res < 0:
+                            print(f"Valid bracket found: {prev_Pf/1e6:.0f} to {Pf/1e6:.0f} MPa")
+                            return prev_Pf, Pf
+                        prev_Pf, prev_res = Pf, curr_res
+                    
+                    raise ValueError("No valid pressure bracket found — residual doesn't cross zero.")
+                
+                # Choose which residual function to use
+                # Option 1: Volume-conserving fluid density constraint
+                # residual_func = residual_volume_conserving
+
+                # Option 2: Bulk density conservation with volume constraint
+                residual_func = residual_bulk_density_volume_conserving
+
+                # Solve and print
+                if fluid_volume > 0.0:
+                    print(f"\n=== SOLVING FOR VOLUME-CONSERVING PRESSURE ===")
+                    try:
+                        Pf_range = find_valid_bracket(start=10e6, stop=50000e6, step=1000e6)
+                        Pf_corrected = solve_pressure_volume_conserving(Pf_range=Pf_range)
+                        print(f"\nCorrected fluid pressure: {Pf_corrected / 1e6:.2f} MPa")
+                        
+                        # Verify the solution
+                        print(f"\n=== SOLUTION VERIFICATION ===")
+                        final_residual = residual_func(Pf_corrected)
+                        print(f"Final residual: {final_residual:.6f}")
+                        
+                    except ValueError as e:
+                        print(f"Error: {e}")
+                        print("Trying alternative approach with bulk density conservation...")
+                        
+                        # Switch to alternative residual function
+                        residual_func = residual_bulk_density_volume_conserving
+                        try:
+                            Pf_range = find_valid_bracket(start=10e6, stop=50000e6, step=1000e6)
+                            Pf_corrected = solve_pressure_volume_conserving(Pf_range=Pf_range)
+                            print(f"\nCorrected fluid pressure: {Pf_corrected / 1e6:.2f} MPa")
+                        except ValueError as e2:
+                            print(f"Both approaches failed: {e2}")
+                            print("Consider checking physical constraints or expanding pressure range.")
+                            Pf_corrected = np.nan # Set to NaN if no solution found
+                else:
+                    print("Fluid volume is zero, cannot solve for pressure.")
+                    Pf_corrected = np.nan
+
+
+                hydro = Pf_corrected / 1e6  # Convert Pa to MPa
+            else:
+                hydro = hydro_CORK
             hydro = hydro_CORK
+
+            print(f"{'Pressure type':<20} | {'Value (MPa)':>15}")
+            print("-" * 38)
+            print(f"{'Hydrostatic':<20} | {litho:15.3f}")
+            print(f"{'CORK':<20} | {hydro_CORK:15.3f}")
+            print(f"{'Reviewer':<20} | {Pf_corrected / 1e6:15.3f}")
+
+            # Check total mass conservation
+            m_total_before = fluid_weight_before + solid_weight_before
+            m_total_after = fluid_weight + solid_weight
+            mass_balance_error = abs(m_total_after - m_total_before) / m_total_before
+
+            print(f"Mass balance error: {mass_balance_error:.2e} ({mass_balance_error*100:.4f}%)")
+            if mass_balance_error > 1e-6:
+                print("⚠️  WARNING: Mass balance violation detected!")
+            else:
+                print("✅ Mass conservation verified")
 
             sig3 = litho - self.diff_stress/2
             sig1 = litho + self.diff_stress/2
@@ -2239,7 +2620,7 @@ class Ext_method_master:
             elif (vol_t0-self.solid_t1)/vol_t0 >= thresh_value:
                 pass
             else:
-                hydro = np.nan
+                pass
 
         self.failure_dictionary = {
             "sigma 1":copy.deepcopy(sig1),
@@ -2265,7 +2646,8 @@ class Ext_method_master:
             "center": copy.deepcopy(center),
             "effective position": copy.deepcopy(pos),
             "critical fluid pressure normal": copy.deepcopy(crit_fluid_pressure),
-            "critical fluid pressure griffith": copy.deepcopy(pf_crit_griffith)
+            "critical fluid pressure griffith": copy.deepcopy(pf_crit_griffith),
+            "pressure_reviewer": copy.deepcopy(Pf_corrected / 1e6 if self.reviewer_mode else np.nan)
             }
 
         if self.frac_respo > 0:
@@ -3157,3 +3539,8 @@ class Metastable_phase_recalculator():
 
             self.recalc_volume += v
             self.recalc_weight += g
+
+
+
+
+

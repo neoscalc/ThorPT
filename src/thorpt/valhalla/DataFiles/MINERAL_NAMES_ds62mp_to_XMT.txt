@@ -8,6 +8,7 @@ Amphibole	fanth
 Amphibole	grun
 Amphibole	rieb
 Amphibole	ts
+Amphibole   Camp
 Andalusite	and
 Anorthite	PlHP_an
 Aragonite	arag

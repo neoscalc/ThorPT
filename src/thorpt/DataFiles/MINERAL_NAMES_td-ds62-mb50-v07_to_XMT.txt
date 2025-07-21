@@ -3,6 +3,7 @@ Albite	PlHP_abh
 Amphibole	Camp
 Amphibole	CAMP_prgm
 Amphibole	CAMP_tr
+Amphibole	CAMP_glm
 Andalusite	and
 Anorthite	PlHP_an
 Aragonite	arag
@@ -17,9 +18,9 @@ Coesite	coe
 Cordierite	CRND
 Dolomite	dol
 Epidote	EPI_ep
+Epidote	ep
 Garnet	GRT
 Garnet	Spss
-Glaucophane	CAMP_glm
 Hematite	hem
 Ilmenite	ilm
 Kfeldspar	fspr
@@ -50,4 +51,5 @@ Tremolite	Camp_tr
 Titanite	sph
 Zircon	zrc
 Zoisite	EPI_zo
+Zoisite	zo
 Zoisite	EPI_cz

@@ -10,6 +10,7 @@ Amphibole	fanth
 Amphibole	grun
 Amphibole	rieb
 Amphibole	ts
+Glaucophane	Camp_glm
 Andalusite	and
 Anorthite	PlHP_an
 Aragonite	arag
@@ -32,7 +33,7 @@ Epidote	EP11_ep
 Epidote	EP11_fep
 Garnet	GRT
 Garnet	Spss
-Glaucophane	Camp_glm
+Garnet	spss
 Hematite	hem
 Ilmenite	ilm
 Kfeldspar	fspr

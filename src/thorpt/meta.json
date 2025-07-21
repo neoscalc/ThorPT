@@ -1,6 +1,6 @@
 {
-    "Burial angle [Degree]": 20.0,
-    "Convergence rate [cm/year]": 0.02,
+    "Burial angle [Degree]": 45.0,
+    "Convergence rate [cm/year]": 0.03,
     "Pressure unit": "Bar",
     "Temperature unit": "Degree C",
     "Time step [years]": 1000

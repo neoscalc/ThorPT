@@ -410,7 +410,7 @@ class Pathfinder_Theoule:
                         new_d.append(c_p_list[1][i])
                         new_t.append(c_p_list[2][i])
                 else:
-                    if (dP >= 500) or (dT >= 15):
+                    if (dP >= 500) and (dT >= 15):
                         new_y.append(c_p_list[0][i])
                         new_x.append(yinterp[i])
                         new_d.append(c_p_list[1][i])

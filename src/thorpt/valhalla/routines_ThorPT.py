@@ -421,7 +421,7 @@ class ThorPT_Routines():
     def __init__(self,
             temperatures, pressures, master_rock, rock_origin,
             track_time, track_depth, garnet_fractionation, path_methods,
-            lowest_permeability, speed, angle, time_step, theriak, debugging_recorder
+            lowest_permeability, speed, angle, time_step, theriak, reviewer_mode
             ):
         """
         Initialize the ThorPT class.
@@ -456,10 +456,10 @@ class ThorPT_Routines():
         self.angle = angle
         self.time_step = time_step
         self.theriak = theriak
-        self.debugging_recorder = debugging_recorder
 
         # trace element bulk by default
         self.trace_element_bulk = read_trace_element_content()
+        self.reviewer_mode = reviewer_mode
 
     def unreactive_multi_rock(self):
         """
@@ -923,7 +923,10 @@ class ThorPT_Routines():
                                         fluid_pressure_mode= master_rock[item]['fluid_pressure_mode'],
                                         fluid_name_tag=fluid_name_tag ,subduction_angle=self.angle,
                                         extraction_threshold = master_rock[item]['extraction threshold'],
-                                        extraction_connectivity = master_rock[item]['fluid connectivity']
+                                        extraction_connectivity = master_rock[item]['fluid connectivity'],
+                                        reviewer_mode=self.reviewer_mode, phase_data_complete = master_rock[item]['df_var_dictionary'], 
+                                        hydrous_data_complete = master_rock[item]['df_h2o_content_dic'],
+                                        pressure_before=pressures[num-1] if num > 0 else pressures[num],
                                         )
                     # //////////////////////////////////////////////////////////////////////////
                     # ////// Calculation for new whole rock /////////
@@ -1039,6 +1042,9 @@ class ThorPT_Routines():
                                         )
                                 elif failure_mech == 'Mohr-Coulomb-Griffith':
                                     print("\t===== Mohr-Coulomb-Griffith method active =====")
+                                    # print P,T conditions and previous P,T conditions
+                                    print(f"Mohr-Coulomb-Griffith method active at P = {pressures[num]} and T = {temperature}")
+                                    print(f"Previous P = {pressures[num-1]} and T = {temperatures[num-1]}")
                                     #test if differntial stress is in master_rock[item] keys
                                     if 'diff. stress' in master_rock[item].keys():
                                         master_rock[item]['fluid_calculation'].mohr_cloulomb_griffith()
@@ -1177,8 +1183,12 @@ class ThorPT_Routines():
                             differential_stress= master_rock[item]['diff. stress'],
                             friction= master_rock[item]['friction'],
                             fluid_pressure_mode= master_rock[item]['fluid_pressure_mode'],
-                            fluid_name_tag=fluid_name_tag, subduction_angle=self.angle
+                            fluid_name_tag=fluid_name_tag, subduction_angle=self.angle,
+                            reviewer_mode=self.reviewer_mode, phase_data_complete = master_rock[item]['df_var_dictionary'], 
+                            hydrous_data_complete = master_rock[item]['df_h2o_content_dic'],
+                            pressure_before=pressures[num-1] if num > 0 else pressures[num],
                             )
+
 
                         if master_rock[item]['Extraction scheme'] == 'Mohr-Coulomb-Griffith':
                             print("\t===== Mohr-Coulomb-Griffith method active =====")
@@ -2062,10 +2072,7 @@ class ThorPT_Routines():
         Returns:
             None
         """
-        # save the list self.debugging_recorder to txt file
-        with open('debugging_recorder.txt', 'w') as f:
-            for item in self.debugging_recorder:
-                f.write("%s\n" % item)
+        
 
 
         # Main variables petrology

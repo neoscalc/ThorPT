@@ -13,7 +13,7 @@
 !
 ! The RGB triplet is defined using  values between 0 and 255. 
 !
-!
+! 
 
 >
 Albite	244	228	150

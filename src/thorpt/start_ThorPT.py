@@ -201,12 +201,20 @@ def run_main_routine():
         with open(file_to_open, 'w') as file:
             file.write(redo_init)
 
-        answer = int(init_data['path_arguments'][-1])
+        answer = int(init_data['path_arguments'][-2])
         init_data['path_arguments'] = init_data['path_arguments'][:-1]
         # answer = 2
 
+        # testing if reviwer mode is activated
+        if len(redo_arguments.split(',')) > 6 and redo_arguments.split(',')[-1 == 'on']:
+            init_data['reviewer_mode'] = 1
+        else:
+            init_data['reviewer_mode'] = 0
+
         debugging_recorder.append("First init file block succesfully read.\n")
 
+        # Splitting the init file into rock blocks
+        # Each rock block is separated by a line with '***'
         breaks = []
         for i, entry in enumerate(init):
             if entry == '***':
@@ -218,6 +226,7 @@ def run_main_routine():
             rocktag = "rock" + f"{i:03}"
             rock_dic[rocktag] = init[item+1:breaks[i+1]]
 
+        # Creating initialising data, setting up the dictionary for the rocks
         database = []
         bulk = []
         oxygen = []
@@ -234,27 +243,7 @@ def run_main_routine():
         init_data['extraction_percentage'] = []
         init_data['connectivity_fraction'] = []
 
-        # Dictionary to map keys to their corresponding lists in init_data
-        key_map = {
-            'Database': 'database',
-            'Bulk': 'bulk',
-            'OxygenVal': 'oxygen',
-            'Tensile strength': 'Tensile strength',
-            'Geometry': 'geometry',
-            'Friction': 'friction',
-            'ShearStress': 'shear',
-            'Diffential stress': 'diffstress',
-            'Extraction scheme': 'Extraction scheme',
-            'Minimum Permeability': 'Min Permeability',
-            'Fluid phase name': 'fluid_name_tag',
-            'Fluid pressure': 'fluid_pressure',
-            'Fluid Volume Threshold[Vol%]': 'fluid_volume',
-            'Extraction percentage[%]:': 'extraction_percentage',
-            'Fluid Connectivity[Vol%]': 'connectivity_fraction'
-            }
-
-
-
+        
         # TODO add name from init file?
         for rock in rock_dic.keys():
             rock_init = rock_dic[rock]
@@ -610,7 +599,8 @@ def run_main_routine():
             
             ThorPT = routines_ThorPT.ThorPT_Routines(temperatures, pressures, master_rock, rock_origin,
                 track_time, track_depth, grt_frac, path_method,
-                lowest_permeability, conv_speed, angle, time_step, init_data['theriak'], debugging_recorder)
+                lowest_permeability, conv_speed, angle, time_step, init_data['theriak'],
+                init_data['reviewer_mode'])
             ThorPT.unreactive_multi_rock()
 
         elif answer == 2:
@@ -618,7 +608,8 @@ def run_main_routine():
             # routine 2 simulates every rock but allows fluid transport - the P-T path is the same for all rocks
             ThorPT = routines_ThorPT.ThorPT_Routines(temperatures, pressures, master_rock, rock_origin,
                 track_time, track_depth, grt_frac, path_method,
-                lowest_permeability, conv_speed, angle, time_step, init_data['theriak'], debugging_recorder)
+                lowest_permeability, conv_speed, angle, time_step, init_data['theriak'],
+                init_data['reviewer_mode'])
             ThorPT.transmitting_multi_rock()
 
         elif answer == 3:
@@ -634,7 +625,8 @@ def run_main_routine():
 
             ThorPT = routines_ThorPT.ThorPT_Routines(temperature_matrix, pressure_matrix, master_rock, rock_origin,
                 track_time, track_depth, grt_frac, path_method,
-                lowest_permeability, conv_speed, angle, time_step, init_data['theriak'], debugging_recorder)
+                lowest_permeability, conv_speed, angle, time_step, init_data['theriak'],
+                init_data['reviewer_mode'])
             ThorPT.transmitting_multi_rock_altPT()
 
         else:
