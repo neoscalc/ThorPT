@@ -2312,17 +2312,6 @@ class Ext_method_master:
                 Xh_1 = fluid_weight_bound / solid_weight
                 rho_bulk_0 = weight_total_before / solid_volume_total_before
 
-                # print(f"=== VOLUME ANALYSIS ===")
-                # print(f"Total volume before: {solid_volume_total_before:.9f} m³")
-                # print(f"Total volume current: {solid_volume_total:.9f} m³")
-                # print(f"Volume change: {(solid_volume_total - solid_volume_total_before):.9f} m³")
-                # print(f"Solid volume before: {solid_volume_before:.9f} m³")
-                # print(f"Solid volume current: {solid_volume:.9f} m³")
-                # print(f"Solid volume change: {(solid_volume - solid_volume_before):.9f} m³")
-                # print(f"Fluid volume before: {fluid_volume_before:.9f} m³")
-                # print(f"Fluid volume current: {fluid_volume:.9f} m³")
-                # print(f"Fluid volume change: {(fluid_volume - fluid_volume_before):.9f} m³")
-
                 # Known pressures (Pa)
                 Pf_0 = self.pressure_before * 1e5          # Bar → Pa
                 Pf_1 = litho * 1e6         # litho is in MPa → convert to Pa
@@ -2395,8 +2384,8 @@ class Ext_method_master:
                     # Residual: bulk density should remain constant
                     residual = rho_bulk_trial - rho_bulk_0
 
-                    print(f"Pf = {Pf_trial/1e6:.1f} MPa → V_s = {V_s_trial:.9f}, V_f = {V_f_trial:.9f} m³")
-                    print(f"    m_f = {m_f_trial:.4f}, m_s = {m_s_trial:.4f} kg, rho_bulk = {rho_bulk_trial:.2f} kg/m³, residual = {residual:.2f}")
+                    # print(f"Pf = {Pf_trial/1e6:.1f} MPa → V_s = {V_s_trial:.9f}, V_f = {V_f_trial:.9f} m³")
+                    # print(f"    m_f = {m_f_trial:.4f}, m_s = {m_s_trial:.4f} kg, rho_bulk = {rho_bulk_trial:.2f} kg/m³, residual = {residual:.2f}")
 
                     return residual
 
@@ -2410,52 +2399,111 @@ class Ext_method_master:
                     # print(f"Residual at {b/1e6:.1f} MPa: {res_b:.4f}")
                     if res_a * res_b > 0:
                         raise ValueError("Residuals at both ends have the same sign — adjust the bracket!")
-                    
+
                     result = root_scalar(residual_func, bracket=Pf_range, method='brentq', xtol=1e-5)
                     if result.converged:
                         return result.root
                     else:
                         raise RuntimeError("Root-finding did not converge.")
 
+                def molar_volume_cork(P_kbar, T_C, a_params, b):
+                    """
+                    Solve CORK EOS for molar volume (Vm) at given pressure (kbar) and temperature (°C).
+                    Returns Vm in cm³/mol.
+                    """
+                    import numpy as np
+                    from scipy.optimize import root_scalar
+
+                    R = 83.14472  # cm³·bar/mol·K
+                    T_K = T_C + 273.15
+                    a, a1, a2, a3 = a_params
+
+                    def cork_residual(Vm):
+                        # CORK EOS residual: f(Vm) = LHS - RHS = 0
+                        lhs = (R * T_K) / (Vm - b) - (a + a1 * T_K + a2 * T_K**2 + a3 * T_K**3) / \
+                            (Vm * (Vm + b) * np.sqrt(T_K))
+                        rhs = P_kbar * 1000  # Convert kbar → bar
+                        return lhs - rhs
+
+                    # Solve: Vm typically between 10 and 100 cm³/mol
+                    sol = root_scalar(cork_residual, bracket=[10.0, 100.0], method='brentq')
+                    if sol.converged:
+                        return sol.root
+                    else:
+                        raise RuntimeError("CORK EOS did not converge for molar volume.")
+
+                def residual_volume_conserving_cork(Pf_trial):
+                    # Constants and CORK parameters  # in °C
+                    a_params = (113.4, -0.22291, -3.8022e-4, 1.7791e-4)  # Holland & Powell (1991)
+                    b = 1.465  # L/mol
+                    M_H2O = 18.01528 / 1000  # kg/mol
+
+                    # Convert Pf to kbar for CORK EOS
+                    Pf_kbar = Pf_trial / 1e8  # Pa → kbar
+
+                    try:
+                        Vm_cm3mol = molar_volume_cork(Pf_kbar, T, a_params, b)  # cm³/mol
+                        Vm_m3mol = Vm_cm3mol * 1e-6  # → m³/mol
+                        rho_f_cork = M_H2O / Vm_m3mol  # kg/m³
+                    except RuntimeError:
+                        return np.nan
+
+                    # Interpolate solid volume at trial pressure
+                    V_s_trial = interp(solid_volume_before, solid_volume, Pf_trial)
+                    V_f_trial = V_total_const - V_s_trial
+                    if V_f_trial <= 0:
+                        return np.nan
+
+                    # Interpolate fluid mass
+                    m_f_trial = interp(fluid_weight_before, fluid_weight, Pf_trial)
+
+                    # Required fluid density to match volume constraint
+                    rho_f_required = m_f_trial / V_f_trial
+
+                    # Residual = (EOS-predicted density) - (required density for conservation)
+                    residual = rho_f_cork - rho_f_required
+                    return residual
+
                 # Fixed bracket finding function
                 def find_valid_bracket(start=10e6, stop=50000e6, step=1000e6):
                     Pf_values = np.arange(start, stop + step, step)
                     prev_Pf = Pf_values[0]
                     prev_res = residual_func(prev_Pf)
-                    
+
                     for Pf in Pf_values[1:]:
                         curr_res = residual_func(Pf)
                         if prev_res * curr_res < 0:
                             print(f"Valid bracket found: {prev_Pf/1e6:.0f} to {Pf/1e6:.0f} MPa")
                             return prev_Pf, Pf
                         prev_Pf, prev_res = Pf, curr_res
-                    
+
                     raise ValueError("No valid pressure bracket found — residual doesn't cross zero.")
-                
+
                 # Choose which residual function to use
                 # Option 1: Volume-conserving fluid density constraint
-                # residual_func = residual_volume_conserving
+                residual_func = residual_volume_conserving
 
                 # Option 2: Bulk density conservation with volume constraint
-                residual_func = residual_bulk_density_volume_conserving
+                # residual_func = residual_bulk_density_volume_conserving
 
-                # Solve and print
+                
+
+                # Solve and print for volume-conserving pressure Reviewer version
                 if fluid_volume > 0.0:
                     print(f"\n=== SOLVING FOR VOLUME-CONSERVING PRESSURE ===")
                     try:
                         Pf_range = find_valid_bracket(start=10e6, stop=50000e6, step=1000e6)
                         Pf_corrected = solve_pressure_volume_conserving(Pf_range=Pf_range)
                         print(f"\nCorrected fluid pressure: {Pf_corrected / 1e6:.2f} MPa")
-                        
                         # Verify the solution
                         print(f"\n=== SOLUTION VERIFICATION ===")
                         final_residual = residual_func(Pf_corrected)
                         print(f"Final residual: {final_residual:.6f}")
-                        
+
                     except ValueError as e:
                         print(f"Error: {e}")
                         print("Trying alternative approach with bulk density conservation...")
-                        
+
                         # Switch to alternative residual function
                         residual_func = residual_bulk_density_volume_conserving
                         try:
@@ -2471,6 +2519,45 @@ class Ext_method_master:
                     Pf_corrected = np.nan
 
 
+
+
+
+
+
+                residual_func = residual_volume_conserving_cork
+                #cork version
+                # Solve and print for volume-conserving pressure Reviewer+CORK version
+                if fluid_volume > 0.0:
+                    print(f"\n=== SOLVING FOR VOLUME-CONSERVING PRESSURE ===")
+                    try:
+                        Pf_range = find_valid_bracket(start=10e6, stop=50000e7, step=1000e6)
+                        Pf_corrected_cork = solve_pressure_volume_conserving(Pf_range=Pf_range)
+                        print(f"\nCorrected fluid pressure: {Pf_corrected / 1e6:.2f} MPa")
+                        # Verify the solution
+                        print(f"\n=== SOLUTION VERIFICATION ===")
+                        final_residual = residual_func(Pf_corrected_cork)
+                        print(f"Final residual: {final_residual:.6f}")
+
+                    except ValueError as e:
+                        print(f"Error: {e}")
+                        print("Trying alternative approach with bulk density conservation...")
+
+                        # Switch to alternative residual function
+                        residual_func = residual_bulk_density_volume_conserving
+                        try:
+                            Pf_range = find_valid_bracket(start=10e6, stop=50000e7, step=1000e6)
+                            Pf_corrected_cork = solve_pressure_volume_conserving(Pf_range=Pf_range)
+                            print(f"\nCorrected fluid pressure: {Pf_corrected_cork / 1e6:.2f} MPa")
+                        except ValueError as e2:
+                            print(f"Both approaches failed: {e2}")
+                            print("Consider checking physical constraints or expanding pressure range.")
+                            Pf_corrected_cork = np.nan # Set to NaN if no solution found
+                else:
+                    print("Fluid volume is zero, cannot solve for pressure.")
+                    Pf_corrected_cork = np.nan
+
+
+
                 hydro = Pf_corrected / 1e6  # Convert Pa to MPa
             else:
                 hydro = hydro_CORK
@@ -2481,6 +2568,7 @@ class Ext_method_master:
             print(f"{'Hydrostatic':<20} | {litho:15.3f}")
             print(f"{'CORK':<20} | {hydro_CORK:15.3f}")
             print(f"{'Reviewer':<20} | {Pf_corrected / 1e6:15.3f}")
+            print(f"{'Reviewer+CORK':<20} | {Pf_corrected_cork / 1e6:15.3f}")
 
             # Check total mass conservation
             m_total_before = fluid_weight_before + solid_weight_before
@@ -2647,7 +2735,13 @@ class Ext_method_master:
             "effective position": copy.deepcopy(pos),
             "critical fluid pressure normal": copy.deepcopy(crit_fluid_pressure),
             "critical fluid pressure griffith": copy.deepcopy(pf_crit_griffith),
-            "pressure_reviewer": copy.deepcopy(Pf_corrected / 1e6 if self.reviewer_mode else np.nan)
+            "pressure_reviewer": copy.deepcopy(Pf_corrected / 1e6 if self.reviewer_mode else np.nan),
+            "Density fluid t0": rho_f_0 if 'rho_f_0' in locals() else np.nan,
+            "Density fluid t1": rho_f_1 if 'rho_f_1' in locals() else np.nan,
+            "Density solid t0": rho_s_0 if 'rho_s_0' in locals() else np.nan,
+            "Density solid t1": rho_s_1 if 'rho_s_1' in locals() else np.nan,
+            "Xh t0": Xh_0 if 'Xh_0' in locals() else np.nan,
+            "Xh t1": Xh_1 if 'Xh_1' in locals() else np.nan
             }
 
         if self.frac_respo > 0:
