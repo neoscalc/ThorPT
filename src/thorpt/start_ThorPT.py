@@ -27,7 +27,6 @@ import scipy.special
 # from valhalla import routines_ThorPT
 # from valhalla.tunorrad import run_theriak as test_theriak
 
-
 # NOTE: this is the main file to run the ThorPT routine
 # import thorpt_thorPT.valhalla.Pathfinder as nasa
 # from thorpt_thorPT.valhalla.routines_ThorPT import *
@@ -48,7 +47,6 @@ def file_opener():
     )
 
     return filein
-
 
 def file_opener_multi():
     """
@@ -201,7 +199,15 @@ def run_main_routine():
         with open(file_to_open, 'w') as file:
             file.write(redo_init)
 
-        answer = int(init_data['path_arguments'][-2])
+        if len(init_data['path_arguments']) == 7:
+            answer = int(init_data['path_arguments'][-2])
+        elif len(init_data['path_arguments']) == 6:
+            answer = int(init_data['path_arguments'][-1])
+        else:
+            print("No answer is given in the init file. Please check the file.")
+            print("The script is ending...")
+            time.sleep(5)
+            quit()
         init_data['path_arguments'] = init_data['path_arguments'][:-1]
         # answer = 2
 

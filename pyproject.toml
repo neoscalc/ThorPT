@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "thorpt"
-version = "1.0.3"
+version = "1.0.6"
 authors = [
   { name="Thorsten A. Markmann", email="thorsten.markmann@unibe.ch" },
 ]
@@ -22,7 +22,8 @@ dependencies = [
     "imageio",
     "PyQt5",
     "scipy",
-    "julia"
+    "julia",
+    "keyboard"
 ]
 classifiers = [
     "Programming Language :: Python :: 3",

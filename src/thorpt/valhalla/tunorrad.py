@@ -2389,7 +2389,6 @@ class Ext_method_master:
 
                     return residual
 
-
                 # Root-finding wrapper
                 def solve_pressure_volume_conserving(Pf_range=(1000e6, 5000e6)):
                     a, b = Pf_range
@@ -2486,13 +2485,11 @@ class Ext_method_master:
                 # Option 2: Bulk density conservation with volume constraint
                 # residual_func = residual_bulk_density_volume_conserving
 
-                
-
                 # Solve and print for volume-conserving pressure Reviewer version
                 if fluid_volume > 0.0:
                     print(f"\n=== SOLVING FOR VOLUME-CONSERVING PRESSURE ===")
                     try:
-                        Pf_range = find_valid_bracket(start=10e6, stop=50000e6, step=1000e6)
+                        Pf_range = find_valid_bracket(start=10e6, stop=50000e7, step=1000e6)
                         Pf_corrected = solve_pressure_volume_conserving(Pf_range=Pf_range)
                         print(f"\nCorrected fluid pressure: {Pf_corrected / 1e6:.2f} MPa")
                         # Verify the solution
@@ -2524,7 +2521,7 @@ class Ext_method_master:
 
 
 
-                residual_func = residual_volume_conserving_cork
+                """residual_func = residual_volume_conserving_cork
                 #cork version
                 # Solve and print for volume-conserving pressure Reviewer+CORK version
                 if fluid_volume > 0.0:
@@ -2554,32 +2551,22 @@ class Ext_method_master:
                             Pf_corrected_cork = np.nan # Set to NaN if no solution found
                 else:
                     print("Fluid volume is zero, cannot solve for pressure.")
-                    Pf_corrected_cork = np.nan
+                    Pf_corrected_cork = np.nan"""
 
 
 
                 hydro = Pf_corrected / 1e6  # Convert Pa to MPa
+
+                print(f"{'Pressure type':<20} | {'Value (MPa)':>15}")
+                print("-" * 38)
+                print(f"{'Hydrostatic':<20} | {litho:15.3f}")
+                print(f"{'CORK':<20} | {hydro_CORK:15.3f}")
+                print(f"{'Reviewer':<20} | {Pf_corrected / 1e6:15.3f}")
+                # print(f"{'Reviewer+CORK':<20} | {Pf_corrected_cork / 1e6:15.3f}")
             else:
                 hydro = hydro_CORK
             hydro = hydro_CORK
 
-            print(f"{'Pressure type':<20} | {'Value (MPa)':>15}")
-            print("-" * 38)
-            print(f"{'Hydrostatic':<20} | {litho:15.3f}")
-            print(f"{'CORK':<20} | {hydro_CORK:15.3f}")
-            print(f"{'Reviewer':<20} | {Pf_corrected / 1e6:15.3f}")
-            print(f"{'Reviewer+CORK':<20} | {Pf_corrected_cork / 1e6:15.3f}")
-
-            # Check total mass conservation
-            m_total_before = fluid_weight_before + solid_weight_before
-            m_total_after = fluid_weight + solid_weight
-            mass_balance_error = abs(m_total_after - m_total_before) / m_total_before
-
-            print(f"Mass balance error: {mass_balance_error:.2e} ({mass_balance_error*100:.4f}%)")
-            if mass_balance_error > 1e-6:
-                print("⚠️  WARNING: Mass balance violation detected!")
-            else:
-                print("✅ Mass conservation verified")
 
             sig3 = litho - self.diff_stress/2
             sig1 = litho + self.diff_stress/2
