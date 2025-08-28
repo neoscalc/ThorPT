@@ -73,6 +73,24 @@ def set_origin():
     dirname = os.path.dirname(os.path.abspath(__file__))
     os.chdir(dirname)
 
+
+def read_trace_element_content():
+    # get script file path
+    # Get the script file location
+    script_path = os.path.dirname(os.path.abspath(__file__))
+    # Navigate one folder back
+    # parent_folder = os.path.dirname(script_path)
+    # Enter DataFiles folder
+    new_folder_path = os.path.join(script_path, "valhalla", 'DataFiles')
+
+    # read txt file trace_element_budget.txt
+    trace_element_bulk = pd.read_csv(
+        os.path.join(new_folder_path, 'trace_element_budget.txt'),
+        sep=', ', header=0, index_col=0, engine='python'
+        )
+
+    return trace_element_bulk
+
 # Function to process bulk composition
 def process_bulk(entry, rock_init):
     pos = entry.index(":")
@@ -248,12 +266,14 @@ def run_main_routine():
         init_data['fluid_volume'] = []
         init_data['extraction_percentage'] = []
         init_data['connectivity_fraction'] = []
-
+        init_data['init_trace_element_bulk'] = []
         
         # TODO add name from init file?
         for rock in rock_dic.keys():
             rock_init = rock_dic[rock]
+            trace_element = False
             for entry in rock_init:
+                print(entry)
                 if 'Database' in entry:
                     pos = entry.index(":")
                     db = entry[pos+1:].split('\t')[-1]
@@ -330,6 +350,27 @@ def run_main_routine():
                     pos = entry.index(":")
                     fluid_volume = entry[pos+1:].split('\t')[-1]
                     init_data['connectivity_fraction'].append(float(fluid_volume))
+                if "Element" in entry:
+                    trace_element = True
+                    pos = entry.index(":")
+                    element_list = entry[pos+1:].strip()
+                    element_list = element_list.split(', ')
+                if "Value" in entry:
+                    pos = entry.index(":")
+                    vals = entry[pos+1:].strip()
+                    vals = vals.split(', ')
+                    element_values = [float(val) for val in vals]
+
+            # write trace element data as dataframe
+            if trace_element is True:
+                # print("Element found in init")
+                trace_dataframe = pd.DataFrame(element_values, index=element_list).T
+                trace_dataframe.index = ["Value"]
+                init_data['init_trace_element_bulk'].append(trace_dataframe)
+            else:
+                # print("No Element found in init")
+                init_data['init_trace_element_bulk'].append(read_trace_element_content())
+
 
         init_data['Database'] = database
         init_data['Path'] = init_data['path']
@@ -523,6 +564,7 @@ def run_main_routine():
                 'bulk_oxygen_after_influx': [],
                 'trace_element_data': {},
                 'trace_element_bulk': {},
+                'init_trace_element_bulk': init_data['init_trace_element_bulk'][i],
                 'extr_time': [],
                 'extr_svol': [],
                 'tensile strength': init_data['Tensile strength'][i],

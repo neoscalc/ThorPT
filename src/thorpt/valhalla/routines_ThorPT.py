@@ -368,7 +368,8 @@ def read_trace_element_content():
     trace_element_bulk = pd.read_csv(
         os.path.join(new_folder_path, 'trace_element_budget.txt'),
         sep=', ', header=0, index_col=0, engine='python'
-    )
+        )
+
     return trace_element_bulk
 
 def modify_trace_element_content(trace_element_bulk, trace_element_distirbution, min_name):
@@ -495,10 +496,6 @@ class ThorPT_Routines():
         coulomb_permea = self.mechanical_methods[4]
         coulomb_permea2 = self.mechanical_methods[5]
         """
-        # initialize the trace element composition of the bulk rock
-        for item in master_rock.keys():
-            # trace element distribution
-            master_rock[item]['init_trace_element_bulk'] = self.trace_element_bulk
 
         # Main variables fractionation
         grt_frac = self.garnet_fractionation
@@ -926,7 +923,7 @@ class ThorPT_Routines():
                                         extraction_connectivity = master_rock[item]['fluid connectivity'],
                                         reviewer_mode=self.reviewer_mode, phase_data_complete = master_rock[item]['df_var_dictionary'], 
                                         hydrous_data_complete = master_rock[item]['df_h2o_content_dic'],
-                                        pressure_before=pressures[num-1] if num > 0 else pressures[num],
+                                        pressure_before=pressures[num-1] if num > 0 else pressures[num]
                                         )
                     # //////////////////////////////////////////////////////////////////////////
                     # ////// Calculation for new whole rock /////////
@@ -1277,11 +1274,6 @@ class ThorPT_Routines():
         coulomb_permea = self.mechanical_methods[4]
         coulomb_permea2 = self.mechanical_methods[5]
         """
-
-        # initialize the trace element composition of the bulk rock
-        for item in master_rock.keys():
-            # trace element distribution
-            master_rock[item]['init_trace_element_bulk'] = self.trace_element_bulk
 
 
         # Main variables fractionation
@@ -1815,7 +1807,10 @@ class ThorPT_Routines():
                         fluid_name_tag=fluid_name_tag, subduction_angle=self.angle,
                         rock_item_tag=item,
                         extraction_threshold = master_rock[item]['extraction threshold'],
-                        extraction_connectivity = master_rock[item]['fluid connectivity']
+                        extraction_connectivity = master_rock[item]['fluid connectivity'],
+                        reviewer_mode=self.reviewer_mode, phase_data_complete = master_rock[item]['df_var_dictionary'], 
+                        hydrous_data_complete = master_rock[item]['df_h2o_content_dic'],
+                        pressure_before=pressures[num-1] if num > 0 else pressures[num]
                         )
                     # //////////////////////////////////////////////////////////////////////////
                     # LINK 1) selection of the failure and fluid extraction
@@ -2085,11 +2080,6 @@ class ThorPT_Routines():
 
         # Main variables mechanical model
         lowest_permeability = self.minimum_permeability
-
-        # initialize the trace element composition of the bulk rock
-        for item in master_rock.keys():
-            # trace element distribution
-            master_rock[item]['init_trace_element_bulk'] = self.trace_element_bulk
 
 
         # Main variables fractionation
@@ -2611,7 +2601,10 @@ class ThorPT_Routines():
                         fluid_name_tag=fluid_name_tag, subduction_angle=self.angle,
                         rock_item_tag=item,
                         extraction_threshold = master_rock[item]['extraction threshold'],
-                        extraction_connectivity = master_rock[item]['fluid connectivity']
+                        extraction_connectivity = master_rock[item]['fluid connectivity'],
+                        reviewer_mode=self.reviewer_mode, phase_data_complete = master_rock[item]['df_var_dictionary'], 
+                        hydrous_data_complete = master_rock[item]['df_h2o_content_dic'],
+                        pressure_before=pressures[num-1] if num > 0 else pressures[num]
                         )
                     # //////////////////////////////////////////////////////////////////////////
                     # LINK 1) selection of the failure and fluid extraction

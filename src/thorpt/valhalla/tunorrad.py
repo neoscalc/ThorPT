@@ -3360,105 +3360,111 @@ class TraceElementDistribution():
                 assembled_distribution_coefficients = pd.concat([
                         assembled_distribution_coefficients, 
                         distribution_coefficients.loc[name]], axis=1)
-
-        # final assembled distribution coefficients based on predicted stable phases
-        assembled_distribution_coefficients = assembled_distribution_coefficients.T
-        # update name_list to the names of the phases that are present
-        name_list = assembled_distribution_coefficients.index
         
-        # Calculating mineral/matrix distribution coefficients 
-        # (D_min-grt_e / sum(D_min-grt_e) = D_min-mtrx_e)
-        # -----------------------------------------------------------
-
-        # Convert the DataFrame to a numpy array for faster operations
-        coeff_array = assembled_distribution_coefficients.values
-
-        # Calculate the sum of each column
-        column_sums = np.sum(coeff_array, axis=0)
-
-        # Calculate the coefficient values
-        _m_min_matrix_coeff = coeff_array / column_sums.T
-        #TODO - check if this is correct if not all mineral phases are present
-
-        _m_min_matrix_coeff_df = pd.DataFrame(
-            _m_min_matrix_coeff,
-            index=name_list,
-            columns=element_list)
-
-        # Calculating k-matrix coefficients
-        # (c_bulk_e / sum(moles_min *D_min-mtrx_e) = K_e)
-        # -----------------------------------------------------------
-        # create empty dataframe to be filled with k values
-        mass_balanced_trace_elements = pd.DataFrame([])
-        selected_phase_moles = []
-        assembled_matrix_coeff = pd.DataFrame([])
-        selected_phase_name_original = []
-        #assembling the trace element distribution matrix
-        for i, name in enumerate(self.phase_set):
-            if name in name_list:
-                if is_float64_nan(self.phase_data.iloc[i,-1]):
-                    pass
-                else:
-                    selected_phase_moles.append(self.phase_data.iloc[i,-1])
-                    selected_phase_name_original.append(self.phase_original[i])
-                    assembled_matrix_coeff = pd.concat([
-                        assembled_matrix_coeff, _m_min_matrix_coeff_df.loc[name]], axis=1)
-
-        assembled_matrix_coeff = assembled_matrix_coeff.T
-        selected_phase_moles = np.array(selected_phase_moles)
-
-        # Calculating the mass balanced distribution coefficients
-        # mass_balanced_trace_elements = selected_phase_moles.values * assembled_matrix_coeff.values
-        mass_balanced_trace_elements = selected_phase_moles[:, np.newaxis] * assembled_matrix_coeff.values
-        # mass_balanced_trace_elements = pd.DataFrame(selected_phase_moles.values * assembled_matrix_coeff.values)
-        # mass_balanced_trace_elements.columns = element_list
-        # mass_balanced_trace_elements.index = selected_phase_moles.index
-        
-        # Calculate the sum of each column
-        column_sums = np.sum(mass_balanced_trace_elements, axis=0)
-        
-        # Calculate the coefficient values by dividing the bulk values by the sum of the column
-        if len(column_sums) == 0:
-            
-            column_sums = np.nan
-            k_factor = self.start_bulk.values[0] / column_sums
-
-            content =  k_factor
-            selected_phase_name_original = 'None'
-            content_df = pd.DataFrame(content)
-            content_df.index = element_list
-            #content_df.columns = selected_phase_name_original
+        # First test if mineral phases with coefficient is stable
+        # if not the dataframe is empty, if statement
+        if len(assembled_distribution_coefficients) == 0:
+            content_df = pd.DataFrame()
+        # if mineral phases with coefficient from the database are stable - else statement active
         else:
-            k_factor = self.start_bulk.values[0] / column_sums
-
-            # Calculating the content of element e in mineral
-            # content = K_e * moles_min * D_min-mtrx_e
+            # final assembled distribution coefficients based on predicted stable phases
+            assembled_distribution_coefficients = assembled_distribution_coefficients.T
+            # update name_list to the names of the phases that are present
+            name_list = assembled_distribution_coefficients.index
+            
+            # Calculating mineral/matrix distribution coefficients 
+            # (D_min-grt_e / sum(D_min-grt_e) = D_min-mtrx_e)
             # -----------------------------------------------------------
 
-            #content =  k_factor * selected_phase_moles.values  * assembled_matrix_coeff.values
-            content =  k_factor * selected_phase_moles[:, np.newaxis]  * assembled_matrix_coeff.values
-            
-            #build dataframe of content
-            #content_df = pd.DataFrame(content, index=selected_phase_moles.index, columns=element_list)
-            #content_df = pd.DataFrame(content, index=selected_phase_moles.index, columns=element_list)
-            content_df = pd.DataFrame(content)
-            content_df.columns = element_list
-            content_df.index = selected_phase_name_original
-        
-            """
-            norming = np.array([
-                0.3670, 0.9570, 0.1370, 0.7110, 0.2310, 0.0870, 0.3060, 
-                0.0580, 0.3810, 0.0851, 0.2490, 0.0356, 0.2480, 0.0381])
-            test = content_df/norming
+            # Convert the DataFrame to a numpy array for faster operations
+            coeff_array = assembled_distribution_coefficients.values
 
-            # test plot in log scale on the y axis, y_label is REE/Chondrite and x_label is elements
-            for phase in test.index:
-                plt.plot(test.loc[phase], 'D--' , label=phase)
-            plt.yscale('log')
-            plt.xlabel('Elements')
-            plt.ylabel('REE/Chondrite')
-            plt.legend()
-            """
+            # Calculate the sum of each column
+            column_sums = np.sum(coeff_array, axis=0)
+
+            # Calculate the coefficient values
+            _m_min_matrix_coeff = coeff_array / column_sums.T
+            #TODO - check if this is correct if not all mineral phases are present
+
+            _m_min_matrix_coeff_df = pd.DataFrame(
+                _m_min_matrix_coeff,
+                index=name_list,
+                columns=element_list)
+
+            # Calculating k-matrix coefficients
+            # (c_bulk_e / sum(moles_min *D_min-mtrx_e) = K_e)
+            # -----------------------------------------------------------
+            # create empty dataframe to be filled with k values
+            mass_balanced_trace_elements = pd.DataFrame([])
+            selected_phase_moles = []
+            assembled_matrix_coeff = pd.DataFrame([])
+            selected_phase_name_original = []
+            #assembling the trace element distribution matrix
+            for i, name in enumerate(self.phase_set):
+                if name in name_list:
+                    if is_float64_nan(self.phase_data.iloc[i,-1]):
+                        pass
+                    else:
+                        selected_phase_moles.append(self.phase_data.iloc[i,-1])
+                        selected_phase_name_original.append(self.phase_original[i])
+                        assembled_matrix_coeff = pd.concat([
+                            assembled_matrix_coeff, _m_min_matrix_coeff_df.loc[name]], axis=1)
+
+            assembled_matrix_coeff = assembled_matrix_coeff.T
+            selected_phase_moles = np.array(selected_phase_moles)
+
+            # Calculating the mass balanced distribution coefficients
+            # mass_balanced_trace_elements = selected_phase_moles.values * assembled_matrix_coeff.values
+            mass_balanced_trace_elements = selected_phase_moles[:, np.newaxis] * assembled_matrix_coeff.values
+            # mass_balanced_trace_elements = pd.DataFrame(selected_phase_moles.values * assembled_matrix_coeff.values)
+            # mass_balanced_trace_elements.columns = element_list
+            # mass_balanced_trace_elements.index = selected_phase_moles.index
+            
+            # Calculate the sum of each column
+            column_sums = np.sum(mass_balanced_trace_elements, axis=0)
+            
+            # Calculate the coefficient values by dividing the bulk values by the sum of the column
+            if len(column_sums) == 0:
+                
+                column_sums = np.nan
+                k_factor = self.start_bulk.values[0] / column_sums
+
+                content =  k_factor
+                selected_phase_name_original = 'None'
+                content_df = pd.DataFrame(content)
+                content_df.index = element_list
+                #content_df.columns = selected_phase_name_original
+            else:
+                k_factor = self.start_bulk.values[0] / column_sums
+
+                # Calculating the content of element e in mineral
+                # content = K_e * moles_min * D_min-mtrx_e
+                # -----------------------------------------------------------
+
+                #content =  k_factor * selected_phase_moles.values  * assembled_matrix_coeff.values
+                content =  k_factor * selected_phase_moles[:, np.newaxis]  * assembled_matrix_coeff.values
+                
+                #build dataframe of content
+                #content_df = pd.DataFrame(content, index=selected_phase_moles.index, columns=element_list)
+                #content_df = pd.DataFrame(content, index=selected_phase_moles.index, columns=element_list)
+                content_df = pd.DataFrame(content)
+                content_df.columns = element_list
+                content_df.index = selected_phase_name_original
+            
+                """
+                norming = np.array([
+                    0.3670, 0.9570, 0.1370, 0.7110, 0.2310, 0.0870, 0.3060, 
+                    0.0580, 0.3810, 0.0851, 0.2490, 0.0356, 0.2480, 0.0381])
+                test = content_df/norming
+
+                # test plot in log scale on the y axis, y_label is REE/Chondrite and x_label is elements
+                for phase in test.index:
+                    plt.plot(test.loc[phase], 'D--' , label=phase)
+                plt.yscale('log')
+                plt.xlabel('Elements')
+                plt.ylabel('REE/Chondrite')
+                plt.legend()
+                """
         return content_df
 
 
