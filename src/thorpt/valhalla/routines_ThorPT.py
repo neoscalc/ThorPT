@@ -517,6 +517,7 @@ class ThorPT_Routines():
             # print("New calculation iteration")
             # print("===================")
             # print(f"==== 1) time = {track_time[num]} years,\n==== 2) depth = {track_depth[num]}.")
+            print("Modelling at Temperature:", temperature, "°C", " and Pressure:", pressures[num], "bar")
 
             # //////////////////////////////////////////////////////////////////////////
             # preparing bulk rock for calculation - normalized to 1kg of rock or it is Marco

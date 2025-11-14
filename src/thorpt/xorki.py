@@ -7337,7 +7337,7 @@ if __name__ == '__main__':
                  fluid_porosity=True, cumulative=False, img_type='png'
                            )
     #
-        # compPlot.oxygen_isotopes_v2(rock_tag=key, img_save=True, img_type='png')
+        compPlot.oxygen_isotopes_v2(rock_tag=key, img_save=True, img_type='png')
         # compPlot.oxygen_isotopes_realtive_v2(rock_tag=key, img_save=True, img_type='png')
 
 

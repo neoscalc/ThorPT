@@ -1,11 +1,11 @@
 
- database for this run: tc55.txt
+ database for this run: JUN92hp.txt
 
 
  Input from file THERIN
  ----------------------
- T =  531.37 C     P =153087.50 Bar
- 1   O(13.633608)AL(2.272268)CA(2.272268)FE(1.136134)H(0.000000)K(0.000000)MG(0.000000)NA(0.000000)SI(3.408402)TI(0.000000)    * grt extract bulk
+ T =  220.28 C     P =  2620.28 Bar
+ 1   O(28.743915)AL(5.34234)CA(0.00806)FE(1.10266)H(6.59492)K(1.59284)MN(0.00355)MG(0.94906)NA(0.06103)SI(7.22003)TI(0.05131)    *theriak-out preprocessed bulk
 
  ---------------------------
  define type of calculations
@@ -14,70 +14,396 @@
  TEST = 1.0000E-09        LO1MAX = 350             EQUALX = 1.0000E-02      DELXMIN = 3.0000E-09
  DELXSCAN = 1.0000E+00    DELXSTAR = 1.0000E-03    STEPSTAR = 780           STEPMAX = 300            GCMAX =  300
 
- P =153087.50 bar    P(Gas) =153087.50 bar    T =  531.37 C   =   804.52 K
+ P =  2620.28 bar    P(Gas) =  2620.28 bar    T =  220.28 C   =   493.43 K
 
  ------------
  composition:        N           N             mol%
  ------------
  
-   1  O          13.633608   1.36336E+01    60.000000
-   2  AL          2.272268   2.27227E+00    10.000000
-   3  CA          2.272268   2.27227E+00    10.000000
-   4  FE          1.136134   1.13613E+00     5.000000
-   5  SI          3.408402   3.40840E+00    15.000000
-   6  E           0.000000   0.00000E+00     0.000000
- 
- use:  GARNET 
+   1  O          28.743915   2.87439E+01    55.630102
+   2  AL          5.342340   5.34234E+00    10.339403
+   3  CA          0.008060   8.06000E-03     0.015599
+   4  FE          1.102660   1.10266E+00     2.134055
+   5  H           6.594920   6.59492E+00    12.763608
+   6  K           1.592840   1.59284E+00     3.082734
+   7  MN          0.003550   3.55000E-03     0.006871
+   8  MG          0.949060   9.49060E-01     1.836782
+   9  NA          0.061030   6.10300E-02     0.118116
+  10  SI          7.220030   7.22003E+00    13.973427
+  11  TI          0.051310   5.13100E-02     0.099304
+  12  E           0.000000   0.00000E+00     0.000000
 
  ------------------
  considered phases:
  ------------------
-                                   G       O     AL    CA    FE    SI    E    
+                                   G       O     AL    CA    FE    H     K     MN    MG    NA    SI    TI    E    
  
-   1  "O"              :           0.00    1.00   -     -     -     -     -                                                          
-   2  "AL"             :           0.00     -    1.00   -     -     -     -                                                          
-   3  "CA"             :           0.00     -     -    1.00   -     -     -                                                          
-   4  "FE"             :           0.00     -     -     -    1.00   -     -                                                          
-   5  "SI"             :           0.00     -     -     -     -    1.00   -                                                          
-   6  "E"              :           0.00     -     -     -     -     -    1.00                                                        
-   7  almandine        :    -3949508.72   12.00  2.00   -    3.00  3.00   -                                                          
-   8  grossular        :    -5107133.69   12.00  2.00  3.00   -    3.00   -                                                          
+   1  "O"              :           0.00    1.00   -     -     -     -     -     -     -     -     -     -     -                      
+   2  "AL"             :           0.00     -    1.00   -     -     -     -     -     -     -     -     -     -                      
+   3  "CA"             :           0.00     -     -    1.00   -     -     -     -     -     -     -     -     -                      
+   4  "FE"             :           0.00     -     -     -    1.00   -     -     -     -     -     -     -     -                      
+   5  "H"              :           0.00     -     -     -     -    1.00   -     -     -     -     -     -     -                      
+   6  "K"              :           0.00     -     -     -     -     -    1.00   -     -     -     -     -     -                      
+   7  "MN"             :           0.00     -     -     -     -     -     -    1.00   -     -     -     -     -                      
+   8  "MG"             :           0.00     -     -     -     -     -     -     -    1.00   -     -     -     -                      
+   9  "NA"             :           0.00     -     -     -     -     -     -     -     -    1.00   -     -     -                      
+  10  "SI"             :           0.00     -     -     -     -     -     -     -     -     -    1.00   -     -                      
+  11  "TI"             :           0.00     -     -     -     -     -     -     -     -     -     -    1.00   -                      
+  12  "E"              :           0.00     -     -     -     -     -     -     -     -     -     -     -    1.00                    
+  13  AKERMANITE       :    -3952967.78    7.00   -    2.00   -     -     -     -    1.00   -    2.00   -     -                      
+  14  ANTIGORITE       :   -72950727.72  147.00   -     -     -   62.00   -     -   48.00   -   34.00   -     -                      
+  15  BRUCITE          :     -955140.79    2.00   -     -     -    2.00   -     -    1.00   -     -     -     -                      
+  16  CHRYSOTILE       :    -4459949.71    9.00   -     -     -    4.00   -     -    3.00   -    2.00   -     -                      
+  17  DIASPORE         :    -1015336.12    2.00  1.00   -     -    1.00   -     -     -     -     -     -     -                      
+  18  GEHLENITE        :    -4074371.29    7.00  2.00  2.00   -     -     -     -     -     -    1.00   -     -                      
+  19  HEMATITE         :     -866875.26    3.00   -     -    2.00   -     -     -     -     -     -     -     -                      
+  20  KALSILITE        :    -2169108.74    4.00  1.00   -     -     -    1.00   -     -     -    1.00   -     -                      
+  21  KAOLINITE        :    -4209137.71    9.00  2.00   -     -    4.00   -     -     -     -    2.00   -     -                      
+  22  LAWSONITE        :    -4968612.84   10.00  2.00  1.00   -    4.00   -     -     -     -    2.00   -     -                      
+  23  ALEUCITE         :    -3105751.41    6.00  1.00   -     -     -    1.00   -     -     -    2.00   -     -                      
+  24  BLEUCITE         :    -3101297.18    6.00  1.00   -     -     -    1.00   -     -     -    2.00   -     -                      
+  25  LIME             :     -651688.28    1.00   -    1.00   -     -     -     -     -     -     -     -     -                      
+  26  MAGNETITE        :    -1186576.80    4.00   -     -    3.00   -     -     -     -     -     -     -     -                      
+  27  MERWINITE        :    -4650336.24    8.00   -    3.00   -     -     -     -    1.00   -    2.00   -     -                      
+  28  MONTICELLITE     :    -2297071.52    4.00   -    1.00   -     -     -     -    1.00   -    1.00   -     -                      
+  29  NEPHELINE        :    -2142860.31    4.00  1.00   -     -     -     -     -     -    1.00  1.00   -     -                      
+  30  PERICLASE        :     -613988.19    1.00   -     -     -     -     -     -    1.00   -     -     -     -                      
+  31  PREHNITE         :    -6323625.49   12.00  2.00  2.00   -    2.00   -     -     -     -    3.00   -     -                      
+  32  PYROPHYLLITE     :    -5742871.45   12.00  2.00   -     -    2.00   -     -     -     -    4.00   -     -                      
+  33  RUTILE           :     -967891.91    2.00   -     -     -     -     -     -     -     -     -    1.00   -                      
+  34  SPHENE           :    -2653892.79    5.00   -    1.00   -     -     -     -     -     -    1.00  1.00   -                      
+  35  TALC             :    -6009869.39   12.00   -     -     -    2.00   -     -    3.00   -    4.00   -     -                      
+  36  WOLLASTONITE     :    -1666406.96    3.00   -    1.00   -     -     -     -     -     -    1.00   -     -                      
+  37  PSEUDOWOLLASTONI :    -1663932.79    3.00   -    1.00   -     -     -     -     -     -    1.00   -     -                      
+  38  Mg-carpholite    :    -4874658.64   10.00  2.00   -     -    4.00   -     -    1.00   -    2.00   -     -                      
+  39  HEULANDITE       :   -10884675.22   24.00  2.00  1.00   -   12.00   -     -     -     -    7.00   -     -                      
+  40  LAUMONTITE       :    -7463877.60   16.00  2.00  1.00   -    8.00   -     -     -     -    4.00   -     -                      
+  41  STILBITE         :   -11201102.05   25.00  2.00  1.00   -   14.00   -     -     -     -    7.00   -     -                      
+  42  WAIRAKITE        :    -6820060.24   14.00  2.00  1.00   -    4.00   -     -     -     -    4.00   -     -                      
+  43  PUMPELLYITE2     :   -14652797.78   28.00  5.00  4.00   -    7.00   -     -    1.00   -    6.00   -     -                      
+  44  A-QUARTZ         :     -927870.22    2.00   -     -     -     -     -     -     -     -    1.00   -     -                      
+  45  B-QUARTZ         :     -926906.39    2.00   -     -     -     -     -     -     -     -    1.00   -     -                      
+  46  COESITE          :     -924337.87    2.00   -     -     -     -     -     -     -     -    1.00   -     -                      
+  47  CORUNDUM         :    -1698804.93    3.00  2.00   -     -     -     -     -     -     -     -     -     -                      
+  48  ALPHA CRISTOBALI :     -925061.18    2.00   -     -     -     -     -     -     -     -    1.00   -     -                      
+  49  BETA CRISTOBALIT :     -924621.24    2.00   -     -     -     -     -     -     -     -    1.00   -     -                      
+  50  LOW TRIDYMITE    :     -925053.55    2.00   -     -     -     -     -     -     -     -    1.00   -     -                      
+  51  HIGH TRIDYMITE   :     -924979.52    2.00   -     -     -     -     -     -     -     -    1.00   -     -                      
+  52  ANDALUSITE       :    -2628951.45    5.00  2.00   -     -     -     -     -     -     -    1.00   -     -                      
+  53  KYANITE          :    -2630674.48    5.00  2.00   -     -     -     -     -     -     -    1.00   -     -                      
+  54  SILLIMANITE      :    -2627712.06    5.00  2.00   -     -     -     -     -     -     -    1.00   -     -                      
+  55  ILMENITE         :    -1283446.17    3.00   -     -    1.00   -     -     -     -     -     -    1.00   -                      
+  56  GEIKELITE        :    -1604830.35    3.00   -     -     -     -     -     -    1.00   -     -    1.00   -                      
+  57  GROSSULAR        :    -6745325.93   12.00  2.00  3.00   -     -     -     -     -     -    3.00   -     -                      
+  58  PYROPE           :    -6407462.13   12.00  2.00   -     -     -     -     -    3.00   -    3.00   -     -                      
+  59  ALMANDINE        :    -5424753.03   12.00  2.00   -    3.00   -     -     -     -     -    3.00   -     -                      
+  60  SPESSARTINE      :    -5424753.03   12.00  2.00   -     -     -     -    3.00   -     -    3.00   -     -                      
+  61  ALBITE           :    -4023278.81    8.00  1.00   -     -     -     -     -     -    1.00  3.00   -     -                      
+  62  K-FELDSPAR       :    -4060058.05    8.00  1.00   -     -     -    1.00   -     -     -    3.00   -     -                      
+  63  ANORTHITE        :    -4313539.30    8.00  2.00  1.00   -     -     -     -     -     -    2.00   -     -                      
+  64  ANNITE           :    -5330904.38   12.00  1.00   -    3.00  2.00  1.00   -     -     -    3.00   -     -                      
+  65  MN-BIO           :    -5330904.38   12.00  1.00   -     -    2.00  1.00  3.00   -     -    3.00   -     -                      
+  66  PHLOGOPITE       :    -6356829.31   12.00  1.00   -     -    2.00  1.00   -    3.00   -    3.00   -     -                      
+  67  MARGARITE        :    -6352797.85   12.00  4.00  1.00   -    2.00   -     -     -     -    2.00   -     -                      
+  68  MUSCOVITE        :    -6103506.46   12.00  3.00   -     -    2.00  1.00   -     -     -    3.00   -     -                      
+  69  PARAGONITE       :    -6065433.77   12.00  3.00   -     -    2.00   -     -     -    1.00  3.00   -     -                      
+  70  MCELADONITE      :    -5959357.08   12.00  1.00   -     -    2.00  1.00   -    1.00   -    4.00   -     -                      
+  71  FCELADONITE      :    -5624628.30   12.00  1.00   -    1.00  2.00  1.00   -     -     -    4.00   -     -                      
+  72  FE-STAUROLITE    :   -24219785.80   48.00 18.00   -    4.00  4.00   -     -     -     -    7.50   -     -                      
+  73  MG-STAUROLITE    :   -25518528.31   48.00 18.00   -     -    4.00   -     -    4.00   -    7.50   -     -                      
+  74  ORTHOENSTATITE   :    -3149611.57    6.00   -     -     -     -     -     -    2.00   -    2.00   -     -                      
+  75  PROTOENSTATITE   :    -1573562.57    3.00   -     -     -     -     -     -    1.00   -    1.00   -     -                      
+  76  FERROSILITE      :    -2476194.77    6.00   -     -    2.00   -     -     -     -     -    2.00   -     -                      
+  77  MG.AL-PYROXENE   :    -3244619.58    6.00  2.00   -     -     -     -     -    1.00   -    1.00   -     -                      
+  78  MG.FE-PYROXENE   :    -2819841.27    6.00   -     -    1.00   -     -     -    1.00   -    2.00   -     -                      
+  79  FE.MG-PYROXENE   :    -2796159.19    6.00   -     -    1.00   -     -     -    1.00   -    2.00   -     -                      
+  80  FE.AL-PYROXENE   :    -2903506.72    6.00  2.00   -    1.00   -     -     -     -     -    1.00   -     -                      
+  81  DIOPSIDE         :    -3263261.29    6.00   -    1.00   -     -     -     -    1.00   -    2.00   -     -                      
+  82  JADEITE          :    -3084581.10    6.00  1.00   -     -     -     -     -     -    1.00  2.00   -     -                      
+  83  HEDENBERGITE     :    -2915509.76    6.00   -    1.00  1.00   -     -     -     -     -    2.00   -     -                      
+  84  CA-AL PYROXENE   :    -3361296.91    6.00  2.00  1.00   -     -     -     -     -     -    1.00   -     -                      
+  85  AMESITE          :    -9200402.51   18.00  4.00   -     -    8.00   -     -    4.00   -    2.00   -     -                      
+  86  PENNINITE        :    -9014730.92   18.00  1.00   -     -    8.00   -     -    5.50   -    3.50   -     -                      
+  87  FEAMESITE        :    -7839322.42   18.00  4.00   -    4.00  8.00   -     -     -     -    2.00   -     -                      
+  88  FEPENNINITE      :    -7137507.66   18.00  1.00   -    5.50  8.00   -     -     -     -    3.50   -     -                      
+  89  CORDIERITE       :    -9330792.04   18.00  4.00   -     -     -     -     -    2.00   -    5.00   -     -                      
+  90  HY_CORDIERITE    :    -9969185.51   20.00  4.00   -     -    4.00   -     -    2.00   -    5.00   -     -                      
+  91  FE_CORDIERITE    :    -8657857.54   18.00  4.00   -    2.00   -     -     -     -     -    5.00   -     -                      
+  92  HY_Fe_CORDIERITE :    -9296251.02   20.00  4.00   -    2.00  4.00   -     -     -     -    5.00   -     -                      
+  93  MG-CHLORITOID    :    -3616322.08    7.00  2.00   -     -    2.00   -     -    1.00   -    1.00   -     -                      
+  94  FE-CHLORITOID    :    -3284530.23    7.00  2.00   -    1.00  2.00   -     -     -     -    1.00   -     -                      
+  95  CLINOZOISITE     :    -7021199.42   13.00  3.00  2.00   -    1.00   -     -     -     -    3.00   -     -                      
+  96  EPIDOTE          :    -6609724.88   13.00  2.00  2.00  1.00  1.00   -     -     -     -    3.00   -     -                      
+  97  ANTHOPHYLLITE    :   -12302395.16   24.00   -     -     -    2.00   -     -    7.00   -    8.00   -     -                      
+  98  TREMOLITE        :   -12544638.81   24.00   -    2.00   -    2.00   -     -    5.00   -    8.00   -     -                      
+  99  FETREMOLITE      :   -10807620.55   24.00   -    2.00  5.00  2.00   -     -     -     -    8.00   -     -                      
+ 100  TSCHERMAKITE     :   -12797917.77   24.00  4.00  2.00   -    2.00   -     -    3.00   -    6.00   -     -                      
+ 101  PARGASITE        :   -12986398.87   24.00  3.00  2.00   -    2.00   -     -    4.00  1.00  6.00   -     -                      
+ 102  FEPARGASITE      :   -11603822.08   24.00  3.00  2.00  4.00  2.00   -     -     -    1.00  6.00   -     -                      
+ 103  GLAUCOPHANE      :   -12192232.69   24.00  2.00   -     -    2.00   -     -    3.00  2.00  8.00   -     -                      
+ 104  STEAM            :     -319243.40    1.00   -     -     -    2.00   -     -     -     -     -     -     -                      
+ 105  OXYGEN           :      -66344.43    2.00   -     -     -     -     -     -     -     -     -     -     -                      
+ 106  HYDROGEN         :      -28999.99     -     -     -     -    2.00   -     -     -     -     -     -     -                      
 
  ----------------
  solution phases:
  ----------------
-   1  GARNET           :            solution model:  "ideal"  1 site mixing                                                          
-                                    info: site mixing                                                                     
-      grossular          [M]:Ca,Ca,Ca                                                                                                
-      almandine          [M]:Fe,Fe,Fe                                                                                                
+   1  ILM              :            solution model:  ideal one site mixing                                                           
+                                    info: ideal                                                                           
+      ILMENITE           [M]:Fe                                                                                                      
+      GEIKELITE          [M]:Mg                                                                                                      
                                                                                                                                      
-        1  grossular        (  8)   A(gr) =     1.00 *  X[Ca(M)] * X[Ca(M)] * X[Ca(M)]                                               
+        1  ILMENITE         ( 55)   A(Ilm) = X(Ilm)                                                                                  
                                                                                                                                      
-        2  almandine        (  7)   A(alm) =     1.00 *  X[Fe(M)] * X[Fe(M)] * X[Fe(M)]                                              
+        2  GEIKELITE        ( 56)   A(Gk) = X(Gk)                                                                                    
+
+
+   2  GARNET           :            solution model:  "ideal"  1 site mixing + Margules type excess function                          
+                                    info: site mixing+margules                                                            
+      GROSSULAR          [M]:Ca,Ca,Ca                                                                                                
+      PYROPE             [M]:Mg,Mg,Mg                                                                                                
+      ALMANDINE          [M]:Fe,Fe,Fe                                                                                                
+      SPESSARTINE        [M]:Mn,Mn,Mn                                                                                                
+                                                                                                                                     
+        1  GROSSULAR        ( 57)   A(Gr) =     1.00 *  X[Ca(M)] * X[Ca(M)] * X[Ca(M)]                                               
+                                                                                                                                     
+        2  PYROPE           ( 58)   A(Py) =     1.00 *  X[Mg(M)] * X[Mg(M)] * X[Mg(M)]                                               
+                                                                                                                                     
+        3  ALMANDINE        ( 59)   A(Alm) =     1.00 *  X[Fe(M)] * X[Fe(M)] * X[Fe(M)]                                              
+                                                                                                                                     
+        4  SPESSARTINE      ( 60)   A(spf) =     1.00 *  X[Mn(M)] * X[Mn(M)] * X[Mn(M)]                                              
+
+      Margules parameters:   W(112) =     12550.47       W(122) =     60190.47       W(113) =     18258.82                           
+                             K= 0.00                     K= 0.00                     K= 0.00
+
+                             W(133) =       349.20       W(223) =       256.20       W(233) =      3877.22                           
+                             K= 0.00                     K= 0.00                     K= 0.00
+
+                             W(123) =     47741.19       W(124) =     36414.47       W(134) =      9304.01                           
+                             K= 0.00                     K= 0.00                     K= 0.00
+
+                             W(234) =      2066.71                                                                                   
+                             K= 0.00
+
+
+   3  FSP2             :            solution model:  "ideal"  2 site mixing + Margules type excess function                          
+                                    info: site mixing+margules                                                            
+      ALBITE             [A]:Na    [T1]:Al,Si                                                                                        
+      K-FELDSPAR         [A]:K     [T1]:Al,Si                                                                                        
+      ANORTHITE          [A]:Ca    [T1]:Si,Si                                                                                        
+                                                                                                                                     
+        1  ALBITE           ( 61)   A(Ab) =     4.00 *  X[Na(A)] * X[Al(T1)] * X[Si(T1)]                                             
+                                                                                                                                     
+        2  K-FELDSPAR       ( 62)   A(Kfs) =     4.00 *  X[K(A)] * X[Al(T1)] * X[Si(T1)]                                             
+                                                                                                                                     
+        3  ANORTHITE        ( 63)   A(An) =     1.00 *  X[Ca(A)] * X[Si(T1)] * X[Si(T1)]                                             
+
+      site mixing model includes "endmembers" with inhomogeneous sites: this may result in non-unique equilibria
+ 
+
+      Margules parameters:   W(122) =     14760.06       W(112) =     23270.06       W(133) =     28226.00                           
+                             K= 0.00                     K= 0.00                     K= 0.00
+
+                             W(113) =      8471.00       W(322) =     52153.57       W(332) =     47396.00                           
+                             K= 0.00                     K= 0.00                     K= 0.00
+
+                             W(132) =     92971.75                                                                                   
+                             K= 0.00
+
+
+   4  BIOTITE          :            solution model:  ideal one site mixing                                                           
+                                    info: ideal                                                                           
+      PHLOGOPITE         [M]:Mg,Mg,Mg                                                                                                
+      ANNITE             [M]:Fe,Fe,Fe                                                                                                
+                                                                                                                                     
+        1  PHLOGOPITE       ( 66)   A(Phl) = X(Phl) ) ** 3.000                                                                       
+                                                                                                                                     
+        2  ANNITE           ( 64)   A(Ann) = X(Ann) ) ** 3.000                                                                       
+
+
+   5  WHITE MICA       :            solution model:  ideal one site mixing + Margules type excess function                           
+                                    info: ideal+margules                                                                  
+      MUSCOVITE          [Z]:Si,Si,Si,Al                                                                                             
+      PARAGONITE         [Z]:Si,Si,Si,Al                                                                                             
+      MCELADONITE        [Z]:Si,Si,Si,Si                                                                                             
+      FCELADONITE        [Z]:Si,Si,Si,Si                                                                                             
+                                                                                                                                     
+        1  MUSCOVITE        ( 68)   A(Ms) = X(Ms)                                                                                    
+                                                                                                                                     
+        2  PARAGONITE       ( 69)   A(Pg) = X(Pg)                                                                                    
+                                                                                                                                     
+        3  MCELADONITE      ( 70)   A(MgC) = X(MgC)                                                                                  
+                                                                                                                                     
+        4  FCELADONITE      ( 71)   A(FeC) = X(FeC)                                                                                  
+
+      Margules parameters:   W(122) =     16234.37       W(112) =      7334.37       W(133) =    -26988.14                           
+                             K= 0.00                     K= 0.00                     K= 0.00
+
+                             W(113) =     -7365.42       W(114) =    -10993.96       W(144) =    -10993.96                           
+                             K= 0.00                     K= 0.00                     K= 0.00
+
+                             W(332) =     15586.55       W(322) =     15586.55       W(442) =     17510.89                           
+                             K= 0.00                     K= 0.00                     K= 0.00
+
+                             W(422) =     17510.89       W(142) =     18297.63       W(132) =     10185.78                           
+                             K= 0.00                     K= 0.00                     K= 0.00
+
+                             W(324) =     33097.44       W(134) =    -28170.80                                                       
+                             K= 0.00                     K= 0.00
+
+
+   6  STAU             :            solution model:  "ideal"  1 site mixing + Margules type excess function                          
+                                    info: site mixing+margules                                                            
+      FE-STAUROLITE      [T]:Fe,Fe,Fe,Fe                                                                                             
+      MG-STAUROLITE      [T]:Mg,Mg,Mg,Mg                                                                                             
+                                                                                                                                     
+        1  FE-STAUROLITE    ( 72)   A(FSt) =     1.00 *  X[Fe(T)] * X[Fe(T)] * X[Fe(T)] * X[Fe(T)]                                   
+                                                                                                                                     
+        2  MG-STAUROLITE    ( 73)   A(MSt) =     1.00 *  X[Mg(T)] * X[Mg(T)] * X[Mg(T)] * X[Mg(T)]                                   
+
+      Margules parameters:   W(21) =    -20000.00                                                                                    
+                             K= 0.00
+
+
+   7  OPX              :            solution model:  ideal one site mixing                                                           
+                                    info: ideal                                                                           
+      ORTHOENSTATITE     [M1]:Mg   [M2]:Mg                                                                                           
+      FERROSILITE        [M1]:Fe   [M2]:Fe                                                                                           
+      MG.FE-PYROXENE     [M1]:Mg   [M2]:Fe                                                                                           
+      FE.MG-PYROXENE     [M1]:Fe   [M2]:Mg                                                                                           
+      MG.AL-PYROXENE     [M1]:Mg   [M2]:Al                                                                                           
+      FE.AL-PYROXENE     [M1]:Fe   [M2]:Al                                                                                           
+                                                                                                                                     
+        1  ORTHOENSTATITE   ( 74)   A(En) = X(En)                                                                                    
+                                                                                                                                     
+        2  FERROSILITE      ( 76)   A(Fsl) = X(Fsl)                                                                                  
+                                                                                                                                     
+        3  MG.FE-PYROXENE   ( 78)   A(femg) = X(femg)                                                                                
+                                                                                                                                     
+        4  FE.MG-PYROXENE   ( 79)   A(mgfe) = X(mgfe)                                                                                
+                                                                                                                                     
+        5  MG.AL-PYROXENE   ( 77)   A(MgTs) = X(MgTs)                                                                                
+                                                                                                                                     
+        6  FE.AL-PYROXENE   ( 80)   A(FeTs) = X(FeTs)                                                                                
+
+
+   8  OMPH             :            solution model:  ideal one site mixing + Margules type excess function                           
+                                    info: ideal+margules                                                                  
+                                                                                                                                     
+        1  DIOPSIDE         ( 81)   A(Di) = X(Di)                                                                                    
+                                                                                                                                     
+        2  JADEITE          ( 82)   A(Jd) = X(Jd)                                                                                    
+                                                                                                                                     
+        3  HEDENBERGITE     ( 83)   A(Hd) = X(Hd)                                                                                    
+
+      Margules parameters:   W(221) =     17730.04       W(211) =       632.45       W(113) =     17224.41                           
+                             K= 1.00                     K= 1.00                     K= 1.00
+
+                             W(133) =    -42739.00       W(223) =      -770.87       W(233) =     11142.56                           
+                             K= 1.00                     K= 1.00                     K= 1.00
+
+
+   9  CHL4             :            solution model:  ideal one site mixing                                                           
+                                    info: ideal                                                                           
+      AMESITE            [T5]:AL,AL,AL,AL                                                                                            
+      PENNINITE          [T5]:AL,SI,SI,SI                                                                                            
+      FEAMESITE          [T5]:AL,AL,AL,AL                                                                                            
+      FEPENNINITE        [T5]:AL,SI,SI,SI                                                                                            
+                                                                                                                                     
+        1  AMESITE          ( 85)   A(Ame) = X(Ame) ) ** 4.000                                                                       
+                                                                                                                                     
+        2  PENNINITE        ( 86)   A(Pen) = X(Pen) ) ** 4.000                                                                       
+                                                                                                                                     
+        3  FEAMESITE        ( 87)   A(FeAm) = X(FeAm) ) ** 4.000                                                                     
+                                                                                                                                     
+        4  FEPENNINITE      ( 88)   A(FeP) = X(FeP) ) ** 4.000                                                                       
+
+
+  10  CORD             :            solution model:  ideal one site mixing                                                           
+                                    info: ideal                                                                           
+                                                                                                                                     
+        1  CORDIERITE       ( 89)   A(Cd) = X(Cd) ) ** 2.000                                                                         
+                                                                                                                                     
+        2  HY_CORDIERITE    ( 90)   A(hCd) = X(hCd) ) ** 2.000                                                                       
+                                                                                                                                     
+        3  FE_CORDIERITE    ( 91)   A(fCd) = X(fCd) ) ** 2.000                                                                       
+                                                                                                                                     
+        4  HY_Fe_CORDIERITE ( 92)   A(hfCd) = X(hfCd) ) ** 2.000                                                                     
+
+
+  11  CTOID            :            solution model:  ideal one site mixing                                                           
+                                    info: ideal                                                                           
+      FE-CHLORITOID      [M]:Fe                                                                                                      
+      MG-CHLORITOID      [M]:Mg                                                                                                      
+                                                                                                                                     
+        1  FE-CHLORITOID    ( 94)   A(fctd) = X(fctd)                                                                                
+                                                                                                                                     
+        2  MG-CHLORITOID    ( 93)   A(mctd) = X(mctd)                                                                                
+
+
+  12  AMPHx            :            solution model:  ideal one site mixing + Margules type excess function                           
+                                    info: ideal+margules                                                                  
+      TREMOLITE          [A]:v     [M1]:Mg,Mg                                                                                        
+      TSCHERMAKITE       [A]:v     [M1]:Al,Al                                                                                        
+      PARGASITE          [A]:Na    [M1]:Mg,Al                                                                                        
+                                                                                                                                     
+        1  TREMOLITE        ( 98)   A(Tr) = X(Tr) ) ** 1.700                                                                         
+                                                                                                                                     
+        2  TSCHERMAKITE     (100)   A(Tsc) = X(Tsc) ) ** 1.700                                                                       
+                                                                                                                                     
+        3  PARGASITE        (101)   A(Parg) = X(Parg) ) ** 1.700                                                                     
+
+      Margules parameters:   W(12) =     21431.00        W(13) =     20459.50        W(23) =     20459.50                            
+                             K= 0.00                     K= 0.00                     K= 0.00
 
 
 
  working directory = c:\Users\Markmann\PhD\Projects\neoscalc\ThorPT\src\thorpt\
- database          = tc55.txt
- bulk              = O(13.633608)AL(2.272268)CA(2.272268)FE(1.136134)SI(3.408402)
+ database          = JUN92hp.txt
+ bulk              = O(28.743915)AL(5.34234)CA(0.00806)FE(1.10266)H(6.59492)K(1.59284)MN(0.00355)MG(0.94906)NA(0.06103)SI(7.22003)TI(0.05131)
 
  -----------------------
  equilibrium assemblage:
  -----------------------
 
-  P =153087.50 bar       P(Gas) =153087.50 bar     T =  531.37 C    =  804.52 K
+  P =  2620.28 bar       P(Gas) =  2620.28 bar     T =  220.28 C    =  493.43 K
 
-  stable phases:    1    loop =  15     loop2 =   1     max.phases =        31     gcalc =      9233       blkshift = 2.66454E-15
-  suggestions:    112    ridiculous phases:       0     non-ideal min.:     95     newton:         0       ideal min.:          0
-  G(-)  = 2.24100E-04    G(System) =    -5378494.28     stepsize = 1.17878E-01     R =     8.3143000       MaxG(-)  =-2.24100E-04
+  stable phases:    7    loop =  22     loop2 =   1     max.phases =       224     gcalc =     95913       blkshift = 7.41074E-15
+  suggestions:    763    ridiculous phases:       0     non-ideal min.:    402     newton:        46       ideal min.:        126
+  G(-)  = 5.51627E-06    G(System) =   -14085638.09     stepsize = 4.78119E-06     R =     8.3143000       MaxG(-)  =-3.19497E-06
 
 
          phase                   N         mol%                                   x              x         activity       act.(x)
          -----                   -         ----                                   -              -         --------       -------
-   0  1  GARNET_gr             1.136134  100.000000         grossular          0.666667     6.66667E-01   2.96300E-01   2.96296E-01  
-                                                            almandine          0.333333     3.33333E-01   3.70361E-02   3.70370E-02  
+   0  5  WHITE_MICA_Ms         1.652687   52.860342         MUSCOVITE          0.787012     7.87012E-01   7.08855E-01   7.08854E-01  
+                                                            PARAGONITE         0.036928     3.69277E-02   5.22726E-01   5.22719E-01  
+                                                            MCELADONITE        0.028527     2.85272E-02   6.23441E-03   6.23479E-03  
+                                                            FCELADONITE        0.147533     1.47533E-01   2.71908E-02   2.71907E-02  
                                                                                                                                      
-                             [Ca(M)]     = 0.666667     [Fe(M)]     = 0.333333                                                       
+                             [Si(Z)]     = 0.794015     [Al(Z)]     = 0.205985                                                       
+                             Mg/(Fe+Mg)  = 0.162031
+                             Si(pfu)     = 3.176060
+                             Al(pfu)     = 2.647880
+ 
+   0  9  CHL4_FeAm             0.372535   11.915333         AMESITE            0.242144     2.42144E-01   3.43787E-03   3.43791E-03  
+                                                            PENNINITE          0.264080     2.64080E-01   4.86338E-03   4.86346E-03  
+                                                            FEAMESITE          0.273590     2.73590E-01   5.60283E-03   5.60277E-03  
+                                                            FEPENNINITE        0.220185     2.20185E-01   2.35050E-03   2.35046E-03  
+                                                                                                                                     
+                             [AL(T5)]    = 0.636801     [SI(T5)]    = 0.363199                                                       
+                             Mg/(Fe+Mg)  = 0.512233
+                             Si(pfu)     = 2.726399
+                             Al(pfu)     = 2.547203
+ 
+  33  0  RUTILE                0.051310    1.641124                                                                                  
+ 
+  40  0  LAUMONTITE            0.008060    0.257795                                                                                  
+ 
+  44  0  A-QUARTZ              0.919529   29.410681                                                                                  
+ 
+  65  0  MN-BIO                0.001183    0.037848                                                                                  
+ 
+ 104  0  STEAM                 0.121211    3.876876                                                                                  
  
 
  ---------------------------------------
@@ -86,31 +412,103 @@
 
   solid phases           N       volume/mol  volume[ccm]    vol%  |    wt/mol       wt [g]      wt %  | density [g/ccm]
   ------------                                                    |                                   |                
-  GARNET_gr            1.1361     113.4897     128.9395  100.0000 |   466.2154     529.6831  100.0000 |     4.107997
+  WHITE_MICA_Ms        1.6527     141.1900     233.3429   69.5532 |   402.0899     664.5286   69.0366 |     2.847863
+  CHL4_FeAm            0.3725     210.7640      78.5169   23.4038 |   628.9439     234.3034   24.3413 |     2.984114
+  RUTILE               0.0513      18.8926       0.9694    0.2889 |    79.8788       4.0986    0.4258 |     4.228037
+  LAUMONTITE           0.0081     204.3432       1.6470    0.4909 |   470.4370       3.7917    0.3939 |     2.302191
+  A-QUARTZ             0.9195      22.6513      20.8285    6.2084 |    60.0843      55.2493    5.7397 |     2.652579
+  MN-BIO               0.0012     155.1676       0.1836    0.0547 |   509.1376       0.6025    0.0626 |     3.281210
                                              ----------  -------- |              ----------  -------- |   ----------
-  total of solids                              128.9395  100.0000 |                529.6831  100.0000 |     4.107997
+  total of solids                              335.4883  100.0000 |                962.5741  100.0000 |     2.869173
+ 
+
+  gases and fluids       N       volume/mol  volume[ccm]               wt/mol       wt [g]              density [g/ccm]
+  ----------------                                                                                                     
+  STEAM                0.1212      18.4893        2.241                18.0153       2.1837                 0.974361
+
+
+ -----------------------------
+ H2O content of stable phases:
+ -----------------------------
+                                                                  |   wt% of     wt% of     wt% of
+  solid phases           N      H2O[pfu]    H2O[mol]     H2O [g]  |   phase      solids     H2O.solid
+  ------------                                                    |
+  WHITE_MICA_Ms        1.6527     1.000       1.6527      29.7736 |   4.48041    3.09312    52.0327
+  CHL4_FeAm            0.3725     4.000       1.4901      26.8453 |  11.45748    2.78890    46.9151
+  LAUMONTITE           0.0081     4.000       0.0322       0.5808 |  15.31791    0.06034     1.0150
+  MN-BIO               0.0012     1.000       0.0012       0.0213 |   3.53839    0.00221     0.0373
+                                            --------   ---------- |             --------
+  total H2O in solids                         3.1762      57.2210 |              5.94458
+ 
+                                                                  |   wt% of
+  gases and fluids       N      H2O[pfu]    H2O[mol]     H2O [g]  |   phase
+  ----------------                                                |
+  STEAM                0.1212     1.000       0.1212       2.1837 | 100.00000
 
 
  ---------------------------------------
  compositions of stable phases [ mol% ]:
  ---------------------------------------
  
-                      O          AL         CA         FE         SI         E                                                       
- GARNET_gr          60.000000  10.000000  10.000000   5.000000  15.000000   0.000000                                                 
- TOTAL:             60.000000  10.000000  10.000000   5.000000  15.000000   0.000000                                                 
+                      O          AL         CA         FE         H          K          MN         MG         NA         SI          
+                      TI         E                                                                                                   
+ WHITE_MICA_Ms      57.142857  12.608950   0.000000   0.702538   9.523810   4.586058   0.000000   0.135844   0.175846  15.124096     
+                     0.000000   0.000000                                                                                             
+ CHL4_FeAm          50.000000   7.075563   0.000000   6.403833  22.222222   0.000000   0.000000   6.725052   0.000000   7.573329     
+                     0.000000   0.000000                                                                                             
+ RUTILE             66.666667   0.000000   0.000000   0.000000   0.000000   0.000000   0.000000   0.000000   0.000000   0.000000     
+                    33.333333   0.000000                                                                                             
+ LAUMONTITE         51.612903   6.451613   3.225806   0.000000  25.806452   0.000000   0.000000   0.000000   0.000000  12.903226     
+                     0.000000   0.000000                                                                                             
+ A-QUARTZ           66.666667   0.000000   0.000000   0.000000   0.000000   0.000000   0.000000   0.000000   0.000000  33.333333     
+                     0.000000   0.000000                                                                                             
+ MN-BIO             54.545455   4.545455   0.000000   0.000000   9.090909   4.545455  13.636364   0.000000   0.000000  13.636364     
+                     0.000000   0.000000                                                                                             
+ STEAM              33.333333   0.000000   0.000000   0.000000  66.666667   0.000000   0.000000   0.000000   0.000000   0.000000     
+                     0.000000   0.000000                                                                                             
+ TOTAL:             55.630102  10.339403   0.015599   2.134055  12.763608   3.082734   0.006871   1.836782   0.118116  13.973427     
+                     0.099304   0.000000                                                                                             
 
 
  --------------------------
  elements in stable phases:
  --------------------------
 
-                      O          AL         CA         FE         SI         E    
- GARNET_gr          13.633608   2.272268   2.272268   1.136134   3.408402   0.000000
- total:             13.633608   2.272268   2.272268   1.136134   3.408402   0.000000
+                      O          AL         CA         FE         H          K          MN         MG         NA         SI   
+                      TI         E    
+ WHITE_MICA_Ms      19.832240   4.376115   0.000000   0.243826   3.305373   1.591657   0.000000   0.047146   0.061030   5.249032
+                     0.000000   0.000000
+ CHL4_FeAm           6.705625   0.948921   0.000000   0.858834   2.980278   0.000000   0.000000   0.901914   0.000000   1.015678
+                     0.000000   0.000000
+ RUTILE              0.102620   0.000000   0.000000   0.000000   0.000000   0.000000   0.000000   0.000000   0.000000   0.000000
+                     0.051310   0.000000
+ LAUMONTITE          0.128960   0.016120   0.008060   0.000000   0.064480   0.000000   0.000000   0.000000   0.000000   0.032240
+                     0.000000   0.000000
+ A-QUARTZ            1.839059   0.000000   0.000000   0.000000   0.000000   0.000000   0.000000   0.000000   0.000000   0.919529
+                     0.000000   0.000000
+ MN-BIO              0.014200   0.001183   0.000000   0.000000   0.002367   0.001183   0.003550   0.000000   0.000000   0.003550
+                     0.000000   0.000000
+ STEAM               0.121211   0.000000   0.000000   0.000000   0.242422   0.000000   0.000000   0.000000   0.000000   0.000000
+                     0.000000   0.000000
+ total:             28.743915   5.342340   0.008060   1.102660   6.594920   1.592840   0.003550   0.949060   0.061030   7.220030
+                     0.051310   0.000000
 
  elements per formula unit:
  
- GARNET_gr          12.000000   2.000000   2.000000   1.000000   3.000000   0.000000
+ WHITE_MICA_Ms      12.000000   2.647880   0.000000   0.147533   2.000000   0.963072   0.000000   0.028527   0.036928   3.176060
+                     0.000000   0.000000
+ CHL4_FeAm          18.000000   2.547203   0.000000   2.305380   8.000000   0.000000   0.000000   2.421019   0.000000   2.726399
+                     0.000000   0.000000
+ RUTILE              2.000000   0.000000   0.000000   0.000000   0.000000   0.000000   0.000000   0.000000   0.000000   0.000000
+                     1.000000   0.000000
+ LAUMONTITE         16.000000   2.000000   1.000000   0.000000   8.000000   0.000000   0.000000   0.000000   0.000000   4.000000
+                     0.000000   0.000000
+ A-QUARTZ            2.000000   0.000000   0.000000   0.000000   0.000000   0.000000   0.000000   0.000000   0.000000   1.000000
+                     0.000000   0.000000
+ MN-BIO             12.000000   1.000000   0.000000   0.000000   2.000000   1.000000   3.000000   0.000000   0.000000   3.000000
+                     0.000000   0.000000
+ STEAM               1.000000   0.000000   0.000000   0.000000   2.000000   0.000000   0.000000   0.000000   0.000000   0.000000
+                     0.000000   0.000000
 
 
  -------------------------
@@ -119,18 +517,130 @@
 
           phase                  N             G         activity
 
- S   107  GARNET_gr          1.13613E+00   0.00000E+00   1.00000E+00   6.6667E-01  3.3333E-01                                        
- P    -6  "E"                0.00000E+00   0.00000E+00   1.00000E+00                                                                 
- P    -5  "SI"               4.44089E-16   0.00000E+00   1.00000E+00                                                                 
- P    -3  "CA"              -2.22045E-16   0.00000E+00   1.00000E+00                                                                 
- P    -2  "AL"               0.00000E+00   0.00000E+00   1.00000E+00                                                                 
- S    66  GARNET_gr          0.00000E+00   9.09495E-13   1.00000E+00   6.6663E-01  3.3337E-01                                        
+ S   716  WHITE MICA_Ms      1.65269E+00  -2.41585E-13   1.00000E+00   7.8701E-01  3.6928E-02  2.8527E-02  1.4753E-01                
+ S   727  CHL4_FeAm          3.72535E-01  -1.81899E-12   1.00000E+00   2.4214E-01  2.6408E-01  2.7359E-01  2.2019E-01                
+ P    33  RUTILE             5.13100E-02   0.00000E+00   1.00000E+00                                                                 
+ P    40  LAUMONTITE         8.06000E-03   0.00000E+00   1.00000E+00                                                                 
+ P    44  A-QUARTZ           9.19529E-01   0.00000E+00   1.00000E+00                                                                 
+ P    65  MN-BIO             1.18333E-03   0.00000E+00   1.00000E+00                                                                 
+ P   104  STEAM              1.21211E-01   0.00000E+00   1.00000E+00                                                                 
+ P   106  HYDROGEN          -1.63456E-15   0.00000E+00   1.00000E+00                                                                 
+ P   -12  "E"                0.00000E+00   0.00000E+00   1.00000E+00                                                                 
+ S   758  CHL4_FeAm          0.00000E+00  -9.09495E-13   1.00000E+00   2.4214E-01  2.6408E-01  2.7359E-01  2.2019E-01                
+ S   733  WHITE MICA_Ms      0.00000E+00   6.82121E-13   1.00000E+00   7.8701E-01  3.6929E-02  2.8527E-02  1.4753E-01                
+ S   732  WHITE MICA_Ms      0.00000E+00   4.26326E-13   1.00000E+00   7.8701E-01  3.6927E-02  2.8527E-02  1.4753E-01                
 --------------------------------------------------------------------
- P    -1  "O"                0.00000E+00   4.26273E+05   2.10634E-28                                                                 
- P    -4  "FE"               0.00000E+00  -3.81238E+05   5.65664E+24                                                                 
- P     7  almandine          0.00000E+00   2.20460E+04   3.70361E-02                                                                 
- P     8  grossular          0.00000E+00   8.13638E+03   2.96300E-01                                                                 
- S   108  GARNET_gr          0.00000E+00   2.23918E-09   1.00000E+00   6.6670E-01  3.3330E-01                                        
+ P    -1  "O"                0.00000E+00   2.90243E+05   1.88270E-31                                                                 
+ P    -2  "AL"               0.00000E+00   4.23082E+05   1.63116E-45                                                                 
+ P    -3  "CA"               0.00000E+00   4.68286E+05   2.67395E-50                                                                 
+ P    -4  "FE"               0.00000E+00   3.32792E+04   2.99953E-04                                                                 
+ P    -5  "H"                0.00000E+00   1.45000E+04   2.91762E-02                                                                 
+ P    -6  "K"                0.00000E+00   2.81602E+05   1.54728E-30                                                                 
+ P    -7  "MN"               0.00000E+00   2.40499E+04   2.84496E-03                                                                 
+ P    -8  "MG"               0.00000E+00   3.74050E+05   2.52918E-40                                                                 
+ P    -9  "NA"               0.00000E+00   2.44779E+05   1.22368E-26                                                                 
+ P   -10  "SI"               0.00000E+00   3.47383E+05   1.68241E-37                                                                 
+ P   -11  "TI"               0.00000E+00   3.87405E+05   9.75506E-42                                                                 
+ P    13  AKERMANITE         0.00000E+00   8.41253E+04   1.24304E-09                                                                 
+ P    14  ANTIGORITE         0.00000E+00   3.79499E+05   6.70183E-41                                                                 
+ P    15  BRUCITE            0.00000E+00   2.83962E+04   9.86213E-04                                                                 
+ P    16  CHRYSOTILE         0.00000E+00   2.71584E+04   1.33355E-03                                                                 
+ P    17  DIASPORE           0.00000E+00   2.73239E+03   5.13746E-01                                                                 
+ P    18  GEHLENITE          0.00000E+00   8.74515E+04   5.52542E-10                                                                 
+ P    19  HEMATITE           0.00000E+00   7.04135E+04   3.51576E-08                                                                 
+ P    20  KALSILITE          0.00000E+00   4.39320E+04   2.23540E-05                                                                 
+ P    21  KAOLINITE          0.00000E+00   1.98316E+03   6.16683E-01                                                                 
+ P    22  LAWSONITE          0.00000E+00   1.03751E+03   7.76548E-01                                                                 
+ P    23  ALEUCITE           0.00000E+00   3.51595E+04   1.89674E-04                                                                 
+ P    24  BLEUCITE           0.00000E+00   3.96137E+04   6.40446E-05                                                                 
+ P    25  LIME               0.00000E+00   1.06841E+05   4.89520E-12                                                                 
+ P    26  MAGNETITE          0.00000E+00   7.42346E+04   1.38521E-08                                                                 
+ P    27  MERWINITE          0.00000E+00   1.45286E+05   4.16839E-16                                                                 
+ P    28  MONTICELLITE       0.00000E+00   5.36218E+04   2.10662E-06                                                                 
+ P    29  NEPHELINE          0.00000E+00   3.33573E+04   2.94300E-04                                                                 
+ P    30  PERICLASE          0.00000E+00   5.03054E+04   4.72780E-06                                                                 
+ P    31  PREHNITE           0.00000E+00   1.31812E+04   4.02382E-02                                                                 
+ P    32  PYROPHYLLITE       0.00000E+00   4.74646E+03   3.14441E-01                                                                 
+ P    34  SPHENE             0.00000E+00   3.98828E+02   9.07361E-01                                                                 
+ P    35  TALC               0.00000E+00   1.37357E+04   3.51506E-02                                                                 
+ P    36  WOLLASTONITE       0.00000E+00   1.99928E+04   7.64828E-03                                                                 
+ P    37  PSEUDOWOLLASTONI   0.00000E+00   2.24669E+04   4.18454E-03                                                                 
+ P    38  Mg-carpholite      0.00000E+00   7.55844E+02   8.31737E-01                                                                 
+ P    39  HEULANDITE         0.00000E+00   1.29985E+03   7.28447E-01                                                                 
+ P    41  STILBITE           0.00000E+00   4.11641E+03   3.66637E-01                                                                 
+ P    42  WAIRAKITE          0.00000E+00   5.33056E+03   2.72713E-01                                                                 
+ P    43  PUMPELLYITE2       0.00000E+00   2.24211E+04   4.23157E-03                                                                 
+ P    45  B-QUARTZ           0.00000E+00   9.63834E+02   7.90621E-01                                                                 
+ P    46  COESITE            0.00000E+00   3.53235E+03   4.22731E-01                                                                 
+ P    47  CORUNDUM           0.00000E+00   1.80887E+04   1.21654E-02                                                                 
+ P    48  ALPHA CRISTOBALI   0.00000E+00   2.80904E+03   5.04237E-01                                                                 
+ P    49  BETA CRISTOBALIT   0.00000E+00   3.24898E+03   4.52962E-01                                                                 
+ P    50  LOW TRIDYMITE      0.00000E+00   2.81667E+03   5.03300E-01                                                                 
+ P    51  HIGH TRIDYMITE     0.00000E+00   2.89070E+03   4.94299E-01                                                                 
+ P    52  ANDALUSITE         0.00000E+00   1.58124E+04   2.11883E-02                                                                 
+ P    53  KYANITE            0.00000E+00   1.40894E+04   3.22476E-02                                                                 
+ P    54  SILLIMANITE        0.00000E+00   1.70518E+04   1.56637E-02                                                                 
+ P    55  ILMENITE           0.00000E+00   7.96840E+03   1.43372E-01                                                                 
+ P    56  GEIKELITE          0.00000E+00   2.73552E+04   1.27109E-03                                                                 
+ P    57  GROSSULAR          0.00000E+00   3.07668E+04   5.53374E-04                                                                 
+ P    58  PYROPE             0.00000E+00   8.59230E+04   8.02002E-10                                                                 
+ P    59  ALMANDINE          0.00000E+00   4.63192E+04   1.24922E-05                                                                 
+ P    60  SPESSARTINE        0.00000E+00   1.86311E+04   1.06588E-02                                                                 
+ P    61  ALBITE             0.00000E+00   8.67924E+03   1.20563E-01                                                                 
+ P    62  K-FELDSPAR         0.00000E+00   8.72309E+03   1.19281E-01                                                                 
+ P    63  ANORTHITE          0.00000E+00   1.76243E+04   1.36236E-02                                                                 
+ P    64  ANNITE             0.00000E+00   2.76881E+04   1.17201E-03                                                                 
+ P    66  PHLOGOPITE         0.00000E+00   2.40761E+04   2.82685E-03                                                                 
+ P    67  MARGARITE          0.00000E+00   1.45027E+04   2.91567E-02                                                                 
+ P    68  MUSCOVITE          0.00000E+00   1.41170E+03   7.08855E-01                                                                 
+ P    69  PARAGONITE         0.00000E+00   2.66130E+03   5.22726E-01                                                                 
+ P    70  MCELADONITE        0.00000E+00   2.08313E+04   6.23441E-03                                                                 
+ P    71  FCELADONITE        0.00000E+00   1.47891E+04   2.71908E-02                                                                 
+ P    72  FE-STAUROLITE      0.00000E+00   1.23861E+05   7.72790E-14                                                                 
+ P    73  MG-STAUROLITE      0.00000E+00   1.88202E+05   1.19365E-20                                                                 
+ P    74  ORTHOENSTATITE     0.00000E+00   3.47161E+04   2.11323E-04                                                                 
+ P    75  PROTOENSTATITE     0.00000E+00   1.86013E+04   1.07366E-02                                                                 
+ P    76  FERROSILITE        0.00000E+00   2.65910E+04   1.53135E-03                                                                 
+ P    77  MG.AL-PYROXENE     0.00000E+00   6.44379E+04   1.50867E-07                                                                 
+ P    78  MG.FE-PYROXENE     0.00000E+00   2.37154E+04   3.08659E-03                                                                 
+ P    79  FE.MG-PYROXENE     0.00000E+00   4.73975E+04   9.60483E-06                                                                 
+ P    80  FE.AL-PYROXENE     0.00000E+00   6.47798E+04   1.38803E-07                                                                 
+ P    81  DIOPSIDE           0.00000E+00   1.53023E+04   2.39939E-02                                                                 
+ P    82  JADEITE            0.00000E+00   1.95067E+04   8.61022E-03                                                                 
+ P    83  HEDENBERGITE       0.00000E+00   2.22828E+04   4.37659E-03                                                                 
+ P    84  CA-AL PYROXENE     0.00000E+00   4.19964E+04   3.58304E-05                                                                 
+ P    85  AMESITE            0.00000E+00   2.32732E+04   3.43787E-03                                                                 
+ P    86  PENNINITE          0.00000E+00   2.18502E+04   4.86338E-03                                                                 
+ P    87  FEAMESITE          0.00000E+00   2.12695E+04   5.60283E-03                                                                 
+ P    88  FEPENNINITE        0.00000E+00   2.48331E+04   2.35050E-03                                                                 
+ P    89  CORDIERITE         0.00000E+00   7.09336E+04   3.09715E-08                                                                 
+ P    90  HY_CORDIERITE      0.00000E+00   7.10269E+04   3.02749E-08                                                                 
+ P    91  FE_CORDIERITE      0.00000E+00   6.23261E+04   2.52432E-07                                                                 
+ P    92  HY_Fe_CORDIERITE   0.00000E+00   6.24195E+04   2.46755E-07                                                                 
+ P    93  MG-CHLORITOID      0.00000E+00   1.19788E+04   5.39417E-02                                                                 
+ P    94  FE-CHLORITOID      0.00000E+00   2.99967E+03   4.81342E-01                                                                 
+ P    95  CLINOZOISITE       0.00000E+00   1.44324E+04   2.96612E-02                                                                 
+ P    96  EPIDOTE            0.00000E+00   3.61044E+04   1.50653E-04                                                                 
+ P    97  ANTHOPHYLLITE      0.00000E+00   8.98653E+04   3.06790E-10                                                                 
+ P    98  TREMOLITE          0.00000E+00   3.60934E+04   1.51058E-04                                                                 
+ P    99  FETREMOLITE        0.00000E+00   6.92569E+04   4.66073E-08                                                                 
+ P   100  TSCHERMAKITE       0.00000E+00   3.22740E+04   3.83235E-04                                                                 
+ P   101  PARGASITE          0.00000E+00   3.95403E+04   6.52012E-05                                                                 
+ P   102  FEPARGASITE        0.00000E+00   5.90333E+04   5.63286E-07                                                                 
+ P   103  GLAUCOPHANE        0.00000E+00   3.95481E+04   6.50776E-05                                                                 
+ P   105  OXYGEN             0.00000E+00   5.14142E+05   3.73935E-55                                                                 
+ S   736  ILM_Ilm            0.00000E+00   7.93218E+03   1.44643E-01   9.9121E-01  8.7876E-03                                        
+ S   737  GARNET_spf         0.00000E+00   1.39763E+04   3.31490E-02   2.4281E-01  1.5866E-03  5.9732E-02  6.9587E-01                
+ S   739  FSP2_Ab            0.00000E+00   8.47234E+03   1.26799E-01   9.5673E-01  2.5636E-03  4.0711E-02                            
+ S   743  BIOTITE_Phl        0.00000E+00   1.72191E+04   1.50378E-02   5.7284E-01  4.2716E-01                                        
+ S   747  WHITE MICA_Ms      0.00000E+00   2.66311E-10   1.00000E+00   7.8701E-01  3.6925E-02  2.8525E-02  1.4754E-01                
+ S   753  STAU_FSt           0.00000E+00   1.22865E+05   9.85096E-14   9.4464E-01  5.5356E-02                                        
+ S   754  OPX_femg           0.00000E+00   2.18706E+04   4.83915E-03   4.3669E-02  3.1645E-01  6.3783E-01  1.9848E-03  3.1176E-05    
+                                                                       2.8684E-05                                                    
+ S   756  OMPH_Hd            0.00000E+00   1.21659E+04   5.15372E-02   3.7452E-01  9.5214E-03  6.1595E-01                            
+ S   759  CORD_fCd           0.00000E+00   5.42213E+04   1.82022E-06   1.3044E-01  1.2897E-01  3.7240E-01  3.6819E-01                
+ S   760  CTOID_fctd         0.00000E+00   2.56391E+03   5.35284E-01   8.9923E-01  1.0077E-01                                        
+ S   761  AMPHx_Tsc          0.00000E+00   3.19249E+04   4.17279E-04   3.3214E-02  9.4440E-01  2.2387E-02                            
 
 
  ----------------------------------
@@ -140,12 +650,19 @@
 
  component   chem.pot.
  ---------   ---------
- "sio2"     -8.52545E+05
- "cao"      -4.26273E+05
- "al2o3"    -1.27882E+06
- "feo"      -4.50341E+04
+ "cao"      -7.58529E+05
+ "mgo"      -6.64294E+05
+ "al2o3"    -1.71689E+06
+ "feo"      -3.23523E+05
+ "k2o"      -8.53447E+05
+ "h2o"      -3.19243E+05
+ "na2o"     -7.79801E+05
+ "tio2"     -9.67892E+05
+ "mno"      -3.14293E+05
+ "sio2"     -9.27870E+05
  
-GARNET  grossular   6.66666667E-01  almandine   3.33333333E-01
+WHITE MICA  MUSCOVITE   7.87012015E-01  PARAGONITE   3.69277500E-02  MCELADONITE   2.85271814E-02  FCELADONITE   1.47533054E-01
+CHL4  AMESITE   2.42144009E-01  PENNINITE   2.64080474E-01  FEAMESITE   2.73590245E-01  FEPENNINITE   2.20185272E-01
 
  exit THERIAK
- CPU time:    0h 00m 00.02s
+ CPU time:    0h 00m 00.03s

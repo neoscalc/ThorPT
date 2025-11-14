@@ -1061,17 +1061,27 @@ class core_Pathfinder:
         t_ret = list(f_path[0][peak_index:])
         p_ret = list(f_path[1][peak_index:])
 
-        ius = InterpolatedUnivariateSpline(p_pro, t_pro)
-        rbf = Rbf(p_ret, t_ret)
-
         p_line = np.linspace(min(pressures), max(pressures), 30)
         p_line2 = np.linspace(max(pressures), pressures[-1], 30)
 
-        yi = ius(p_line)
-        fi = rbf(p_line2)
+        # testing if prograde and retrograde paths exist
+        # option 1 when prograde part exists and needs stitching with retrograde part
+        if len(t_pro) > 1 and len(p_pro) > 1:
+            ius = InterpolatedUnivariateSpline(p_pro, t_pro)
+            yi = ius(p_line)
 
-        temperatures = list(np.around(yi, 2)) + list(np.around(fi, 2))
-        pressures = list(np.around(p_line, 2)) + list(np.around(p_line2, 2))
+            rbf = Rbf(p_ret, t_ret)
+            fi = rbf(p_line2)
+
+            temperatures = list(np.around(yi, 2)) + list(np.around(fi, 2))
+            pressures = list(np.around(p_line, 2)) + list(np.around(p_line2, 2))
+        # option 2 when only retrograde part exists
+        else:
+            rbf = Rbf(p_ret, t_ret)
+            fi = rbf(p_line2)
+
+            temperatures = list(np.around(fi, 2))
+            pressures = list(np.around(p_line2, 2))
         return temperatures, pressures
 
     def _apply_interpolation_retrograde(self, f_path, pressures):
