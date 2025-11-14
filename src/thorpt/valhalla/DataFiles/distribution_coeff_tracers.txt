@@ -1,14 +1,9 @@
-Ref, Ratio, La, Ce, Pr, Nd, Sm, Eu, Gd, Tb, Dy, Ho, Er, Tm, Yb, Lu
-(a), Amphibole/Grt, 4.62e4, 3.528e4, 1.46e4, 4142, 746, 163, 91.1, 20.28, 5.281, 1.768, 1.055, 0.324, 0.276, 0.182
-(a), Epidote/Grt, 6.6e5, 2.52e5, 6.09e4, 1.09e4, 1022, 223.5, 70.152, 12.08, 2.614, 0.731, 0.348, 0.097, 0.071, 0.042
-(b), Clinopyroxene/Grt, 15, 5.109, 1.239, 0.829, 0.2, 0.083, 0.043, 0.02, 0.009, 0.006, 0.005, 0.004, 0.003, 0.003
-(c), Fluid/Grt, 0.728, 0.432, 0.2, 0.051, 0.012, 0.009, 0.005, 0.004, 0.004, 0.003, 0.003, 0.002, 0.002, 0.002
-(d), Chlorite/Grt, 1750, 1328, 450, 191, 23.3, 4.44, 1.771, 0.25, 0.054, 0.02, 0.01, 0.008, 0.002, 0.002
-(e), Titanite/Grt, 6805, 2387, 456.4, 176.1, 64.464, 26.527, 15.1, 8.212, 4.829, 3.044, 2.54, 2.01, 1.501, 1.16
+Ref, Ratio, Li, Be, B, Sc, V, Cr, Co, Zn, Ga, Y, La, Ce, Pr, Nd, Sm, Eu, Gd, Tb, Dy, Ho, Er, Tm, Yb, Lu
+(T), Amphibole/Grt, 17.3494, 5.2199, 3.7418, 0.1340, 1.7955, 1.3578, 2.8408, 5.9488, 1.4671, 0.0005, 3.2935, 1.9369, 4.7931, 3.5203, 0.2100, 0.0444, 0.0159, 0.0058, 0.0020, 0.0012, 0.0008, 0.0027, 0.0018, 0.0037
+(T), Epidote/Grt, 2.8298, 2.5131, 2.8005, 0.1122, 5.1209, 2.0833, 0.2000, 0.7097, 7.6382, 0.3161, 2037.5073, 844.0041, 1788.4004, 1138.5596, 58.9989, 11.2281, 4.5799, 1.2904, 0.6545, 0.3295, 0.2079, 0.1286, 0.0681, 0.0632
+(T), Clinopyroxene/Grt, 6.6158, 28.5552, 6.1162, 0.4640, 5.7061, 2.6119, 1.3204, 1.9740, 2.7702, 0.0029, 2.7138, 3.5000, 2.7415, 1.8828, 0.1437, 0.0268, 0.0150, 0.0065, 0.0037, 0.0034, 0.0027, 0.0039, 0.0039, 0.0041
+(T), Fluid/Grt, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.728, 0.432, 0.2, 0.051, 0.012, 0.009, 0.005, 0.004, 0.004, 0.003, 0.003, 0.002, 0.002, 0.002
+(T), Chlorite/Grt, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1750, 1328, 450, 191, 23.3, 4.44, 1.771, 0.25, 0.054, 0.02, 0.01, 0.008, 0.002, 0.002
+(T), Titanite/Grt, 1.7076, 1.8763, 5.1215, 0.4567, 3.3010, 2.6687, 0.3404, 0.6542, 0.6755, 0.9276, 24.8588, 56.3389, 43.2445, 34.4401, 5.0797, 2.1012, 1.3295, 0.8260, 0.9605, 1.0149, 1.1478, 1.3431, 1.3065, 1.1488
+(T), Phengite/Grt, 4.3039, 10.9145, 22.4123, 0.0314, 1.4553, 1.0745, 0.3791, 1.0976, 3.3268, 0.0010, 0.9776, 0.4306, 1.8456, 0.4742, 0.0642, 0.0265, 0.0122, 0.0138, 0.0026, 0.0020, 0.0026, 0.0038, 0.0029, 0.0041
 
-
-(a)Mulrooney & Rivers, 2005. Redistribution of the rare-earth elements among coexisting minerals in metamafic rocks across the epidote-out isograd: An example from the St. Anthony Complex, Northern Newfoundland, Canada. The Canadian Mineralogist, 43(1), 263–294. https://doi.org/10. 2113/gscanmin.43.1.263
-(b)Hermann, 2002. Allanite: Thorium and light rare earth element carrier in subducted crust. Chemical Geology, 192(3–4), 289– 306. https://doi.org/10.1016/S0009-2541(02)00222-X
-(c)Kessel et al., 2005. Trace ele- ment signature of subduction-zone fluids, melts and supercriti- cal liquids at 120–180 km depth. Nature, 437(7059), 724–727. https://doi.org/10.1038/nature03971
-(d)El Korh, 2010. Geochemical fingerprints of devolatilization reactions in the high-pressure rocks of Ile de Groix, France (Doctoral dissertation, University of Geneva).
-(e)Sassi et al., 2000. Trace ele- ment distribution in Central Dabie eclogites. Contributions to Mineralogy and Petrology, 139, 298–315. https://doi.org/10. 1007/s004100000133
