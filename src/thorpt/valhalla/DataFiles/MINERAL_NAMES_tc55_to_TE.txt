@@ -35,7 +35,6 @@ Lawsonite	lawsonite
 Magnesite	CCDO_magnesite2
 Magnetite	magnetite
 Monazite	monazite
-Muscovite	PHNG_mu
 Olivine	OLIVINEi
 Orthopyroxene	OPX
 Paragonite	paragonite

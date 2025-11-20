@@ -695,6 +695,11 @@ class ThorPT_Routines():
                 cdata = master_rock[item]['df_element_total']
                 rock_origin[item]['df_element_total'].append(copy.deepcopy(cdata))
 
+                
+                # treating apfu data
+                master_rock[item]['apfu_data'].append(
+                        master_rock[item]['minimization'].apfu)
+
                 # //////////////////////////////////////////////////////////////////////////
                 # store Mica potassium if stable
                 for phase in master_rock[item]['df_element_total'].columns:
@@ -3089,6 +3094,9 @@ class ThorPT_Routines():
             master_rock[rock]['st_elements_index'] = list(master_rock[rock]['st_elements'].index)
 
         # //////////////////////////////////////////////////////////////////////////
+
+        master_rock[rock]['apfu_data']
+
         # ------------------- Data storing in hdf5----------------------
         no_go = ['minimization', 'model_oxygen',
                 'fluid_calculation', 'fluid_extraction', 'reactivity', 'model_tracers']
@@ -3107,6 +3115,7 @@ class ThorPT_Routines():
             'df_element_total',
             'st_elements',
             'pot_data',
+            'apfu_data'
             ]
         h5_garnet_data = [
             'garnet_check',
@@ -3289,7 +3298,13 @@ class ThorPT_Routines():
                     elif item in h5_garnet_data:
                         hf.create_dataset(f"{rock}/GarnetData/{entries[i]}", data=master_rock[rock][item])
                     elif item in h5_system_data:
-                        hf.create_dataset(f"{rock}/SystemData/{entries[i]}", data=master_rock[rock][item])
+                        if item == 'apfu_data':
+                            for num, entry in enumerate(master_rock[rock][item]):
+                                hf.create_dataset(f"{rock}/SystemData/{entries[i]}/Model_{num}", data=master_rock[rock][item][num])
+                                hf[f"{rock}/SystemData/{entries[i]}/Model_{num}"].attrs.create('header', list(master_rock[rock][item][num].columns))
+                                hf[f"{rock}/SystemData/{entries[i]}/Model_{num}"].attrs.create('row', list(master_rock[rock][item][num].index))
+                        else:
+                            hf.create_dataset(f"{rock}/SystemData/{entries[i]}", data=master_rock[rock][item])
                     elif item == 'master_norm':
                         pass
                     else:

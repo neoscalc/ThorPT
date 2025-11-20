@@ -900,6 +900,88 @@ def read_theriak(theriak_path, database, temperature, pressure, whole_rock, ther
     except UnboundLocalError:
         pass
     Data_dic['df_elements_in_phases'] = df_elements_in_phases
+    
+
+    #### Reading the element per formula unit section
+    # 3.1) Elements in formula unit #####
+    #####################################
+
+    keyword = ' elements per formula unit:'
+    try:
+        apfu_index = int(TIL.index(keyword))
+    except ValueError:
+        print("---ERROR:---No atom per formula unit found? Somethings wrong with theriak output")
+
+    data = {}
+    current_number = 0
+
+    TIL_apfu = TIL[apfu_index:int(TIL.index(' activities of all phases:'))-3]
+    # Read the TIL lines for each phase when more than one element row is present (>10 elements)
+    if one_element_row is False:
+        # Read every phase from TIL_apfu to a temporaray dictionary
+        # Each phase has two lines of entry
+        num_entry_lines = 2
+        # first 5 rows are not needed
+        start_index = 2
+        TIL_apfu = TIL_apfu[start_index:]
+        phase_temp = []
+        # put every two lines into one entry of a list
+        i = 0
+        while i < len(TIL_apfu):
+            phase_temp.append(TIL_apfu[i:i+num_entry_lines])
+            i += num_entry_lines
+        # read each item from phase_temp and put it into the data dictionary
+        for item in phase_temp:
+            tempdata = item[0].split() + item[1].split()
+            data[tempdata[0]] = tempdata[1:]
+
+        # test if entry in tempdata[1:] is longer than 8 digits. If yes, split it into two entries
+        for key in data.keys():
+            tempdata = data[key]
+            tempdata_new = []
+            for entry in tempdata:
+                    # test if length of entry is longer than 8 digits and if two "." are present
+                    if len(entry) > 8 and entry.count(".") == 2 :
+                        tempdata_new.append(entry[:8])
+                        tempdata_new.append(entry[8:])
+                    else:
+                        tempdata_new.append(entry)
+            # convert each entry in tempdata to numeric
+            tempdata_new = [float(num) for num in tempdata_new]
+            data[key] = tempdata_new
+
+        # write the dictionary to a dataframe
+        df_apfu = pd.DataFrame(data)
+        df_apfu.index = element_list
+
+        
+    # Read the TIL lines for each phase when only one element row is present (<=10 elements)
+    if one_element_row is True:
+        count = 0
+        while True:
+            if 'total' in TIL[apfu_index+2+count]:
+                el_phase = TIL[apfu_index +
+                                            2+count].split()
+                for i, item in enumerate(el_phase[1:]):
+                    el_phase[i+1] = float(item)
+                data[el_phase[0]] = pd.Series(el_phase[1:])
+                break
+            elif len(TIL[apfu_index+2+count]) == 0 and len(TIL[apfu_index+2+count+1]) == 0 and TIL[apfu_index+2+count+2] == ' -------------------------':
+                # scanning next three entries for empty lines or separator - then break loop
+                break
+            else:
+                el_phase = TIL[apfu_index+2+count].split()
+                for i, item in enumerate(el_phase[1:]):
+                    el_phase[i+1] = float(item)
+                data[el_phase[0]] = pd.Series(el_phase[1:])
+            count += 1
+
+        df_apfu = pd.concat(data, axis=1)
+        df_apfu.index = element_list
+
+    # reading the selected data into the Data_dic for transfer
+    Data_dic['df_apfu'] = df_apfu
+
 
     ####################################
     # 4) reading equilibrium assemblage
@@ -1093,7 +1175,7 @@ def read_trace_element_content():
     file_to_open = os.path.join(new_folder_path, 'distribution_coeff_tracers.txt')
     
     # read the txt file with pandas, only the first 7 rows are needed, space as separator
-    df = pd.read_csv(file_to_open, sep=', ', nrows=6, engine='python')
+    df = pd.read_csv(file_to_open, sep=', ', engine='python')
     df.index = df['Ratio']
     df = df.iloc[:,2:]
 
@@ -1299,6 +1381,8 @@ class Therm_dyn_ther_looper:
         self.df_phase_data = theriak_data['df_Vol_Dens']
         self.df_all_elements = theriak_data['df_elements_in_phases']
         self.sol_sol_base = theriak_data['solid_solution_dic']
+        
+        self.apfu = theriak_data['df_apfu']
 
         # if self.temperature > 507.43:
         # print(self.temperature)
@@ -1397,6 +1481,7 @@ class Therm_dyn_ther_looper:
         # merging element data
         self.df_all_elements = pd.concat(
             [self.df_all_elements, self.df_all_elements.loc[:, 'total:']], axis=1)
+
 
     def step_on_water(self):
         """
@@ -3399,13 +3484,20 @@ class TraceElementDistribution():
             selected_phase_moles = []
             assembled_matrix_coeff = pd.DataFrame([])
             selected_phase_name_original = []
+
+            # remove entries in phase data where the index is "Si", "O", ...
+
+
             #assembling the trace element distribution matrix
             for i, name in enumerate(self.phase_set):
                 if name in name_list:
-                    if is_float64_nan(self.phase_data.iloc[i,-1]):
+                    # test if phase moles is nan - if so skip phase
+                    # if is_float64_nan(self.phase_data.iloc[i,-1]):
+                    if is_float64_nan(self.phase_data.loc[self.phase_original[i]].iloc[-1]):
                         pass
+                    # if not nan - append values
                     else:
-                        selected_phase_moles.append(self.phase_data.iloc[i,-1])
+                        selected_phase_moles.append(self.phase_data.loc[self.phase_original[i]].iloc[-1])
                         selected_phase_name_original.append(self.phase_original[i])
                         assembled_matrix_coeff = pd.concat([
                             assembled_matrix_coeff, _m_min_matrix_coeff_df.loc[name]], axis=1)

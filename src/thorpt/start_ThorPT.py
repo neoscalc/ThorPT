@@ -541,6 +541,7 @@ def run_main_routine():
                 'df_var_dictionary': {},
                 'df_h2o_content_dic': {},
                 'df_element_total': pd.DataFrame(),
+                'apfu_data': [],
                 'g_sys': [],
                 'pot_data': [],
                 'mica_K': [],
