@@ -7,7 +7,7 @@ Ref, Ratio, La, Ce, Pr, Nd, Sm, Eu, Gd, Tb, Dy, Ho, Er, Tm, Yb, Lu
 (e), Titanite/Grt, 6805, 2387, 456.4, 176.1, 64.464, 26.527, 15.1, 8.212, 4.829, 3.044, 2.54, 2.01, 1.501, 1.16
 
 
-(a)Mulrooney & Rivers, 2005. Redistribution of the rare-earth elements among coexisting minerals in metamafic rocks across the epidote-out isograd: An example from the St. Anthony Complex, Northern Newfoundland, Canada. The Canadian Mineralogist, 43(1), 263–294. https://doi.org/10. 2113/gscanmin.43.1.263
+(a)Mulrooney & Rivers, 2005. Redistribution of the rare-earth elements among coexisting minerals in metamafic rocks across the epidote-out isograd: An example from the St. Anthony Complex, Northern Newfoundland, Canada. The Canadian Mineralogist, 43(1), 263–294. https://doi.org/10.2113/gscanmin.43.1.263
 (b)Hermann, 2002. Allanite: Thorium and light rare earth element carrier in subducted crust. Chemical Geology, 192(3–4), 289– 306. https://doi.org/10.1016/S0009-2541(02)00222-X
 (c)Kessel et al., 2005. Trace ele- ment signature of subduction-zone fluids, melts and supercriti- cal liquids at 120–180 km depth. Nature, 437(7059), 724–727. https://doi.org/10.1038/nature03971
 (d)El Korh, 2010. Geochemical fingerprints of devolatilization reactions in the high-pressure rocks of Ile de Groix, France (Doctoral dissertation, University of Geneva).
