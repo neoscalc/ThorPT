@@ -1358,8 +1358,12 @@ class ThorPT_hdf5_reader():
 
                 # trace element data
                 trace_element_df = {}
-                for phase in f[group_key]['SystemData']['trace_element_data']:
-                    trace_element_df[phase] = pd.DataFrame(f[group_key]['SystemData']['trace_element_data'][phase])
+                try:
+                    for phase in f[group_key]['SystemData']['trace_element_data']:
+                                        trace_element_df[phase] = pd.DataFrame(f[group_key]['SystemData']['trace_element_data'][phase])
+                except KeyError:
+                    pass
+                
 
 
                 #######################################################

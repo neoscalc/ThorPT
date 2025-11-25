@@ -293,7 +293,9 @@ def mineral_translation():
     # end_line = len(read_translation) - 16
     comp_list = read_translation[mineral_data_line+1:]
     for num, item in enumerate(comp_list):
-        if '\n' in item:
+        if item == '\n':
+            continue
+        elif '\n' in item:
             line = item.split('\n')
             line = remove_items(line, '')
             line = line[0].split('\t')
